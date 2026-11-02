@@ -54,7 +54,7 @@ export default function TopHeader({ title }: { title?: string }) {
           <div className="flex items-center gap-2.5">
             {/* Logo Lumina (marque) */}
             <img
-              src="/lumina-logo-version-monochrome.png"
+              src="/lumina-logo.png"
               alt="Lumina"
               className="w-8 h-8 rounded-lg"
               style={{ border: "1px solid var(--border)" }}

@@ -1,13 +1,3 @@
-/**
- * MembresEnAvance v2 — Membres avec solde créditeur, redesign premium.
- *
- * Design : fond sombre, bandeau total avec dégradé, liste de membres avec
- * avatar initiales et montant en avance. Tokens CSS `var(--*)`.
- *
- * Logique métier inchangée : filtre montant_en_avance > 0 et statut ACTIVE,
- * tri décroissant, navigation vers détail membre.
- */
-
 import { useMembers, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { useNavigate } from "react-router-dom";
 import { formatCurrencyCompact } from "@/lib/utils";
@@ -16,23 +6,22 @@ import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
 import { MembresEnAvanceSkeleton } from "@/components/PageSkeletons";
-import { IonPage, IonContent } from "@ionic/react";
-import { ListItem } from "@/design/components/PageShell";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+} from "@ionic/react";
 
-type AvanceEntry = {
-  membre: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    phone: string | null;
-  };
-  montant: number;
-};
+type AvanceEntry = { membre: { id: string; firstName: string; lastName: string; phone: string | null }; montant: number };
 
 export default function MembresEnAvance() {
   const navigate = useNavigate();
   const { data: psData } = useMembers();
 
+  // Members with positive montant_en_avance, sorted descending by amount.
+  // PSMember uses snake_case columns; keep the existing camelCase fallback pattern.
   const membresEnAvance: AvanceEntry[] = (psData ?? [])
     .filter((m: any) => m.montant_en_avance > 0 && m.status === "ACTIVE")
     .map((m: any) => ({
@@ -50,17 +39,25 @@ export default function MembresEnAvance() {
 
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
+      <IonContent className="bg-canvas">
+      <h1 className="sr-only">Membres en avance</h1>
         <div className="min-h-dvh">
-          <TopHeader title="En avance" onBack={() => navigate("/members")} />
-
+          <TopHeader title="En avance" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            {/* Back button */}
+            <button
+              onClick={() => navigate("/members")}
+              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              <ArrowLeft className="w-4 h-4" /> Retour
+            </button>
+
             {/* Total banner */}
             <div
-              className="rounded-2xl p-5 mb-6"
+              className="rounded-2xl p-5 mb-5"
               style={{
-                background:
-                  "linear-gradient(135deg, var(--surface) 0%, var(--canvas) 100%)",
+                background: "linear-gradient(135deg, var(--surface) 0%, var(--canvas) 100%)",
                 border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
               }}
             >
@@ -77,11 +74,15 @@ export default function MembresEnAvance() {
                 </span>
               </p>
               <p className="text-text-tertiary text-xs mt-1">
-                {membresEnAvance.length} membre{membresEnAvance.length > 1 ? "s" : ""}
+                {membresEnAvance.length} membre
+                {membresEnAvance.length > 1 ? "s" : ""}
               </p>
             </div>
 
             {/* Members list */}
+            {/* R52.c — « Aucun membre en avance » n'est exact qu'une fois la
+                réplique disponible ; sinon on annonce le chargement (le total
+                affiché plus haut serait lui aussi faux à 0). */}
             {!isPowerSyncReadyNow() ? (
               <MembresEnAvanceSkeleton />
             ) : membresEnAvance.length === 0 ? (
@@ -110,7 +111,8 @@ export default function MembresEnAvance() {
                         className="text-sm font-bold"
                         style={{ color: "var(--accent-primary)" }}
                       >
-                        {membre.firstName.charAt(0)}{membre.lastName.charAt(0)}
+                        {membre.firstName.charAt(0)}
+                        {membre.lastName.charAt(0)}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -128,7 +130,7 @@ export default function MembresEnAvance() {
                         className="text-sm font-bold"
                         style={{ color: "var(--data-planified)" }}
                       >
-                        {formatCurrencyCompact(montant)} F
+                        {formatCurrencyCompact(montant)}
                       </p>
                       <p className="text-text-tertiary text-xs">en avance</p>
                     </div>

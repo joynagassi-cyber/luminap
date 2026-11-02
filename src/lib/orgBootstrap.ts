@@ -56,37 +56,6 @@ async function readErrorMessage(error: unknown): Promise<string> {
 export async function bootstrapOrganization(
   input: BootstrapOrgInput,
 ): Promise<BootstrapOrgResult> {
-  // Mode local-only : pas de Supabase configuré (ni `functions`) — créer
-  // l'organisation entièrement sur l'appareil, sans appel réseau.
-  if (!supabase.functions) {
-    const orgId =
-      "org_local_" + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
-    const grantId =
-      "grant_local_" + Math.random().toString(36).slice(2, 11);
-    try {
-      const orgs = JSON.parse(
-        localStorage.getItem("lumina-local-orgs") ?? "[]",
-      );
-      orgs.push({
-        id: orgId,
-        name: input.name,
-        type: input.type ?? "CHURCH",
-        createdAt: new Date().toISOString(),
-      });
-      localStorage.setItem("lumina-local-orgs", JSON.stringify(orgs));
-    } catch {
-      /* stockage indisponible — l'orgId est quand même retourné */
-    }
-    return {
-      orgId,
-      name: input.name,
-      type: input.type ?? "CHURCH",
-      status: "active",
-      role: "ADMIN",
-      grantId,
-    };
-  }
-
   const { data } = await supabase.auth.getSession();
   const accessToken = data?.session?.access_token;
   if (!accessToken) {

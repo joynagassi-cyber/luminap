@@ -1033,6 +1033,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (R106), kill switches, `RouteState` câblé. Reste en proposition : PR8–PR18,
   PR20. (PR17 MESURÉ non justifié ; PR18 = RLS `has_permission` ; PR20 =
   trancher `CENTRAL_ADMIN`.)
+- **PR5 PII des TIERS (2026-11-01)** : `redact` ne masque que les PII à FORME
+  (e-mail/jeton/téléphone). Un NOM de membre tiers cité dans la note libre ou un
+  message d'erreur traversait le rapport (Sentry + journal local). Corrigé via
+  `memberIdentities(members)` + param `members` de `sendProblemReport`/
+  `sendProblemReportToIssues` ; `Health.tsx` passe `useMembers().data`. La
+  conclusion « non corrigeable » (pas d'accès synchrone) était FAUSSE :
+  `useMembers()` sert le cache local sans I/O bloquante. Non-vacuité prouvée.
+  (Feature flags PR7 = FAIL-OPEN confirmé : drapeau absent/illisible ⇒ actif.)
 - **`git push`** : `git remote set-url origin https://${GITHUB_TOKEN}@github.com/joynagassi-cyber/luminap.git` avant de pousser (sinon prompt identifiants interactif).
 - **Création d'organisation self-serve = DEAD-END → CORRIGÉ (2026-10-31, R161)** :
   `OrgSetup.tsx::handleCreate` n'écrivait QUE du localStorage (aucun appel
@@ -1116,6 +1124,58 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   au-dessus → panne totale (classe PR15). `router-context-guard` durcie pour
   analyser aussi les composants IMPORTÉS (avant : seulement ceux déclarés dans
   App.tsx). Détail : `.openhands/memory/2026-11-01.md`.
+
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
+
+### Audit QA + durcissement (2026-11-01, PR #321)
+- **RÈGLE D'OR observabilité** : un message d'erreur remonté ne doit JAMAIS
+  contenir de valeur variable (durée, id, montant) — la signature de dédup =
+  type + message + 1ʳᵉ trame, donc un message interpolé ⇒ signature unique ⇒
+  dédup inopérante ⇒ spam. Mettre la valeur dans `context`. C'est la cause du
+  spam « Tâche longue détectée (${ms} ms) » (**89 Issues** sur le dépôt public).
+- **Dédup serveur = réservation ATOMIQUE en base AVANT la recherche GitHub**
+  (`/search/issues` a une indexation différée → doublons mesurés #307/#308).
+  Table `error_report_dedupe` PK `(dedupe_key, window_start)` + RPC
+  `claim_error_report`/`release_error_report` (migration `20261101000003`).
+  Edge function déployée **v7**.
+- **Ne remonter QUE depuis un build de production** : `isTransmissionAllowed()`
+  (`import.meta.env.PROD`) — sinon un `vite dev` local pollue le dépôt public.
+  Échappatoire `VITE_REPORT_ERRORS_IN_DEV=true`. Un rapport bloqué est retiré de
+  la file (`drop:true`), pas réessayé.
+- **Self-update** : `ApkUpdaterPlugin.canInstall()` doit garder
+  `canRequestPackageInstalls()` derrière `SDK_INT >= 26` (minSdk 21). Les échecs
+  de mise à jour remontent via `reportError` (source `self-update`).
+- **Release** : `release.yml` doit patcher `versionName`/`versionCode` depuis le
+  tag dans le job **`prepare`** (avant l'upload de `patched-android-src` que
+  consomme `build-android`), sinon `versionName` reste figé → boucle de MAJ.
+- **Bug produit réel (Issue #317)** : `report_definitions` (schéma PowerSync
+  local) n'a pas la colonne `kind` alors que `reporting.ts` l'écrit/la lit →
+  `no such column: kind`. Correctif = colonne + bump de version de schéma client.
+- **Garde** : `observability-self-healing-guard.test.ts` (27).
 
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →

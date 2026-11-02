@@ -1,11 +1,3 @@
-/**
- * Reports v2 — Rapports et tableaux de bord, redesign premium.
- *
- * Design : fond sombre, cartes de synthèse, graphiques, liste des rapports
- * avec actions d'export.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- */
-
 import { captureClientError } from "@/lib/clientErrors";
 import { useCallback, memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -56,151 +48,600 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Section, InfoCard, ActionCard, ListItem, StatCard } from "@/design/components/PageShell";
+import type { ReportDefinition } from "@/types";
+
+type Tab = "global" | "groupes" | "evenements";
+type Period = "month" | "year" | "all";
+
+const PIE_COLORS = ["var(--accent-primary)", "var(--data-planified)", "var(--in)", "var(--data-advance)", "var(--data-pink)", "var(--shortcut-forms)", "var(--shortcut-reports)", "var(--out)"];
+const COLORS = { grid: "var(--surface-hover)", text: "var(--text-tertiary)", income: "var(--in)", expense: "var(--out)", accent: "var(--accent-primary)" };
+
+// La couche de données renvoie snake_case (PowerSync) OU camelCase (IndexedDB) :
+// on normalise à la lecture pour rester correct dans les deux modes.
+const txCaisse = (t: any) => t.sourceCaisseId ?? t.source_caisse_id;
+const txCategory = (t: any) => t.categoryId ?? t.category_id;
+const txEvent = (t: any) => t.eventId ?? t.event_id;
+const catLabel = (c: any) => c.labelFr ?? c.label_fr ?? c.key ?? "Autre";
+
+function ChartTooltip({ active, payload, label, money }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl p-3 shadow-pop" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+      {label != null && <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>}
+      {payload.map((entry: any, idx: number) => (
+        <div key={entry.dataKey ?? idx} className="flex items-center justify-between gap-6 min-w-[140px]">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.payload?.fill || COLORS.accent }} />
+            <span className="text-text-secondary text-xs">{entry.name}</span>
+          </div>
+          <span className="text-text-primary text-xs font-bold tabular-nums">
+            {money ? formatCentsToFCFA(entry.value) : entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Panneaux d'onglets (mémoïsés) ─────────────────────────────────────────────
+// Le contenu de chaque onglet est monté/démonté selon `activeTab` ; on l'extrait
+// en sous-composants mémoïsés pour que la commutation d'onglets ne ré-exécute pas
+// l'intégralité de la page (re-runs des hooks et des calculs) à chaque re-render.
+
+interface GlobalPanelProps {
+  totalIncome: number;
+  totalExpense: number;
+  netResult: number;
+  monthlyData: { name: string; income: number; expense: number }[];
+  pieData: { id: string; name: string; value: number }[];
+}
+
+const GlobalPanel = memo(function GlobalPanel({ totalIncome, totalExpense, netResult, monthlyData, pieData }: GlobalPanelProps) {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}>
+            <TrendingUp className="w-4 h-4" style={{ color: "var(--in)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Entrées</p>
+          <p className="text-income font-bold text-sm mt-1">+{formatCentsToFCFA(totalIncome)}</p>
+        </div>
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}>
+            <TrendingDown className="w-4 h-4" style={{ color: "var(--out)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Sorties</p>
+          <p className="text-expense font-bold text-sm mt-1">-{formatCentsToFCFA(totalExpense)}</p>
+        </div>
+        <div className="rounded-xl p-4 text-left" style={{ backgroundColor: "var(--surface)" }}>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+            <BarChart3 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+          </div>
+          <p className="text-text-tertiary text-xs">Résultat</p>
+          <p className="font-bold text-sm mt-1" style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}>
+            {netResult >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(netResult))}
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Évolution (12 mois)</p>
+        <ChartContainer config={{}} className="h-40">
+          <AreaChart data={monthlyData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+            <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} />
+            <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+            <Tooltip content={<ChartTooltip money />} />
+            <Area type="monotone" dataKey="income" name="Entrées" stroke={COLORS.income} fill={COLORS.income} fillOpacity={0.3} stackId="1" />
+            <Area type="monotone" dataKey="expense" name="Sorties" stroke={COLORS.expense} fill={COLORS.expense} fillOpacity={0.3} stackId="1" />
+          </AreaChart>
+        </ChartContainer>
+      </div>
+
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Sorties par catégorie</p>
+        {pieData.length === 0 ? (
+          <div className="text-center py-6 text-text-tertiary text-xs">
+            <p className="font-semibold text-text-primary mb-1">Aucune sortie sur la période</p>
+          </div>
+        ) : (
+          <ChartContainer config={{}} className="h-56">
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={70} paddingAngle={2}>
+                {pieData.map((_, i) => (
+                  <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<ChartTooltip money />} />
+            </PieChart>
+          </ChartContainer>
+        )}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2">
+          {pieData.map((d, i) => (
+            <div key={d.id} className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+              <span className="text-text-secondary text-xs flex-1 truncate">{d.name}</span>
+              <span className="text-text-tertiary text-xs tabular-nums">{formatCentsToFCFA(d.value)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+interface GroupPanelProps {
+  caisseData: { id: string; name: string; income: number; expense: number; solde: number }[];
+}
+
+const GroupPanel = memo(function GroupPanel({ caisseData }: GroupPanelProps) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+        <p className="text-text-tertiary text-xs mb-2">Solde par caisse</p>
+        <ChartContainer config={{}} className="h-44">
+          <BarChart data={caisseData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+            <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 10 }} interval={0} />
+            <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+            <Tooltip content={<ChartTooltip money />} />
+            <Bar dataKey="solde" name="Solde" fill={COLORS.accent} radius={[4, 4, 0, 0]} barSize={20} />
+          </BarChart>
+        </ChartContainer>
+      </div>
+      <div className="space-y-2">
+        {caisseData.map((c) => (
+          <div key={c.id} className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor: "var(--surface)" }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+              <Building2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-text-primary text-sm font-medium truncate">{c.name}</p>
+              <p className="text-text-tertiary text-xs">
+                {formatCentsToFCFA(c.income)} entrées · {formatCentsToFCFA(c.expense)} sorties
+              </p>
+            </div>
+            <span className="text-sm font-bold tabular-nums" style={{ color: c.solde >= 0 ? "var(--in)" : "var(--out)" }}>
+              {c.solde >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(c.solde))}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
+interface EventPanelProps {
+  eventData: { id: string; name: string; budget: number; income: number; expense: number; net: number; active: boolean }[];
+  onOpen: (id: string) => void;
+}
+
+const EventPanel = memo(function EventPanel({ eventData, onOpen }: EventPanelProps) {
+  return (
+    <div className="space-y-4">
+      {eventData.length === 0 ? (
+        <EmptyState
+          title="Aucun événement"
+          description="Aucun événement avec activité sur la période"
+          icon={<Calendar className="w-6 h-6" />}
+        />
+      ) : (
+        <>
+          <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface)" }}>
+            <p className="text-text-tertiary text-xs mb-2">Entrées / sorties par événement</p>
+            <ChartContainer config={{}} className="h-44">
+              <BarChart data={eventData.filter((e) => e.active)} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} vertical={false} />
+                <XAxis dataKey="name" stroke={COLORS.text} tick={{ fontSize: 9 }} interval={0} />
+                <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} tickFormatter={(v: number) => formatCentsToFCFA(v)} />
+                <Tooltip content={<ChartTooltip money />} />
+                <Bar dataKey="income" name="Entrées" fill={COLORS.income} radius={[4, 4, 0, 0]} barSize={14} />
+                <Bar dataKey="expense" name="Sorties" fill={COLORS.expense} radius={[4, 4, 0, 0]} barSize={14} />
+              </BarChart>
+            </ChartContainer>
+          </div>
+          <div className="space-y-2">
+            {eventData.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => onOpen(e.id)}
+                className="w-full text-left rounded-xl p-3 flex items-center gap-3"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-text-primary text-sm font-medium truncate">{e.name}</p>
+                  <p className="text-text-tertiary text-xs">
+                    Budget {formatCentsToFCFA(e.budget)} · Net {formatCentsToFCFA(Math.abs(e.net))}
+                  </p>
+                </div>
+                <span className="text-sm font-bold tabular-nums" style={{ color: e.net >= 0 ? "var(--in)" : "var(--out)" }}>
+                  {e.net >= 0 ? "+" : "-"}{formatCentsToFCFA(Math.abs(e.net))}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+});
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { data: psTransactions, isLoading: psLoading } = useTransactions();
-  const { data: psCaisses } = useCaisses();
-  const { data: psCategories } = useCategories();
-  const { data: psEvents } = useEvents();
-  const { config: appConfig } = useAppConfig();
   const user = useCurrentUser();
+  const { churchName, churchLogoUrl } = useAppConfig().config;
+  const { data: transactions, isLoading } = useTransactions();
+  const { data: caisses } = useCaisses();
+  const { data: categories } = useCategories();
+  const { data: events } = useEvents();
 
-  const transactions = psTransactions ?? [];
-  const caisses = psCaisses ?? [];
-  const categories = psCategories ?? [];
-  const events = psEvents ?? [];
+  const openEvent = useCallback((id: string) => navigate(`/event/${id}`), [navigate]);
 
-  const [selectedReport, setSelectedReport] = useState<string | null>(null);
-  const [period, setPeriod] = useState("mois");
+  const [activeTab, setActiveTab] = useState<Tab>("global");
+  const [period, setPeriod] = useState<Period>("month");
+  const [showExport, setShowExport] = useState(false);
+  const [savedReports, setSavedReports] = useState<ReportDefinition[]>([]);
+  // R52.o — `reportDefinitionRepo.list()` est asynchrone : « Aucun rapport
+  // personnalisé » serait un fait FAUX avant la fin de la lecture.
+  const [savedLoaded, setSavedLoaded] = useState(false);
 
-  const totalIncome = transactions
-    .filter((t: any) => t.type === "INCOME" && t.status === "APPROVED")
-    .reduce((s, t) => s + t.amount, 0);
-  const totalExpense = transactions
-    .filter((t: any) => t.type === "EXPENSE" && t.status === "APPROVED")
-    .reduce((s, t) => s + t.amount, 0);
+  // B.1 — le hook fait l'union : `allowed` est vrai si le chemin fédéré
+  // (`federation.canAccess` : grants + rôles canon) OU le chemin legacy
+  // (`security.hasPermission(role, "report:…")`) accorde.
+  const multiExport = useCanAccessMulti(user?.id, user?.org?.id, "report", "export", undefined, user?.role as any);
+  const multiRead = useCanAccessMulti(user?.id, user?.org?.id, "report", "read", undefined, user?.role as any);
+  const canExport = multiExport.allowed;
+  const canRead = multiRead.allowed;
 
-  const handleGenerateReport = () => {
-    navigate("/report/new", { replace: true });
+  useEffect(() => {
+    reportDefinitionRepo
+      .list()
+      .then(setSavedReports)
+      .catch((e) => {
+        // Hors ligne ou store indisponible : la liste reste vide, mais on garde
+        // une trace (R88) — sans elle, un échec réel est indiscernable du vide.
+        captureClientError(e, { message: "Échec du chargement des rapports" });
+      })
+      // `finally` : l'écran ne reste jamais bloqué en squelette si la lecture
+      // échoue (même garantie que R52.k).
+      .finally(() => setSavedLoaded(true));
+  }, []);
+
+  // ── Filtrage par période ───────────────────────────────────────────────────
+  const now = new Date();
+  const inPeriod = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    if (period === "all") return true;
+    if (period === "month")
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return d.getFullYear() === now.getFullYear();
   };
+
+  const approved = useMemo(
+    () => ((transactions as any[]) || []).filter((t) => t.status === "APPROVED" && inPeriod(t.date)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transactions, period],
+  );
+
+  // ── Global ─────────────────────────────────────────────────────────────────
+  const totalIncome = approved.filter((t: any) => t.type === "INCOME").reduce((s: number, t: any) => s + t.amount, 0);
+  const totalExpense = approved.filter((t: any) => t.type === "EXPENSE").reduce((s: number, t: any) => s + t.amount, 0);
+  const netResult = totalIncome - totalExpense;
+
+  const monthlyData = useMemo(() => {
+    const MONTHS_FR = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Août", "Sep", "Oct", "Nov", "Déc"];
+    return MONTHS_FR.map((m, i) => {
+      const txs = ((transactions as any[]) || []).filter((t: any) => {
+        if (t.status !== "APPROVED") return false;
+        const d = new Date(t.date);
+        return d.getMonth() === i && d.getFullYear() === now.getFullYear();
+      });
+      const income = txs.filter((t: any) => t.type === "INCOME").reduce((s: number, t: any) => s + t.amount, 0);
+      const expense = txs.filter((t: any) => t.type === "EXPENSE").reduce((s: number, t: any) => s + t.amount, 0);
+      return { name: m, income, expense };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [transactions]);
+
+  const pieData = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const t of approved as any[]) {
+      if (t.type !== "EXPENSE") continue;
+      const k = txCategory(t) || "unknown";
+      map[k] = (map[k] || 0) + t.amount;
+    }
+    return Object.entries(map)
+      .filter(([, v]) => v > 0)
+      .map(([id, value]) => ({ id, name: catLabel((categories as any[] || []).find((c) => c.id === id) || {}), value }));
+  }, [approved, categories]);
+
+  // ── Groupes (par caisse) ─────────────────────────────────────────────────
+  const caisseData = useMemo(() => {
+    const map: Record<string, { income: number; expense: number }> = {};
+    for (const t of approved as any[]) {
+      const k = txCaisse(t) || "main";
+      map[k] = map[k] || { income: 0, expense: 0 };
+      if (t.type === "INCOME") map[k].income += t.amount;
+      else map[k].expense += t.amount;
+    }
+    const list = ((caisses as any[]) || []).map((c) => {
+      const m = map[c.id] || { income: 0, expense: 0 };
+      return { id: c.id, name: c.name, income: m.income, expense: m.expense, solde: m.income - m.expense };
+    });
+    // La caisse principale doit toujours figurer, même sans caisse explicitement listée.
+    if (!((caisses as any[]) || []).some((c) => c.id === "main")) {
+      const m = map["main"] || { income: 0, expense: 0 };
+      list.unshift({ id: "main", name: "Caisse principale", income: m.income, expense: m.expense, solde: m.income - m.expense });
+    }
+    return list;
+  }, [approved, caisses]);
+
+  // ── Événements ─────────────────────────────────────────────────────────────
+  const eventData = useMemo(() => {
+    const map: Record<string, { income: number; expense: number }> = {};
+    for (const t of approved as any[]) {
+      const k = txEvent(t);
+      if (!k) continue;
+      map[k] = map[k] || { income: 0, expense: 0 };
+      if (t.type === "INCOME") map[k].income += t.amount;
+      else map[k].expense += t.amount;
+    }
+    return ((events as any[]) || []).map((e) => {
+      const m = map[e.id] || { income: 0, expense: 0 };
+      return {
+        id: e.id,
+        name: e.name,
+        budget: e.budget || 0,
+        income: m.income,
+        expense: m.expense,
+        net: m.income - m.expense,
+        active: m.income > 0 || m.expense > 0,
+      };
+    });
+  }, [approved, events]);
+
+  const periodLabel = period === "month" ? "Ce mois" : period === "year" ? "Cette année" : "Tout";
+
+  const doExport = (fmt: "pdf" | "excel" | "csv") => {
+    const opts = {
+      churchName,
+      churchLogoUrl,
+      transactions: approved as any,
+      caisses: (caisses as any) || [],
+      title: `Rapport — ${periodLabel}`,
+      period: periodLabel,
+      totalIncome,
+      totalExpense,
+      netResult,
+    };
+    if (fmt === "pdf") exportPDF(opts);
+    else if (fmt === "excel") exportExcel(opts);
+    else exportCSV(opts);
+    setShowExport(false);
+  };
+
+  // R52.m/o — la branche `isLoading` est MORTE (`useTransactions` renvoie
+  // `false` en dur, D-R41) : on ajoute la garde de réplique + la lecture des
+  // rapports personnalisés pour ne jamais annoncer « Aucun … » avant lecture.
+  if (isLoading || ((transactions?.length ?? 0) === 0 && !isPowerSyncReadyNow())) {
+    return (
+      <IonPage>
+        <IonContent className="bg-canvas">
+        <h1 className="sr-only">Rapports</h1>
+          <div className="min-h-dvh">
+            <TopHeader title="Rapports" />
+            <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+              <ReportsSkeleton />
+            </div>
+            <BottomNav />
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
+      <IonContent className="bg-canvas">
+      <h1 className="sr-only">Rapports</h1>
         <div className="min-h-dvh">
-          {psLoading ? (
-            <div data-screen-state="loading" className="px-5">
-              <ReportsSkeleton />
+          <TopHeader title="Rapports" />
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <CapabilityBanner orgId={getOrganizationId()} />
+            {/* Période */}
+            <div className="flex gap-2 mb-5">
+              {([
+                { id: "month" as Period, label: "Ce mois" },
+                { id: "year" as Period, label: "Cette année" },
+                { id: "all" as Period, label: "Tout" },
+              ]).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriod(p.id)}
+                  className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
+                  style={
+                    period === p.id
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
+                      : { backgroundColor: "var(--surface)", color: "var(--text-secondary)" }
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-              <TopHeader title="Rapports" subtitle="Analyse et rapports financiers" />
-              <CapabilityBanner orgId={getOrganizationId()} />
 
-              {/* Synthèse */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <StatCard
-                  value={formatCentsToFCFA(totalIncome)}
-                  label="Revenus totaux"
-                  icon={<TrendingUp className="w-5 h-5" />}
-                  tone="income"
-                />
-                <StatCard
-                  value={formatCentsToFCFA(totalExpense)}
-                  label="Dépenses totales"
-                  icon={<TrendingDown className="w-5 h-5" />}
-                  tone="expense"
-                />
-              </div>
+            {/* Onglets */}
+            <div className="flex rounded-xl p-1 mb-5" style={{ backgroundColor: "var(--surface)" }}>
+              {([
+                { id: "global" as Tab, label: "Global", icon: Layers },
+                { id: "groupes" as Tab, label: "Groupes", icon: Building2 },
+                { id: "evenements" as Tab, label: "Événements", icon: Calendar },
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="flex-1 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                  style={
+                    activeTab === tab.id
+                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
+                      : { color: "var(--text-secondary)" }
+                  }
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-              {/* Sélecteur de période */}
-              <InfoCard className="mb-6">
-                <div className="flex gap-2">
-                  {["mois", "trimestre", "annee"].map((p) => (
+            {/* ── GLOBAL ── */}
+            {activeTab === "global" && (
+              <GlobalPanel
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
+                netResult={netResult}
+                monthlyData={monthlyData}
+                pieData={pieData}
+              />
+            )}
+
+            {/* ── GROUPES ── */}
+            {activeTab === "groupes" && <GroupPanel caisseData={caisseData} />}
+
+            {/* ── ÉVÉNEMENTS ── */}
+            {activeTab === "evenements" && <EventPanel eventData={eventData} onOpen={openEvent} />}
+
+            {/* Mes rapports (regroupés par famille — F.2c) */}
+            {canRead && (
+              <section className="mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                  <p className="text-text-primary font-semibold text-sm">Mes rapports</p>
+                  <span className="text-text-tertiary text-xs">({savedReports.length})</span>
+                </div>
+
+                {savedReports.length === 0 && !savedLoaded ? (
+                  <ListSkeleton count={2} />
+                ) : savedReports.length === 0 ? (
+                  <EmptyState
+                    title="Aucun rapport personnalisé"
+                    description="Créez-en un avec le constructeur"
+                    icon={<FileText className="w-6 h-6" />}
+                    actionLabel="Nouveau rapport"
+                    onAction={() => navigate("/report-builder")}
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {([
+                      { kind: "FINANCE", label: "Rapports financiers", newPath: "/report-builder" },
+                      { kind: "FEATURE", label: "État des features", newPath: "/report-builder?kind=FEATURE" },
+                      { kind: "AUDIT", label: "Journal / modifications", newPath: "/report-builder?kind=AUDIT" },
+                    ] as const).map((block) => {
+                      const reports = savedReports.filter(
+                        (r) => (r.kind || "FINANCE") === block.kind,
+                      );
+                      return (
+                        <div key={block.kind} className="rounded-xl p-3 space-y-2" style={{ backgroundColor: "var(--surface)" }}>
+                          <div className="flex items-center justify-between">
+                            <p className="text-text-secondary text-xs font-semibold uppercase tracking-wide">
+                              {block.label}
+                            </p>
+                            <button
+                              onClick={() => navigate(block.newPath)}
+                              className="flex items-center gap-1 text-xs font-medium"
+                              style={{ color: "var(--accent-primary)" }}
+                            >
+                              <Plus className="w-3.5 h-3.5" /> Nouveau
+                            </button>
+                          </div>
+                          {reports.length === 0 ? (
+                            <EmptyState
+                              title="Aucun rapport"
+                              description={`Aucun rapport ${block.label.toLowerCase()}`}
+                              icon={<FileText className="w-6 h-6" />}
+                              actionLabel="Nouveau"
+                              onAction={() => navigate(block.newPath)}
+                            />
+                          ) : (
+                            reports.map((r) => (
+                              <button
+                                key={r.id}
+                                onClick={() => navigate(`/report-builder?open=${r.id}`)}
+                                className="w-full text-left flex items-center gap-3"
+                              >
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}>
+                                  <FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-text-primary text-sm font-medium truncate">{r.name}</p>
+                                  <p className="text-text-tertiary text-xs">
+                                    {(r.groupBy?.length || 0) > 0 ? `Grouper : ${(r.groupBy || []).join(", ")}` : "Sans groupement"}
+                                  </p>
+                                </div>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Export */}
+            {canExport && (
+              <button
+                onClick={() => setShowExport(true)}
+                className="w-full mt-5 py-3.5 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2 transition-all active:scale-95"
+                style={{ background: "linear-gradient(135deg, var(--accent-light), var(--accent-primary))" }}
+              >
+                <Download className="w-4 h-4" /> Exporter le rapport
+              </button>
+            )}
+          </div>
+          <BottomNav />
+
+          {/* Modale d'export */}
+          {showExport && (
+            <div className="fixed inset-0 z-overlay flex items-end justify-center" onClick={() => setShowExport(false)}>
+              <div className="absolute inset-0 bg-scrim" />
+              <div className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8" style={{ backgroundColor: "var(--card)" }} onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-text-primary font-bold text-lg">Exporter le rapport</h2>
+                  <button onClick={() => setShowExport(false)} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "var(--surface-hover)" }} aria-label="Fermer">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {([
+                    { fmt: "pdf" as const, label: "PDF", desc: "Document professionnel", color: "var(--out)" },
+                    { fmt: "excel" as const, label: "Excel", desc: "Feuilles multiples", color: "var(--in)" },
+                    { fmt: "csv" as const, label: "CSV", desc: "Compatible tableurs", color: "var(--data-planified)" },
+                  ]).map((o) => (
                     <button
-                      key={p}
-                      onClick={() => setPeriod(p)}
-                      className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${
-                        period === p
-                          ? "bg-accent-primary text-black shadow-accent"
-                          : "bg-surface border border-border text-text-secondary"
-                      }`}
+                      key={o.fmt}
+                      onClick={() => doExport(o.fmt)}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl active:scale-95 transition-transform"
+                      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
                     >
-                      {p.charAt(0).toUpperCase() + p.slice(1)}
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${o.color}20` }}>
+                        <FileText className="text-lg" style={{ color: o.color }} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-text-primary text-sm font-semibold">{o.label}</p>
+                        <p className="text-text-tertiary text-xs">{o.desc}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
-              </InfoCard>
-
-              {/* Graphique synthétique */}
-              <InfoCard className="mb-6">
-                <div className="h-64">
-                  <ChartContainer>
-                    <AreaChart width={600} height={300} data={[]}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Area type="monotone" dataKey="value" stroke="#8884d8" fill="#8884d8" />
-                    </AreaChart>
-                  </ChartContainer>
-                </div>
-                <p className="text-text-tertiary text-xs text-center mt-3">
-                  Graphique de synthèse des flux financiers
-                </p>
-              </InfoCard>
-
-              {/* Liste des rapports */}
-              <Section title="Rapports disponibles">
-                <div className="space-y-3">
-                  <ListItem
-                    title="Rapport mensuel des finances"
-                    subtitle="Synthèse des entrées et sorties du mois"
-                    icon={<FileText className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />}
-                    onClick={() => navigate("/report/monthly")}
-                  />
-                  <ListItem
-                    title="Rapport annuel"
-                    subtitle="Bilan complet de l'année fiscale"
-                    icon={<Building2 className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />}
-                    onClick={() => navigate("/report/yearly")}
-                  />
-                  <ListItem
-                    title="Rapport par caisse"
-                    subtitle="Répartition par caisse de l'organisation"
-                    icon={<WalletIcon className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />}
-                    onClick={() => navigate("/report/caisse")}
-                  />
-                </div>
-              </Section>
-
-              {/* Action */}
-              <div className="mt-8">
-                <ActionCard
-                  tone="primary"
-                  onClick={handleGenerateReport}
-                  aria-label="Générer un nouveau rapport"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Générer un rapport</span>
-                </ActionCard>
               </div>
             </div>
           )}
         </div>
       </IonContent>
     </IonPage>
-  );
-}
-
-function WalletIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
-      <rect x="2" y="1" width="20" height="14" rx="2" ry="2" />
-      <line x1="16" y1="1" x2="12" y2="9" />
-      <line x1="12" y1="9" x2="8" y2="9" />
-    </svg>
   );
 }

@@ -52,6 +52,14 @@ vi.mock("@/lib/dataLayer", () => ({
     isLoading: docsState.loading,
   }),
   isPowerSyncReadyNow: () => docsState.ready,
+  useCurrentUser: () => ({
+    id: "local-user",
+    email: "",
+    firstName: "Utilisateur",
+    lastName: "",
+    role: "ADMIN",
+    org: { id: "org-1", name: "Lumina", type: "Église", accentColor: "#fff" },
+  }),
   addDocumentPS: vi.fn(),
   updateDocumentPS: vi.fn(),
 }));
@@ -59,6 +67,18 @@ vi.mock("@/lib/dataLayer", () => ({
 vi.mock("@/lib/storageService", () => ({
   uploadLuminaFile: vi.fn(),
   getDocumentUrl: vi.fn(),
+}));
+
+// La purge définitive n'est pas l'objet de ce test (couvert par
+// `trash-purge.test.ts` / `Archives-purge.test.tsx`) : on la neutralise pour
+// éviter de tirer `@/lib/powersync` (→ auth) sans configuration Supabase.
+vi.mock("@/lib/trash", () => ({
+  purgeEntity: vi.fn(async () => undefined),
+  purgeAllArchived: vi.fn(async () => ({ purged: 0, byType: {} })),
+}));
+
+vi.mock("@/hooks/useCanAccessMulti", () => ({
+  useCanAccessMulti: () => ({ allowed: false, loading: false, source: "neither" }),
 }));
 
 vi.mock("@/components/TopHeader", () => ({

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useOrgBudgets, useOrgBudgetLines, useTransactions, useCategories, useOrgUnits, addOrgBudgetLinePS, deleteOrgBudgetLinePS, updateOrgBudgetPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { computeBudgetReport, budgetWindow } from "@/capabilities/budgets";
 import { formatCurrencyCompact, formatCurrencyFull } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import { Plus, Trash2, Lock, FileText, X } from "lucide-react";
@@ -80,7 +81,7 @@ export default function BudgetDetail() {
       await addOrgBudgetLinePS({
         budget_id: budget.id,
         category_id: cat || null,
-        planned_amount_cents: Math.round((Number(amount.replace(/[^\d]/g, "")) || 0) * 100),
+        planned_amount_cents: parseAmountToCents(amount) ?? 0,
         note: null,
       });
       setAmount("");
@@ -214,7 +215,8 @@ export default function BudgetDetail() {
                     <IonItem lines="none" className="bg-card rounded-xl">
                       <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Montant prévu (FCFA)</IonLabel>
                       <IonInput
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         value={amount}
                         onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
                         aria-label="Montant prévu (FCFA)"

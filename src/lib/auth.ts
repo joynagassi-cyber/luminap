@@ -15,141 +15,19 @@ import type { Role } from "@/types";
 import { getOrganizationId, setOrganizationId } from "./orgContext";
 
 // Use environment variables — never hardcode credentials.
-// Quand VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquent, l'app démarre en
-// mode local-only : aucun client Supabase n'est créé, authService retourne une
-// session vide (non-authentifié) et toutes les écritures restent sur l'appareil.
+// L'application exige explicitement VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+// (plus de fallback silencieux vers le projet de dev).
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-let supabase: SupabaseClient;
-
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "[auth] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes — mode local-only (sans Supabase).",
+  throw new Error(
+    "[auth] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY manquantes : l'authentification ne peut pas fonctionner sans Supabase.",
   );
+}
 
-  // ─── Mock Supabase pour le mode local-only (demo) ───────────────────────
-  // Permet de créer un compte et de se connecter sans backend Supabase.
-  // Les utilisateurs sont persistés dans localStorage sous `lumina-demo-users`.
-  // Le mot de passe est stocké en clair (demo uniquement, jamais en prod).
-  const DEMO_USERS_KEY = "lumina-demo-users";
-  const DEMO_SESSION_KEY = "lumina-demo-session";
-
-  const demoGetUsers = (): Array<{ id: string; email: string; password: string }> => {
-    try {
-      return JSON.parse(localStorage.getItem(DEMO_USERS_KEY) ?? "[]");
-    } catch {
-      return [];
-    }
-  };
-  const demoSaveUsers = (users: Array<{ id: string; email: string; password: string }>) => {
-    try {
-      localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(users));
-    } catch {}
-  };
-  const demoGenerateId = () =>
-    "demo_" + Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
-
-  supabase = {
-    auth: {
-      getSession: async () => {
-        try {
-          const raw = localStorage.getItem(DEMO_SESSION_KEY);
-          if (!raw) return { data: { session: null }, error: null };
-          const parsed = JSON.parse(raw);
-          return { data: { session: parsed }, error: null };
-        } catch {
-          return { data: { session: null }, error: null };
-        }
-      },
-      getUser: async () => {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.user) return { data: { user: null }, error: null };
-          return { data: { user: session.user }, error: null };
-        } catch {
-          return { data: { user: null }, error: null };
-        }
-      },
-      signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
-        const users = demoGetUsers();
-        const user = users.find((u) => u.email === email && u.password === password);
-        if (!user) {
-          return {
-            data: { user: null, session: null },
-            error: new Error("Identifiant ou mot de passe incorrect"),
-          };
-        }
-        const session = {
-          user: { id: user.id, email: user.email, user_metadata: {} },
-          access_token: "demo-token",
-          refresh_token: "demo-refresh",
-          expires_at: Math.floor(Date.now() / 1000) + 86400,
-        };
-        try {
-          localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
-        } catch {}
-        return { data: { user: session.user, session }, error: null };
-      },
-      signUp: async ({ email, password, options }: { email: string; password: string; options?: { data?: Record<string, unknown> } }) => {
-        const users = demoGetUsers();
-        if (users.some((u) => u.email === email)) {
-          return {
-            data: { user: null, session: null },
-            error: new Error("Un compte avec cet email existe déjà"),
-          };
-        }
-        const id = demoGenerateId();
-        users.push({ id, email, password });
-        demoSaveUsers(users);
-        const session = {
-          user: { id, email, user_metadata: options?.data ?? {} },
-          access_token: "demo-token",
-          refresh_token: "demo-refresh",
-          expires_at: Math.floor(Date.now() / 1000) + 86400,
-        };
-        try {
-          localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
-        } catch {}
-        return { data: { user: session.user, session }, error: null };
-      },
-      signInWithOAuth: async () => ({
-        data: { url: null },
-        error: new Error("OAuth non disponible en mode demo"),
-      }),
-      exchangeCodeForSession: async () => ({
-        data: { session: null },
-        error: new Error("Supabase non configuré"),
-      }),
-      refreshSession: async () => ({
-        data: { session: null },
-        error: new Error("Supabase non configuré"),
-      }),
-      stopAutoRefresh: () => {},
-      onAuthStateChange: () => ({
-        data: { subscription: { unsubscribe: () => {} } },
-      }),
-    },
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: async () => ({ data: null, error: null }),
-        }),
-      }),
-      update: () => ({
-        eq: () => ({ error: null }),
-      }),
-      insert: () => ({
-        select: () => ({
-          maybeSingle: async () => ({ data: null, error: null }),
-        }),
-      }),
-    }),
-    rpc: async () => ({ data: null, error: new Error("Supabase non configuré") }),
-  } as unknown as SupabaseClient;
-} else {
-  supabase = createClient(
-    supabaseUrl,
+export const supabase: SupabaseClient = createClient(
+  supabaseUrl,
   supabaseAnonKey,
   {
     auth: {
@@ -165,9 +43,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
     },
   },
 );
-}
-
-export { supabase };
 
 // Profile type from database
 export interface Profile {

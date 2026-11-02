@@ -1,30 +1,40 @@
 /**
- * OrgReportSend v2 — Émission d'un rapport de gestion inter-organisations.
+ * OrgReportSend — page d'émission du rapport de gestion inter-organisations
+ * (Phase 3 Feature 2 — rapports organisations).
  *
- * Gating : visible uniquement si l'org courante a une MÈRE. Une org racine
- * affiche un message explicite, pas de formulaire.
+ * Gating : visible uniquement si l'org courante a une MÈRE
+ * (`federation.getOrgParent(currentOrgId)` non nul) — une org racine affiche
+ * un message explicite (« pas de mère — racine »), pas de formulaire.
  *
- * Design : fond sombre, carte destinataire, sélecteurs période/format,
- * picker de documents, bouton d'envoi, historique local des rapports émis.
- * Tokens CSS `var(--*)`.
+ * Formulaire (grammaire ionique canonique : IonItem lines="none" bg-card
+ * rounded-xl + IonLabel position="floating" + IonSelect,
+ * pattern Versement.tsx) :
+ *  - IonSelect période  : mensuelle / semestrielle / annuelle
+ *  - IonSelect format   : PDF / DOCX / XLSX / PNG
+ *  - DocumentPicker     : documents uploadés joints → `document_refs`
  *
- * Logique métier inchangée : buildOrgReport, exportOrgReport, uploadReportFile,
- * INSERT PowerSync outbox, markAsRead, historique.
+ * Bouton « Générer et envoyer » (offline-first) :
+ *  1. `buildOrgReport` depuis les données locales (useTransactions +
+ *     useEvents + useMembers + useDocuments — SQLite PowerSync 100 % local).
+ *  2. `exportOrgReport(payload, format)` → Blob (pdf/docx/xlsx/png).
+ *  3. `uploadReportFile(blob → File, { from_org_id, period_start, format })`
+ *     → `pdf_path` (bucket privé `org_reports`, idempotent via `upsert:true`
+ *     + clé UNIQUE de la table `org_reports`).
+ *  4. INSERT local PowerSync sur `org_reports` (`status: "PENDING"`,
+ *     `content` = JSON.stringify(payload), `document_refs`, `created_by`)
+ *     — outbox : l'INSERT est écrit dans le SQLite local et poussé au
+ *     serveur au retour de connexion ; le RLS `org_reports_emitter`
+ *     (fonction `current_org_id()`) ré-applique l'accès côté serveur.
+ *  5. Historique local (PENDING/READ) + option « Marquer comme lu ».
+ *
+ * Route : `/admin/report-send` (montée dans `src/ionic/routes/admin.tsx`).
+ * Les montants des transactions PowerSync sont en CENTIMES (convention du
+ * projet) — agrégés tels quels par `buildOrgReport` et formatés par
+ * `exportOrgReport` via `formatCurrencyCompact` (÷100).
  */
 
 import { useEffect, useState } from "react";
-import {
-  IonPage,
-  IonContent,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonSelect,
-  IonSelectOption,
-  IonItem,
-  IonLabel,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel } from "@ionic/react";
 import {
   Send,
   FileText,
@@ -168,15 +178,15 @@ export default function OrgReportSend() {
             <IonTitle>Envoyer un rapport</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent fullscreen className="bg-canvas">
-          <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
+        <IonContent className="bg-canvas">
+        <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
           <div data-screen-state="forbidden" className="min-h-dvh">
             <TopHeader title="Envoyer un rapport" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-              <div className="rounded-xl p-5 text-center" style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}>
+              <div
+                className="rounded-xl p-5 text-center"
+                style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+              >
                 <Network className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-tertiary)" }} />
                 <p className="text-text-primary font-semibold mb-1">
                   Cette organisation n'a pas de mère — elle est racine.
@@ -203,6 +213,9 @@ export default function OrgReportSend() {
     setSuccess(null);
     try {
       // 1. Composition locale (pure) depuis les données PowerSync de l'org.
+      //    Les hooks `use*` lisent l'org courante (getOrganizationId) :
+      //    ici on utilise directement le DB local pour rester découplé du
+      //    cycle de rendu (la page est la seule consommatrice de l'émission).
       const db = getPowerSyncDatabase();
       const txRes = await db.execute(
         `SELECT id, date, type, amount, person_name, source, event_id
@@ -313,20 +326,24 @@ export default function OrgReportSend() {
           <IonTitle>Envoyer un rapport</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen className="bg-canvas">
-        <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
+      <IonContent className="bg-canvas">
+      <h1 className="sr-only">Envoyer un rapport d'organisation</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Envoyer un rapport" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">
-            {/* PR10 — rappel « Rapport à envoyer » (idempotent, dismissible) */}
+            {/* PR10 — rappel « Rapport à envoyer » (idempotent, dismissible) :
+                visible seulement quand la cadence est dépassée et qu'aucun
+                rapport n'a été envoyé ce jour. */}
             <ReportReminderBanner orgId={orgId} />
-
             {/* Destinataire (la mère — gating, non modifiable) */}
             {parent && (
-              <div className="rounded-xl p-4" style={{
-                backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
-                border: "1px solid var(--border)",
-              }}>
+              <div
+                className="rounded-xl p-4"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
+                  border: "1px solid var(--border)",
+                }}
+              >
                 <div className="flex items-center gap-2">
                   <Network className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                   <span className="text-text-primary font-semibold text-sm">
@@ -377,10 +394,10 @@ export default function OrgReportSend() {
             </IonItem>
 
             {/* Documents joints (picker des documents uploadés) */}
-            <div className="rounded-xl p-4" style={{
-              backgroundColor: "var(--surface)",
-              border: "1px solid var(--border)",
-            }}>
+            <div
+              className="rounded-xl p-4"
+              style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+            >
               <DocumentPicker
                 selectedIds={selectedDocs}
                 onChange={setSelectedDocs}
@@ -400,7 +417,7 @@ export default function OrgReportSend() {
             >
               {sending ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Génération…
+                  <Loader2 className="w-4 h-4 animate-spin" /> Génération...
                 </>
               ) : (
                 <>
@@ -411,31 +428,37 @@ export default function OrgReportSend() {
 
             {/* Succès */}
             {success && (
-              <div className="rounded-xl p-3 text-sm" style={{
-                backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
-                color: "var(--in)",
-              }}>
+              <div
+                className="rounded-xl p-3 text-sm"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--in) 25%, transparent)",
+                  color: "var(--in)",
+                }}
+              >
                 {success}
               </div>
             )}
 
             {/* Erreur */}
             {error && (
-              <div className="rounded-xl p-3 text-sm" style={{
-                backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
-                color: "var(--out)",
-              }}>
+              <div
+                className="rounded-xl p-3 text-sm"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                  color: "var(--out)",
+                }}
+              >
                 {error}
               </div>
             )}
 
             {/* Historique local des rapports émis */}
-            <div className="rounded-xl p-4" style={{
-              backgroundColor: "var(--surface)",
-              border: "1px solid var(--border)",
-            }}>
+            <div
+              className="rounded-xl p-4"
+              style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Inbox className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
                 <span className="text-text-primary font-semibold text-sm">
@@ -457,7 +480,8 @@ export default function OrgReportSend() {
                           {r.title}
                         </p>
                         <p className="text-text-tertiary text-xs truncate">
-                          {formatDate(r.period_start)} → {formatDate(r.period_end)} · {r.format.toUpperCase()}
+                          {formatDate(r.period_start)} → {formatDate(r.period_end)} ·{" "}
+                          {r.format.toUpperCase()}
                         </p>
                       </div>
                       {r.status === "PENDING" ? (
@@ -475,10 +499,13 @@ export default function OrgReportSend() {
                           <Check className="w-3 h-3" /> Marquer comme lu
                         </button>
                       ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{
-                          backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
-                          color: "var(--in)",
-                        }}>
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)",
+                            color: "var(--in)",
+                          }}
+                        >
                           {r.status === "READ" ? "Lu" : r.status}
                         </span>
                       )}

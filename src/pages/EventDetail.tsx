@@ -13,6 +13,7 @@ import {
   isPowerSyncReadyNow,
 } from "@/lib/dataLayer";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
+import { parseAmountToCents } from "@/lib/amountInput";
 import {
   Calendar,
   Clock,
@@ -35,7 +36,7 @@ import { workflow } from "@/capabilities/workflow";
 import { getOrganizationId } from "@/lib/orgContext";
 import { DEFAULT_CATEGORY_ID } from "@/lib/canonicalCategories";
 import { periodLockMessage } from "@/lib/periodLock";
-import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
+import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import EventTasks from "@/components/EventTasks";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
@@ -116,7 +117,7 @@ export default function EventDetail() {
               className="px-4 py-2.5 rounded-xl text-sm font-medium"
               style={{
                 backgroundColor: "var(--accent-primary)",
-                color: "var(--accent-contrast, #fff)",
+                color: "var(--on-accent)",
               }}
             >
               Retour aux événements
@@ -179,13 +180,12 @@ export default function EventDetail() {
     );
     if (!budgetItem) return;
 
-    const amountFCFA = parseFloat(expenseAmount);
-    if (isNaN(amountFCFA) || amountFCFA <= 0) {
+    const amountCents = parseAmountToCents(expenseAmount);
+    if (amountCents === null || amountCents <= 0) {
       setExpenseError("Montant invalide");
       return;
     }
 
-    const amountCents = Math.round(amountFCFA * 100);
     const now = new Date().toISOString();
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
 
@@ -235,7 +235,7 @@ export default function EventDetail() {
     await updateEventPS(event.id, { budget_items: JSON.stringify(updatedItems) });
 
     setSuccess(
-      `Dépense de ${formatCurrencyCompact(amountCents)} FCFA enregistrée`,
+      `Dépense de ${formatCurrencyCompact(amountCents)} enregistrée`,
     );
     setTimeout(() => setSuccess(""), 3000);
     setShowAddExpense(false);
@@ -445,7 +445,7 @@ export default function EventDetail() {
                   <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>
                     Budget dépassé de{" "}
-                    {formatCurrencyCompact(budgetSpent - event.budget)} FCFA
+                    {formatCurrencyCompact(budgetSpent - event.budget)}
                   </span>
                 </div>
               )}
@@ -571,7 +571,7 @@ export default function EventDetail() {
                             </span>
                             <span className="text-text-tertiary">
                               {formatCurrencyCompact(item.spent || 0)}/
-                              {formatCurrencyCompact(item.allocated)} F
+                              {formatCurrencyCompact(item.allocated)}
                             </span>
                           </div>
                           <div
@@ -663,7 +663,7 @@ export default function EventDetail() {
                           }}
                         >
                           {tx.type === "INCOME" ? "+" : "-"}
-                          {formatCurrencyCompact(tx.amount)} F
+                          {formatCurrencyCompact(tx.amount)}
                         </span>
                       </div>
                     ))}
@@ -718,12 +718,12 @@ export default function EventDetail() {
                         </div>
                         <div className="text-right ml-3">
                           <p className="text-text-primary text-sm font-bold">
-                            {formatCurrencyCompact(item.allocated)} F
+                            {formatCurrencyCompact(item.allocated)}
                           </p>
                           <p
                             className={`text-xs ${isExceeded ? "text-expense" : "text-text-tertiary"}`}
                           >
-                            {formatCurrencyCompact(item.spent || 0)} F dépensé
+                            {formatCurrencyCompact(item.spent || 0)} dépensé
                           </p>
                         </div>
                       </div>
@@ -793,9 +793,7 @@ export default function EventDetail() {
               ) && (
                 <button
                   onClick={() =>
-                    navigate("/transaction/new", {
-                      state: { eventId: event.id },
-                    })
+                    navigate(`/transaction/new?eventId=${event.id}`)
                   }
                   className="w-full py-3 rounded-xl font-medium text-sm flex items-center justify-center gap-2 mb-3 transition-all active:scale-95"
                   style={{
@@ -860,7 +858,7 @@ export default function EventDetail() {
                         }}
                       >
                         {tx.type === "INCOME" ? "+" : "-"}
-                        {formatCurrencyCompact(tx.amount)} F
+                        {formatCurrencyCompact(tx.amount)}
                       </span>
                     </div>
                   ))
@@ -955,8 +953,8 @@ export default function EventDetail() {
                   <IonItem lines="none" className="bg-card rounded-xl">
                     <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                     <IonInput
-                      type="number"
-                      inputMode="numeric"
+                      type="text"
+                      inputMode="decimal"
                       value={expenseAmount}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setExpenseAmount(e.detail.value ?? "")}
                       placeholder="0"
@@ -968,8 +966,8 @@ export default function EventDetail() {
                         );
                         if (!item) return null;
                         const remaining = item.allocated - (item.spent || 0);
-                        const entered = parseFloat(expenseAmount) || 0;
-                        const overBudget = entered > remaining / 100;
+                        const entered = parseAmountToCents(expenseAmount) || 0;
+                        const overBudget = entered > remaining;
                         return (
                           <p
                             className={`text-xs mt-1 ${overBudget ? "text-expense" : "text-text-tertiary"}`}

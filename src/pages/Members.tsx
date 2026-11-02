@@ -1,20 +1,22 @@
-/**
- * Members v2 — Liste des membres, redesign premium.
- *
- * Design : fond sombre, en-tête avec stats, liste de membres avec avatars
- * et rôles, actions d'ajout rapide.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- */
-
-import { Fragment, useState, useMemo, useEffect } from "react";
+import { captureClientError } from "@/lib/clientErrors";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useMembers, addMemberPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { getOrganizationId } from "@/lib/orgContext";
 import { resource } from "@/capabilities/resource";
-import { captureClientError } from "@/lib/clientErrors";
+import { lifecycle } from "@/capabilities/lifecycle";
+import { workflow } from "@/capabilities/workflow";
 import { MembersSkeleton } from "@/components/PageSkeletons";
-import { PlusCircle, Users, Search, Archive, RefreshCw } from "lucide-react";
+import {
+  PlusCircle,
+  Users,
+  Search,
+  Archive,
+  RefreshCw,
+  UserPlus,
+  UserMinus,
+} from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
@@ -27,7 +29,7 @@ import {
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import CapabilityBanner from "@/components/CapabilityBanner";
-import { Section, InfoCard, ActionCard, ListItem, StatCard } from "@/design/components/PageShell";
+import { showError } from "@/utils/toast";
 
 export default function MembersPage() {
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ export default function MembersPage() {
   const [archivedError, setArchivedError] = useState(false);
   const [retryArchived, setRetryArchived] = useState(0);
 
+  // Load archived members via Resource capability
   useEffect(() => {
     setArchivedError(false);
     resource
@@ -48,160 +51,395 @@ export default function MembersPage() {
       });
   }, [retryArchived]);
 
-  const { data: psMembers, isLoading: membersLoading } = useMembers();
-  const members = psMembers ?? [];
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [visibleCount, setVisibleCount] = useState(20);
+  const {
+    data: members,
+    isLoading: membersLoading,
+    error: membersError,
+    retry: retryMembers,
+  } = useMembers();
+
+  // R52.m — réplique PowerSync non prête : « Aucun membre » serait un fait FAUX.
+  const replicaPending = !isPowerSyncReadyNow();
 
   const filteredMembers = useMemo(() => {
-    return members.filter((m: any) =>
-      !searchTerm ||
-      m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.email?.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
-  }, [members, searchTerm]);
+    return members.filter((m: any) => {
+      const q = searchQuery.toLowerCase();
+      const firstName = m.first_name || m.firstName || "";
+      const lastName = m.last_name || m.lastName || "";
+      const memberEmail = m.email || "";
+      return (
+        !q ||
+        firstName.toLowerCase().includes(q) ||
+        lastName.toLowerCase().includes(q) ||
+        memberEmail.toLowerCase().includes(q)
+      );
+    });
+  }, [members, searchQuery]);
 
-  const visibleMembers = filteredMembers.slice(0, visibleCount);
+  const activeMembers = filteredMembers.filter(
+    (m: any) => m.status === "ACTIVE",
+  );
 
-  const handleAddMember = () => {
-    navigate("/member/new", { replace: true });
+  // Un nouveau membre créé revient en tête de liste : on repart du premier écran.
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [searchQuery]);
+
+  const loadNext = () => {
+    if (visibleCount < activeMembers.length) {
+      setVisibleCount((c) => c + 50);
+    }
   };
+
+  const visibleMembers = activeMembers.slice(0, visibleCount);
+
+  const handleCreate = async () => {
+    if (!firstName.trim() || !lastName.trim()) return;
+    if (saving) return;
+    setSaving(true);
+    try {
+      await addMemberPS({
+        org_id: getOrganizationId(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+        status: "ACTIVE",
+        joined_at: new Date().toISOString(),
+        archived_at: null,
+        archived_by: null,
+        archive_reason: null,
+      });
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setEmail("");
+      setShowForm(false);
+    } catch (err) {
+      // Une erreur avalée laissait l'utilisateur devant un formulaire qui ne
+      // se ferme pas, sans explication. On journalise ET on affiche.
+      console.error("[members] échec de la création du membre", err);
+      showError("Impossible d'ajouter le membre. Réessayez.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleArchive = async (member: any) => {
+    const check = workflow.check("member", member.status, "INACTIVE");
+    if (!check.allowed) {
+      return;
+    }
+    await lifecycle.archive(
+      "Member",
+      member.id,
+      "Archivé via la gestion des membres",
+      user.id,
+    );
+    // Refresh archived list
+    const { items } = await resource.listArchived<Member>("Member");
+    setArchivedMembers(items);
+  };
+
+  const handleRestore = async (member: any) => {
+    const check = workflow.check("member", member.status, "ACTIVE");
+    if (!check.allowed) {
+      return;
+    }
+    await lifecycle.restore("Member", member.id, "Rétabli", user.id);
+    // Refresh archived list
+    const { items } = await resource.listArchived<Member>("Member");
+    setArchivedMembers(items);
+  };
+
+  if (membersLoading || (members.length === 0 && replicaPending)) {
+    return (
+      <div data-screen-state="loading">
+        <MembersSkeleton />
+      </div>
+    );
+  }
 
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
-        <div className="min-h-dvh">
-          {membersLoading ? (
-            <div data-screen-state="loading" className="px-5">
-              <MembersSkeleton />
+      <IonContent fullscreen>
+        <div data-screen-state="ready" className="min-h-dvh">
+          <TopHeader title="Membres" />
+          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
+            <CapabilityBanner orgId={getOrganizationId()} />
+            {/* Header */}
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h1 className="text-text-primary font-bold text-xl">Membres</h1>
+                <p className="text-text-tertiary text-xs mt-0.5">
+                  {activeMembers.length} actif
+                  {activeMembers.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <CircleAction
+                aria-label="Ajouter un membre"
+                onClick={() => setShowForm(!showForm)}
+              >
+                <PlusCircle className="w-6 h-6" />
+              </CircleAction>
             </div>
-          ) : (
-            <Fragment>
-              <h1 className="sr-only">Membres — gestion des membres</h1>
-              <TopHeader title="Membres" />
-              <div data-screen-state="ready" className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-                <CapabilityBanner orgId={getOrganizationId()} />
 
-                {/* En-tête avec stats et action */}
-                <div className="flex flex-col gap-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-text-primary font-bold text-2xl leading-tight">Membres</h2>
-                      <p className="text-text-tertiary text-sm">
-                        Gérez vos membres et leurs rôles dans l'organisation.
-                      </p>
-                    </div>
-                    <ActionCard
-                      tone="primary"
-                      onClick={handleAddMember}
-                      aria-label="Ajouter un membre"
-                    >
-                      <PlusCircle className="w-5 h-5" />
-                      <span>Ajouter</span>
-                    </ActionCard>
+            {/* Search */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+              {/* M4 */}
+              <IonInput
+                aria-label="Rechercher un membre"
+                placeholder="Rechercher un membre..."
+                value={searchQuery}
+                onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+              />
+            </div>
+
+            {/* Create form */}
+            {showForm && (
+              <div
+                className="rounded-xl p-4 mb-4"
+                style={{
+                  backgroundColor: "var(--surface)",
+                  border: "1px solid color-mix(in srgb, var(--accent-primary) 19%, transparent)",
+                }}
+              >
+                <h3 className="text-text-primary font-semibold text-sm mb-3">
+                  Nouveau membre
+                </h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* M4 */}
+                    <IonInput
+                      aria-label="Prénom (obligatoire)"
+                      autocomplete="given-name"
+                      placeholder="Prénom *"
+                      value={firstName}
+                      onIonInput={(e) => setFirstName((e.detail.value as string) ?? "")}
+                    />
+                    <IonInput
+                      aria-label="Nom (obligatoire)"
+                      autocomplete="family-name"
+                      placeholder="Nom *"
+                      value={lastName}
+                      onIonInput={(e) => setLastName((e.detail.value as string) ?? "")}
+                    />
                   </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <StatCard
-                      value={members.length.toString()}
-                      label="Membres actifs"
-                      icon={<Users className="w-5 h-5" />}
-                      tone="primary"
-                    />
-                    <StatCard
-                      value={archivedMembers.length.toString()}
-                      label="Archivés"
-                      icon={<Archive className="w-5 h-5" />}
-                      tone="expense"
-                    />
-                    <StatCard
-                      value={
-                        members.filter(
-                          (m: any) => m.role === "ADMIN" || m.role === "LEADER",
-                        ).length.toString()
-                      }
-                      label="Responsables"
-                      icon={<PlusCircle className="w-5 h-5" />}
-                      tone="advance"
-                    />
+                  <IonInput
+                    type="tel"
+                    aria-label="Téléphone"
+                    autocomplete="tel"
+                    placeholder="Téléphone"
+                    value={phone}
+                    onIonInput={(e) => setPhone((e.detail.value as string) ?? "")}
+                  />
+                  <IonInput
+                    type="email"
+                    aria-label="Email"
+                    autocomplete="email"
+                    placeholder="Email (optionnel)"
+                    value={email}
+                    onIonInput={(e) => setEmail((e.detail.value as string) ?? "")}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      data-testid="member-submit"
+                      onClick={handleCreate}
+                      disabled={saving || !firstName.trim() || !lastName.trim()}
+                      className="flex-1 py-3 rounded-full font-semibold text-on-accent text-sm"
+                      style={{ backgroundColor: "var(--accent-primary)" }}
+                    >
+                      {saving ? "Ajout..." : "Ajouter"}
+                    </button>
+                    <button
+                      onClick={() => setShowForm(false)}
+                      className="px-4 py-3 rounded-full font-medium text-sm"
+                      style={{ backgroundColor: "var(--surface-hover)" }}
+                    >
+                      Annuler
+                    </button>
                   </div>
                 </div>
-
-                {/* Recherche */}
-                <InfoCard className="mb-6">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                    <IonInput
-                      type="text"
-                      aria-label="Rechercher un membre"
-                      placeholder="Rechercher un membre…"
-                      value={searchTerm}
-                      onIonInput={(e) =>
-                        setSearchTerm(e.detail.value ?? "")
-                      }
-                      className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm bg-transparent"
-                    />
-                  </div>
-                </InfoCard>
-
-                {/* Liste des membres */}
-                {filteredMembers.length === 0 ? (
-                  <EmptyState
-                    title="Aucun membre"
-                    description="Ajoutez votre premier membre pour commencer à gérer votre organisation."
-                    icon={<Users className="w-6 h-6" />}
-                    action={handleAddMember}
-                    actionLabel="Ajouter un membre"
-                  />
-                ) : (
-                  <Section title="Liste des membres">
-                    {visibleMembers.map((member: any) => (
-                      <ListItem
-                        key={member.id}
-                        icon={
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
-                            style={{
-                              backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-                            }}
-                          >
-                            <img
-                              src={member.photo_url || ""}
-                              alt={member.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                            {!member.photo_url && (
-                              <Users className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-                            )}
-                          </div>
-                        }
-                        title={member.name || "Membre sans nom"}
-                        subtitle={member.role || "Membre"}
-                        onClick={() => navigate(`/member/${member.id}`)}
-                      />
-                    ))}
-                    {visibleMembers.length < filteredMembers.length && (
-                      <button
-                        onClick={() => setVisibleCount((c) => c + 20)}
-                        className="w-full py-3 rounded-xl text-sm font-medium text-center transition-all hover:bg-surface-hover"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                          color: "var(--accent-primary)",
-                        }}
-                      >
-                        Charger plus <span className="ml-2">›</span>
-                      </button>
-                    )}
-                  </Section>
-                )}
               </div>
-            </Fragment>
-          )}
+            )}
+
+            {/* Members list */}
+            <div className="space-y-2">
+              {activeMembers.length === 0 ? (
+                <EmptyState
+                  title="Aucun membre"
+                  description="Ajoutez votre premier membre"
+                  icon={<Users className="w-6 h-6" />}
+                  actionLabel="Ajouter"
+                  onAction={() => setShowForm(true)}
+                />
+              ) : (
+                <>
+                  {visibleMembers.map((member: any) => (
+                  <div
+                    key={member.id}
+                    className="rounded-xl p-4 flex items-center gap-3"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)" }}
+                    >
+                      <span
+                        className="text-sm font-bold"
+                        style={{ color: "var(--accent-primary)" }}
+                      >
+                        {(member.first_name || member.firstName)?.charAt(0)}
+                        {(member.last_name || member.lastName)?.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-text-primary text-sm font-semibold truncate">
+                        {member.first_name || member.firstName}{" "}
+                        {member.last_name || member.lastName}
+                      </p>
+                      <p className="text-text-tertiary text-xs">
+                        {member.phone || "Pas de téléphone"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleArchive(member)}
+                      className="p-2 rounded-full active:scale-95 transition-transform"
+                      style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)" }}
+                    >
+                      <Archive
+                        className="w-4 h-4"
+                        style={{ color: "var(--out)" }}
+                      />
+                    </button>
+                  </div>
+                  ))}
+                  {activeMembers.length > visibleCount && !membersError && (
+                    <IonInfiniteScroll
+                      position="bottom"
+                      threshold="150px"
+                      onIonInfinite={loadNext}
+                    >
+                      <div className="py-3">
+                        <p className="text-text-tertiary text-xs">
+                          Chargement…
+                        </p>
+                      </div>
+                    </IonInfiniteScroll>
+                  )}
+                </>
+              )}
+              {activeMembers.length > 0 && activeMembers.length <= visibleCount && !membersError && (
+                <p className="text-text-tertiary text-xs text-center py-3">
+                  Fin de la liste — {activeMembers.length} membre
+                  {activeMembers.length !== 1 ? "s" : ""} affiché
+                  {activeMembers.length !== 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+
+            {/* Error retry on the main list */}
+            {membersError && (
+              <div
+                className="mb-4 rounded-xl p-4 text-center"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <p className="text-text-tertiary text-sm mb-2">
+                  Impossible de charger les membres.
+                </p>
+                <button
+                  onClick={retryMembers}
+                  aria-label="Réessayer le chargement des membres"
+                  className="px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
+
+            {/* Archived members */}
+            {archivedError && (
+              <div
+                className="text-center py-6 rounded-xl"
+                style={{ backgroundColor: "var(--surface)" }}
+              >
+                <p className="text-text-tertiary text-sm">
+                  Impossible de charger les membres archivés.
+                </p>
+                <button
+                  onClick={() => setRetryArchived((n) => n + 1)}
+                  className="mt-2 px-4 py-2 rounded-full text-sm font-semibold text-on-accent transition-all active:scale-95"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                  aria-label="Réessayer le chargement des membres archivés"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
+            {archivedMembers.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Archive className="w-4 h-4 text-text-tertiary" />
+                  <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
+                    Archivés ({archivedMembers.length})
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {archivedMembers.map((member: any) => (
+                    <div
+                      key={member.id}
+                      className="rounded-xl p-4 flex items-center gap-3 opacity-60"
+                      style={{
+                        backgroundColor: "var(--card)",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: "var(--surface-hover)" }}
+                      >
+                        <span className="text-sm font-bold text-text-tertiary">
+                          {(member.first_name || member.firstName)?.charAt(0)}
+                          {(member.last_name || member.lastName)?.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-secondary text-sm font-medium truncate">
+                          {member.first_name || member.firstName}{" "}
+                          {member.last_name || member.lastName}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleRestore(member)}
+                        className="p-2 rounded-full active:scale-95 transition-transform"
+                        style={{ backgroundColor: "color-mix(in srgb, var(--in) 12%, transparent)" }}
+                      >
+                        <RefreshCw
+                          className="w-4 h-4"
+                          style={{ color: "var(--in)" }}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <BottomNav />
         </div>
       </IonContent>
     </IonPage>

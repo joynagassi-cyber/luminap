@@ -59,6 +59,11 @@
   --z-toast: 70;
   --z-skip: 100;
 
+  /* Hauteur de la BottomNav (56 px : 40 px de contenu + 2×8 px de padding).
+     Consommée par les éléments positionnés au-dessus de la nav (bandeau
+     hors-ligne) ; définie ici pour rester alignée sur la barre réelle. */
+  --nav-height: 56px;
+
   /* Voile (scrim) des overlays de page. En clair, un voile noir 60–70 %
      écrase les surfaces blanches : on passe à un voile gris 35 %. */
   --scrim: rgba(0, 0, 0, 0.6);
@@ -362,30 +367,6 @@ textarea:focus-visible,
   }
 }
 
-@keyframes bounce-slow {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-12px);
-  }
-}
-.animate-bounce-slow {
-  animation: bounce-slow 3s ease-in-out infinite;
-}
-
-/* ── Formulaires : correction chevauchement label flottant / valeur ──
- * La classe `has-value` est ajoutée sur l'ion-item parent par
- * src/lib/formLabelFix.ts quand l'ion-input a une valeur non vide.
- * Cela force le label flottant à remonter au-dessus de la valeur.
- */
-ion-item.has-value ion-label[position="floating"] {
-  transform-origin: left;
-  --transform: translatey(-50%) scale(0.85);
-  transform: translatey(-50%) scale(0.85);
-}
-
 /* ── Skeleton shimmer ────────────────────────────────────────────────
  * Balayage lumineux via translateX (aucun reflow du conteneur).
  * Le bandeau a une largeur 3× le bloc ; l'animation le fait glisser
@@ -422,100 +403,4 @@ ion-item.has-value ion-label[position="floating"] {
     animation: none;
     background: var(--surface-hover);
   }
-}
-
-/* ── Corrections globales de design — cohérence sur toutes les pages ── */
-
-/* Cartes : bordure, ombre, radius cohérents */
-.card,
-ion-card,
-[class*="card"],
-.bg-surface {
-  border-radius: var(--BORDERS-lg, 0.75rem) !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface) !important;
-  box-shadow: var(--shadow-card, none) !important;
-}
-
-/* Inputs : padding et focus cohérents, correction label flottant */
-ion-input,
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-input[type="url"],
-input[type="tel"],
-textarea {
-  border-radius: var(--BORDERS-md, 0.5rem) !important;
-  border: 1px solid var(--border) !important;
-  background: var(--surface) !important;
-  color: var(--text-primary) !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 0.875rem !important;
-}
-
-ion-input:focus,
-input:focus,
-textarea:focus {
-  border-color: var(--accent-primary) !important;
-  outline: none !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 20%, transparent) !important;
-}
-
-/* Labels flottants : s'assurer qu'ils remontent quand l'input a une valeur */
-ion-item.has-value ion-label[position="floating"] {
-  transform: translatey(-50%) scale(0.85) !important;
-}
-
-/* Boutons : états hover et active cohérents */
-button,
-ion-button {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-button:active,
-ion-button:active {
-  transform: scale(0.97) !important;
-}
-
-/* Listes : espacement et séparateurs cohérents */
-ion-list,
-[class*="space-y"] > * {
-  /* Espacement déjà géré par Tailwind, pas de modification */
-}
-
-/* Badges et pastilles */
-.badge,
-[class*="badge"] {
-  border-radius: var(--BORDERS-full, 9999px) !important;
-  padding: 0.25rem 0.75rem !important;
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-}
-
-/* Sections : titres de section cohérents */
-.section-title,
-[class*="uppercase"][class*="tracking-wider"] {
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.05em !important;
-  color: var(--text-secondary) !important;
-  text-transform: uppercase !important;
-  margin-bottom: 1rem !important;
-}
-
-/* Overlays et modales */
-ion-modal,
-[role="dialog"] {
-  border-radius: var(--BORDERS-lg, 0.75rem) !important;
-  background: var(--surface) !important;
-}
-
-/* Safe area pour les contenus scrollables */
-.pb-safe-calc {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8rem) !important;
-}
-.pt-safe-calc {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 4rem) !important;
 }

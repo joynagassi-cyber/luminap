@@ -347,7 +347,7 @@ export default function SettingsProfile() {
       </button>
 
       <div className="flex items-center justify-center gap-2 mt-6">
-        <img src="/lumina-logo-version-monochrome.png" alt="Lumina" className="w-5 h-5 rounded" />
+        <img src="/lumina-logo.png" alt="Lumina" className="w-5 h-5 rounded" />
         <p className="text-text-tertiary text-xs">
           Lumina v2.0 · {user?.org?.name || "Lumina"}
         </p>

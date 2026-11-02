@@ -323,8 +323,12 @@ describe("Policy wiring in pages", () => {
       );
 
       const inputs = document.querySelectorAll("input");
-      const amountInput = Array.from(inputs).find((el: any) => el.type === "number") as HTMLInputElement;
-      const descInput = Array.from(inputs).find((el: any) => el.type === "text") as HTMLInputElement;
+      const amountInput = Array.from(inputs).find(
+        (el: any) => el.getAttribute("inputmode") === "decimal",
+      ) as HTMLInputElement;
+      const descInput = Array.from(inputs).find(
+        (el: any) => el.type === "text" && el.getAttribute("inputmode") !== "decimal",
+      ) as HTMLInputElement;
 
       await act(async () => {
         fireEvent.change(amountInput, { target: { value: "0" } });
@@ -371,7 +375,7 @@ describe("Policy wiring in pages", () => {
         </MemoryRouter>,
       );
 
-      const amountInput = document.querySelector('input[type="number"]') as HTMLInputElement;
+      const amountInput = document.querySelector('input[inputmode="decimal"]') as HTMLInputElement;
       await act(async () => { fireEvent.change(amountInput, { target: { value: "0" } }); });
 
       const submitBtn = screen.getByText(/Sauvegarder/i);
@@ -405,7 +409,7 @@ describe("Policy wiring in pages", () => {
       await act(async () => { fireEvent.change(select, { target: { value: "c1" } }); });
 
       // Balance = 500000 cents = 5000 FCFA. Pay 2500 FCFA (within balance).
-      const amountInput = document.querySelector('input[type="number"]') as HTMLInputElement;
+      const amountInput = document.querySelector('input[inputmode="decimal"]') as HTMLInputElement;
       await act(async () => { fireEvent.change(amountInput, { target: { value: "2500" } }); });
 
       const continueBtn = screen.getByText(/Continuer/i);

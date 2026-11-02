@@ -28,12 +28,14 @@ import {
   resetOrganizationId,
 } from "./orgContext";
 import { parseJsonbValue } from "./jsonb";
+import { sortCaisses } from "./caisseOrder";
 import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 import { assertPeriodOpen, getLockedUntil } from "./periodLock";
 import { isFeatureEnabled } from "./featureFlags";
 import { assertApprovable } from "./makerChecker";
 import { isMakerCheckerEnabled } from "./makerCheckerSettings";
+import type { ExistingOrgCandidate } from "./orgCreationGuard";
 
 
 // ============================================================
@@ -509,24 +511,28 @@ export function useTransactions() {
   // render (cache vide) la fonction appelait 4 hooks, au render suivant
   // (cache rempli) elle n'en appelait que 3 → « change in the order of
   // Hooks » → crash d'Ionic (`Should have a queue`) et ErrorBoundary sur
-  // /transaction/:id/edit. Aucun hook ne doit être sauté : le cache est
-  // donc consulté APRÈS, et le résultat de useQuery est simplement ignoré
-  // s'il est périmé.
+  // /transaction/:id/edit. Le cache est donc TOUJOURS lu APRÈS `useQuery`,
+  // et aucun hook n'est sauté quel que soit le chemin de retour.
   const cached = get<PSTransaction[]>("txs:" + orgId);
 
   const { data: psData, isLoading: psStatus } = useQuery<PSTransaction>(
     "SELECT id, org_id, type, amount, description, date, status, category_id, org_unit_id, event_id, source, person_name, compensates_for, comment, version, source_caisse_id, versement_id, reversal_of_id, created_by_id, approved_by_id, created_at, updated_at, approved_at FROM transactions WHERE org_id = ? ORDER BY created_at DESC",
-    [orgId],
+    [orgId, orgRev],
     { reportFetching: true },
   );
 
-  if (cached)
-    return { data: cached, isLoading: false, source: "cached" as const };
-
+  // La donnée PowerSync VIVANTE prime toujours sur le cache mémoire : c'est
+  // elle qui reflète une création/édition (y compris depuis un autre appareil
+  // après synchronisation). Le cache ne sert que de repli quand la requête est
+  // momentanément vide. Inverser ces deux branches laissait l'écran figé sur
+  // une liste périmée jusqu'à expiration du TTL (60 s) — « l'UI ne se met pas
+  // à jour ».
   if (psData && psData.length > 0 && isPowerSyncReady()) {
     set("txs:" + orgId, psData, { tier: "cpu" });
     return { data: psData, isLoading: false, source: "powersync" as const };
   }
+
+  if (cached) return { data: cached, isLoading: false, source: "cached" as const };
 
   return {
     data: store.transactions,
@@ -630,11 +636,15 @@ export function useCaisses() {
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: sortCaisses(psData),
+      isLoading: false,
+      source: "powersync" as const,
+    };
   }
 
   return {
-    data: store.caisses,
+    data: sortCaisses(store.caisses),
     isLoading: false,
     source: "indexeddb" as const,
   };
@@ -654,11 +664,15 @@ export function useAccounts() {
   const store = useLocalStore();
 
   if (psData && psData.length > 0 && isPowerSyncReady()) {
-    return { data: psData, isLoading: false, source: "powersync" as const };
+    return {
+      data: sortCaisses(psData),
+      isLoading: false,
+      source: "powersync" as const,
+    };
   }
 
   return {
-    data: store.accounts,
+    data: sortCaisses(store.accounts),
     isLoading: false,
     source: "indexeddb" as const,
   };
@@ -1009,7 +1023,48 @@ export function usePowerSyncStatus(): boolean {
   // encore en cours » (ne doit PAS déclarer indisponible).
   const statusRef = useRef<any>(null);
 
-  useEffect(() => {    // Borne de disponibilité (P0 « zéro écran muet ») : si la réplique n'est    // toujours pas prête après le délai, on déclare PowerSync DISPONIBLE en    // mode dégradé. Les écrans cessent alors d'afficher un squelette perpétuel    // et montrent le contenu (éventuellement vide) ou un état explicite.    // Sans cela, en mode local-only (PowerSync non initialisé), TOUTES les    // pages resteraient bloquées sur un skeleton infini.    const deadline = setTimeout(() => {      if (isPowerSyncReadyNow()) return;      setReady(true);      markPowerSyncReady();      if (!statusRef.current?.connected) {        markPowerSyncUnavailable();      }    }, 5_000);    if (!sync) {      // Pas de PowerSync du tout (mode local-only) : le délai ci-dessus      // suffit à sortir du skeleton après 5 s.      return () => clearTimeout(deadline);    }    const applyStatus = (status: any) => {      statusRef.current = status;      if (status?.connected && status?.hasSynced) {        setReady(true);        markPowerSyncReady();      }    };    const unregister = (sync as any).registerListener?.({      statusChanged: applyStatus,    });    applyStatus((sync as any).currentStatus);    return () => {      clearTimeout(deadline);      if (typeof unregister === "function") unregister();    };  }, [sync]);
+  useEffect(() => {
+    if (!sync) return;
+
+    const applyStatus = (status: any) => {
+      statusRef.current = status;
+      if (status?.connected && status?.hasSynced) {
+        setReady(true);
+        markPowerSyncReady();
+      }
+    };
+
+    // API PowerSync réelle : `registerListener({ statusChanged })` +
+    // propriété `currentStatus`. Les noms `addListener` / `getStatus()`
+    // n'existent pas dans le SDK : l'appel optionnel ne levait pas, mais
+    // n'enregistrait rien → `_psReady` restait `false` pour toujours et
+    // TOUS les hooks de lecture retombaient sur le repli local (vide au
+    // premier lancement), alors que `useQuery` renvoyait bien les lignes.
+    const unregister = (sync as any).registerListener?.({
+      statusChanged: applyStatus,
+    });
+
+    applyStatus((sync as any).currentStatus);
+
+    // Borne de disponibilité (P0 « zéro écran muet ») : si la réplique n'est
+    // toujours pas prête après le délai, on la déclare INDISPONIBLE. Les
+    // écrans cessent alors d'afficher un squelette perpétuel et montrent un
+    // état explicite (« synchronisation indisponible »). Le délai couvre une
+    // première synchronisation normale, même lente.
+    //
+    // Si `connected === true`, la synchronisation est EN COURS (1re sync d'une
+    // grosse organisation peut dépasser le délai) : ne PAS déclarer
+    // indisponible. Seule une absence de connexion durable le fait.
+    const deadline = setTimeout(() => {
+      if (isPowerSyncReadyNow()) return;
+      if (statusRef.current?.connected) return;
+      markPowerSyncUnavailable();
+    }, 30_000);
+
+    return () => {
+      clearTimeout(deadline);
+      if (typeof unregister === "function") unregister();
+    };
   }, [sync]);
 
   return ready;
@@ -1058,6 +1113,18 @@ export async function executeWrite(
 ): Promise<number> {
   const db = getPowerSyncDatabase();
   const result = await db.execute(sql, params);
+  // Toute écriture sur `transactions` invalide le cache mémoire des
+  // transactions ET des soldes. Sans cela, `useTransactions` ressert la liste
+  // figée et `getAccountBalance` un solde figé (TTL « cpu » = 60 s) : après une
+  // création/édition/suppression, l'écran n'affiche PAS la transaction ni le
+  // nouveau solde qu'on vient d'enregistrer — c'est le « l'UI ne se met pas à
+  // jour » constaté. Point d'étranglement unique : addTransactionPS/
+  // updateTransactionPS/deleteTransactionPS/approve/reverse ET les INSERT
+  // directs de versement-service / cotisation-service passent tous par ici.
+  if (/\btransactions\b/i.test(sql)) {
+    invalidate("txs:");
+    invalidate("balance:");
+  }
   return (result as { rowsAffected?: number })?.rowsAffected ?? 1;
 }
 
@@ -2573,6 +2640,49 @@ export async function mirrorNewOrganizationLocally(input: {
     );
   } catch (e) {
     console.warn("[dataLayer] mirror profiles failed (non-fatal)", e);
+  }
+}
+
+/**
+ * Organisations RÉELLES dont l'utilisateur est déjà membre ou admin, lues dans
+ * le miroir PowerSync local. Alimente la garde anti-doublon du wizard
+ * d'onboarding (`decideExistingRootOrg`).
+ *
+ * Renvoie `null` (≠ `[]`) quand la réplique est INDISPONIBLE : la garde se
+ * replie alors sur `profiles.org_id` (déjà en localStorage), ce qui rattrape le
+ * cas P0 même quand PowerSync est justement en échec.
+ */
+export async function findExistingRootOrganization(
+  userId: string,
+): Promise<ExistingOrgCandidate[] | null> {
+  if (!userId) return null;
+  try {
+    const db = getPowerSyncDatabase();
+    const res = await db.execute(
+      `SELECT DISTINCT o.id AS orgId, o.name AS name, o.status AS status
+         FROM organizations o
+         LEFT JOIN profiles p ON p.org_id = o.id AND p.id = ?
+         LEFT JOIN org_memberships m
+           ON m.org_id = o.id AND m.user_id = ? AND m.status IN ('ACTIVE','PENDING')
+         LEFT JOIN org_admins g
+           ON g.org_id = o.id AND g.admin_profile_id = ? AND g.status = 'ACTIVE'
+        WHERE o.id NOT IN ('__no_org__', 'no-org')
+          AND (p.id IS NOT NULL OR m.id IS NOT NULL OR g.id IS NOT NULL)`,
+      [userId, userId, userId],
+    );
+    const rows = (res?.array ?? []) as Array<{
+      orgId: string;
+      name?: string | null;
+      status?: string | null;
+    }>;
+    return rows.map((r) => ({
+      orgId: String(r.orgId),
+      name: r.name ?? null,
+      status: r.status ?? null,
+    }));
+  } catch (e) {
+    console.info("[dataLayer] findExistingRootOrganization indisponible", e);
+    return null;
   }
 }
 

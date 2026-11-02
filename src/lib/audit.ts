@@ -162,3 +162,33 @@ export async function writeAudit(
 ): Promise<void> {
   await auditLogRepo.write(entry);
 }
+
+/**
+ * Résout l'acteur courant pour les mutations qui n'ont pas de paramètre
+ * `actorId` explicite (membres, événements, cotisations, versements, groupes).
+ *
+ * Repli `"local-user"` identique au reste du code (`versement-service`,
+ * `reporting`, `formSystem`) : une trace sans identité vaut mieux qu'aucune
+ * trace. La lecture du stockage ne lève jamais (SSR / test sans storage).
+ */
+export function resolveAuditActor(): {
+  userId: string;
+  actorRoleAtTime: string | null;
+} {
+  let userId = "local-user";
+  let actorRoleAtTime: string | null = null;
+  try {
+    const rawUser = localStorage.getItem("lumina-user");
+    if (rawUser) {
+      const profile = JSON.parse(rawUser) as { id?: string; role?: string };
+      if (profile.id) userId = profile.id;
+      if (profile.role) actorRoleAtTime = profile.role;
+    }
+    if (userId === "local-user") {
+      userId = localStorage.getItem("lumina-session") || "local-user";
+    }
+  } catch {
+    /* stockage indisponible — repli « local-user » */
+  }
+  return { userId, actorRoleAtTime };
+}

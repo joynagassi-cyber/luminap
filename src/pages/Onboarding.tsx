@@ -1,25 +1,10 @@
-/**
- * Onboarding v2 — Parcours de bienvenue premium, redesign.
- *
- * Design : fond sombre, illustrations vectorielles, typographie Inter,
- * cartes de fonctionnalités avec icônes, progression claire.
- * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
- *
- * Logique métier inchangée : état d'onboarding, complétion, navigation.
- */
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ChevronRight,
-  ArrowRight,
-  Wallet,
-  Calendar,
-  BarChart3,
-  Users,
-  Building,
-  Heart,
-  CheckCircle2,
+  ShieldCheck,
+  UserPlus,
+  Info,
 } from "lucide-react";
 import {
   IonPage,
@@ -31,212 +16,909 @@ import {
   completeOnboarding,
   type OnboardingState,
 } from "@/lib/onboardingState";
-import { motion } from "framer-motion";
-import BottomNav from "@/components/BottomNav";
-import TopHeader from "@/components/TopHeader";
-import { Section, InfoCard, ActionCard, ListItem } from "@/design/components/PageShell";
+import { CHART_COLORS } from "@/lib/utils";
 
 const SCREENS = [
   {
     id: "welcome",
-    title: "Bienvenue sur Lumina",
-    subtitle: "Découvrez comment gérer votre organisation en toute simplicité.",
-    icon: Building,
-    features: [
-      "Gestion des membres et des groupes",
-      "Suivi des finances et des cotisations",
-      "Organisation des événements et cultes",
-      "Rapports et tableaux de bord",
-    ],
+    title: "Gérez vos finances simplement",
+    subtitle: "Bienvenue sur Lumina",
+    description:
+      "Suivez vos revenus, dépenses et versements — offline, sécurisé et accessible à tous.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="30"
+          y="20"
+          width="220"
+          height="160"
+          rx="16"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="50" y="40" width="180" height="8" rx="4" fill="var(--accent-primary)" />
+        <rect x="50" y="60" width="120" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="80" width="70" height="40" rx="8" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
+        <rect x="130" y="80" width="100" height="40" rx="8" fill="var(--surface-hover)" />
+        <rect x="50" y="135" width="180" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="150" width="130" height="6" rx="3" fill="var(--surface-hover)" />
+        <circle cx="220" cy="44" r="3" fill={CHART_COLORS.expense} />
+        <circle cx="210" cy="44" r="3" fill={CHART_COLORS.pending} />
+        <circle cx="200" cy="44" r="3" fill={CHART_COLORS.income} />
+        <rect x="60" y="90" width="20" height="20" rx="4" fill={CHART_COLORS.income} />
+        <rect
+          x="72"
+          y="96"
+          width="30"
+          height="4"
+          rx="2"
+          fill={CHART_COLORS.income}
+          opacity="0.6"
+        />
+        <rect
+          x="72"
+          y="104"
+          width="20"
+          height="4"
+          rx="2"
+          fill={CHART_COLORS.income}
+          opacity="0.4"
+        />
+      </svg>
+    ),
   },
   {
-    id: "finance",
-    title: "Gestion financière simplifiée",
-    subtitle: "Enregistrez vos entrées et sorties en quelques clics.",
-    icon: Wallet,
-    features: [
-      "Saisie rapide des transactions",
-      "Suivi des budgets par caisse",
-      "Rapports financiers détaillés",
-      "Mode hors ligne inclus",
-    ],
+    id: "dashboard",
+    title: "Vue d'ensemble",
+    subtitle: "Tableau de bord",
+    description:
+      "Consultez instantanément le solde de chaque caisse, les transactions récentes et les événements à venir. Tout en un coup d'œil.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="20"
+          y="20"
+          width="110"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.income} />
+        <rect x="35" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="150"
+          y="20"
+          width="110"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="165" y="35" width="50" height="8" rx="4" fill={CHART_COLORS.pending} />
+        <rect x="165" y="50" width="80" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="165" y="60" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="165" y="80" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="20"
+          y="105"
+          width="240"
+          height="75"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="120" width="30" height="40" rx="4" fill="var(--surface-hover)" />
+        <rect x="75" y="135" width="30" height="25" rx="4" fill="var(--accent-primary)" />
+        <rect x="115" y="125" width="30" height="35" rx="4" fill="var(--surface-hover)" />
+        <rect x="155" y="140" width="30" height="20" rx="4" fill="var(--surface-hover)" />
+        <rect x="195" y="115" width="30" height="45" rx="4" fill="var(--surface-hover)" />
+      </svg>
+    ),
   },
   {
-    id: "members",
-    title: "Votre communauté",
-    subtitle: "Ajoutez et gérez vos membres facilement.",
-    icon: Users,
-    features: [
-      "Profils détaillés avec photo",
-      "Suivi des cotisations",
-      "Rôles et permissions",
-      "Communication simplifiée",
-    ],
+    id: "transactions",
+    title: "Transactions",
+    subtitle: "Enregistrer chaque mouvement",
+    description:
+      "Enregistrez vos mouvements en quelques touches et suivez leur statut. Chaque action reste tracée.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="60"
+          y="15"
+          width="160"
+          height="170"
+          rx="16"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="80" y="35" width="120" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect
+          x="80"
+          y="55"
+          width="90"
+          height="50"
+          rx="8"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <circle cx="95" cy="70" r="10" fill="color-mix(in srgb, var(--in) 12%, transparent)" />
+        <rect x="88" y="67" width="14" height="6" rx="1" fill={CHART_COLORS.income} />
+        <rect x="115" y="63" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="73" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="83" width="30" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="80"
+          y="115"
+          width="90"
+          height="50"
+          rx="8"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <circle cx="95" cy="130" r="10" fill="color-mix(in srgb, var(--out) 12%, transparent)" />
+        <rect x="88" y="127" width="14" height="6" rx="1" fill={CHART_COLORS.expense} />
+        <rect x="115" y="123" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="133" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="115" y="143" width="30" height="4" rx="2" fill="var(--surface-hover)" />
+        <circle cx="230" cy="170" r="18" fill="var(--accent-primary)" />
+        <path
+          d="M222 170h16M230 162v16"
+          stroke="white"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: "caisses",
+    title: "Caisses & Groupes",
+    subtitle: "Organisez vos fonds",
+    description:
+      "Chaque groupe possède sa caisse. Effectuez des versements entre caisses en toute simplicité.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="20"
+          y="15"
+          width="100"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="30" width="70" height="6" rx="3" fill="var(--accent-primary)" />
+        <rect x="35" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="160"
+          y="15"
+          width="100"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="175" y="30" width="70" height="6" rx="3" fill={CHART_COLORS.advance} />
+        <rect x="175" y="45" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="55" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="75" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="20"
+          y="105"
+          width="100"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.income} />
+        <rect x="35" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="160"
+          y="105"
+          width="100"
+          height="70"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="175" y="120" width="70" height="6" rx="3" fill={CHART_COLORS.pending} />
+        <rect x="175" y="135" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="175" y="165" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <path
+          d="M120 50h40M120 140h40"
+          stroke="var(--accent-primary)"
+          strokeWidth="1.5"
+          strokeDasharray="3 3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M130 45l10 5-10 5"
+          stroke="var(--accent-primary)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M150 135l10 5-10 5"
+          stroke="var(--accent-primary)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   },
   {
     id: "events",
-    title: "Événements et cultes",
-    subtitle: "Organisez vos rassemblements en toute sérénité.",
-    icon: Calendar,
-    features: [
-      "Calendrier des événements",
-      "Gestion du budget par événement",
-      "Inscriptions et présences",
-      "Rappels automatiques",
-    ],
+    title: "Événements & Budgets",
+    subtitle: "Planifiez chaque célébration",
+    description:
+      "Planifiez vos événements avec un budget et suivez les dépenses en temps réel.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="30"
+          y="15"
+          width="220"
+          height="170"
+          rx="16"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="50" y="30" width="60" height="8" rx="4" fill={CHART_COLORS.pink} />
+        <rect x="120" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
+        <rect x="170" y="30" width="40" height="8" rx="4" fill="var(--surface-hover)" />
+        <rect x="50" y="55" width="180" height="1" fill="var(--surface-hover)" />
+        <rect x="50" y="70" width="120" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="85" width="80" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="50" y="100" width="100" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect
+          x="50"
+          y="125"
+          width="180"
+          height="40"
+          rx="8"
+          fill="var(--card)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="60" y="135" width="60" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="60" y="145" width="40" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="180" y="135" width="40" height="14" rx="4" fill="color-mix(in srgb, var(--data-pink) 12%, transparent)" />
+        <rect x="240" y="70" width="10" height="40" rx="2" fill={CHART_COLORS.pink} />
+        <rect
+          x="225"
+          y="85"
+          width="10"
+          height="25"
+          rx="2"
+          fill={CHART_COLORS.pink}
+          opacity="0.6"
+        />
+        <rect
+          x="210"
+          y="95"
+          width="10"
+          height="15"
+          rx="2"
+          fill={CHART_COLORS.pink}
+          opacity="0.4"
+        />
+      </svg>
+    ),
   },
   {
     id: "reports",
-    title: "Rapports et insights",
-    subtitle: "Visualisez la santé de votre organisation d'un coup d'œil.",
-    icon: BarChart3,
-    features: [
-      "Tableaux de bord en temps réel",
-      "Rapports d'activité mensuels",
-      "Analyse des tendances",
-      "Export PDF et CSV",
-    ],
+    title: "Rapports & Bilans",
+    subtitle: "Des exports professionnels",
+    description:
+      "Générez des bilans financiers et exportez-les à tout moment, signés au nom de votre organisation.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="20"
+          y="15"
+          width="130"
+          height="170"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="35" width="100" height="6" rx="3" fill={CHART_COLORS.planified} />
+        <rect x="35" y="55" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="65" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="35" y="85" width="100" height="50" rx="6" fill="var(--card)" />
+        <rect x="45" y="110" width="20" height="20" rx="3" fill={CHART_COLORS.planified} />
+        <rect
+          x="70"
+          y="100"
+          width="20"
+          height="30"
+          rx="3"
+          fill={CHART_COLORS.planified}
+          opacity="0.7"
+        />
+        <rect
+          x="95"
+          y="90"
+          width="20"
+          height="40"
+          rx="3"
+          fill={CHART_COLORS.planified}
+          opacity="0.5"
+        />
+        <rect
+          x="120"
+          y="105"
+          width="20"
+          height="25"
+          rx="3"
+          fill={CHART_COLORS.planified}
+          opacity="0.3"
+        />
+        <rect x="35" y="150" width="100" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="35" y="162" width="70" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect
+          x="170"
+          y="30"
+          width="80"
+          height="140"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="185" y="50" width="50" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect x="185" y="70" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="80" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="100" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="110" width="50" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="185" y="130" width="50" height="20" rx="4" fill={CHART_COLORS.planified} />
+        <rect x="195" y="137" width="30" height="6" rx="2" fill="white" />
+      </svg>
+    ),
+  },
+  {
+    id: "org",
+    title: "Votre organisation, votre marque",
+    subtitle: "Nom, sigle, type & thème",
+    description:
+      "Donnez à votre organisation un nom, un sigle et un type, puis personnalisez son thème de couleurs. Cette identité habille chaque écran et chaque rapport.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="20"
+          y="20"
+          width="240"
+          height="80"
+          rx="14"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <circle cx="48" cy="48" r="14" fill="var(--accent-primary)" />
+        <rect x="70" y="40" width="110" height="8" rx="4" fill="var(--text-tertiary)" />
+        <rect x="70" y="56" width="70" height="6" rx="3" fill="var(--surface-hover)" />
+        <rect
+          x="196"
+          y="36"
+          width="52"
+          height="24"
+          rx="6"
+          fill="var(--card)"
+          stroke="var(--accent-primary)"
+          strokeWidth="1.5"
+        />
+        <text
+          x="222"
+          y="52"
+          textAnchor="middle"
+          fontSize="10"
+          fontWeight="700"
+          fill="var(--accent-primary)"
+        >
+          MFE
+        </text>
+        <rect
+          x="196"
+          y="66"
+          width="52"
+          height="24"
+          rx="6"
+          fill="var(--card)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1.5"
+        />
+        <text
+          x="222"
+          y="82"
+          textAnchor="middle"
+          fontSize="9"
+          fill="var(--text-tertiary)"
+        >
+          ONG
+        </text>
+        {/* swatches */}
+        <rect
+          x="20"
+          y="115"
+          width="240"
+          height="70"
+          rx="14"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="36" y="128" width="60" height="6" rx="3" fill="var(--text-tertiary)" />
+        {/* pastilles de thème ; mapping M17 : 7C3AED→.advance, 2563EB→.planified, 10B981→.success,
+            DB2777→.pink, B45309→.pending, 4F46E5→.advance, DC2626→.expense */}
+        <circle cx="42" cy="156" r="10" fill="var(--accent-primary)" />
+        <circle cx="72" cy="156" r="10" fill={CHART_COLORS.advance} />
+        <circle cx="102" cy="156" r="10" fill={CHART_COLORS.planified} />
+        <circle cx="132" cy="156" r="10" fill={CHART_COLORS.success} />
+        <circle cx="162" cy="156" r="10" fill={CHART_COLORS.pink} />
+        <circle cx="192" cy="156" r="10" fill={CHART_COLORS.pending} />
+        <circle cx="222" cy="156" r="10" fill={CHART_COLORS.advance} />
+        <circle cx="252" cy="156" r="10" fill={CHART_COLORS.expense} />
+      </svg>
+    ),
+  },
+  {
+    id: "features",
+    title: "Fonctions & rôles",
+    subtitle: "Activez ce qu'il vous faut",
+    description:
+      "Activez les modules qui correspondent à votre organisation et assignez des rôles. Lumina s'adapte à vos besoins.",
+    illustration: (
+      <svg
+        viewBox="0 0 280 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full"
+      >
+        <rect
+          x="20"
+          y="20"
+          width="140"
+          height="160"
+          rx="14"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="35" y="38" width="80" height="6" rx="3" fill="var(--text-tertiary)" />
+        {[0, 1, 2, 3].map((i) => (
+          <g key={i}>
+            <rect
+              x="35"
+              y={60 + i * 26}
+              width="110"
+              height="18"
+              rx="9"
+              fill="var(--card)"
+              stroke="var(--surface-hover)"
+              strokeWidth="1"
+            />
+            <circle
+              cx="134"
+              cy={69 + i * 26}
+              r="7"
+              fill={i < 3 ? "var(--accent-primary)" : "var(--surface-hover)"}
+            />
+            <circle cx="134" cy={69 + i * 26} r="7" fill="none" />
+          </g>
+        ))}
+        <rect
+          x="175"
+          y="20"
+          width="85"
+          height="74"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <rect x="188" y="34" width="59" height="46" rx="4" fill="var(--card)" />
+        <rect x="188" y="86" width="59" height="6" rx="3" fill="var(--accent-primary)" />
+        <rect
+          x="175"
+          y="104"
+          width="85"
+          height="76"
+          rx="12"
+          fill="var(--surface)"
+          stroke="var(--surface-hover)"
+          strokeWidth="1"
+        />
+        <circle cx="200" cy="130" r="10" fill="var(--accent-primary)" />
+        <rect x="216" y="124" width="34" height="5" rx="2" fill="var(--text-tertiary)" />
+        <rect x="216" y="134" width="24" height="4" rx="2" fill="var(--surface-hover)" />
+        <rect x="188" y="150" width="59" height="4" rx="2" fill="var(--surface-hover)" />
+      </svg>
+    ),
   },
 ];
 
+const TOTAL_STEPS = SCREENS.length + 1; // 8 presentation + 1 branch choice
+
+
 export default function Onboarding() {
   const navigate = useNavigate();
-  const [screenIndex, setScreenIndex] = useState(0);
-  const [completed, setCompleted] = useState(false);
+  const [initial] = useState<OnboardingState>(loadOnboardingState);
+  const [current, setCurrent] = useState(initial.screen);
+  const [branch, setBranch] = useState(initial.branch);
+  const [branchLoading, setBranchLoading] = useState<OnboardingState["branch"]>(
+    null,
+  );
 
-  const state = loadOnboardingState();
-  const current = SCREENS[screenIndex];
-  const isLast = screenIndex === SCREENS.length - 1;
+  const isPresentation = current < SCREENS.length;
+  const screen = SCREENS[current];
+  const isBranchStep = current === SCREENS.length; // step 9 = branch choice
+
+  /**
+   * Persist the resume point. `screen` is the index into the combined step
+   * list (0..7 presentation, 8 branch). On reload the user returns here.
+   */
+  const persist = (step: number, nextBranch: OnboardingState["branch"]) => {
+    saveOnboardingState({ ...loadOnboardingState(), screen: step, branch: nextBranch });
+  };
+
+  const handleBranchChoice = (choice: "creator" | "member") => {
+    setBranch(choice);
+    setBranchLoading(choice);
+    persist(SCREENS.length, choice);
+    // Give the button a moment to paint the selected state.
+    setTimeout(() => {
+      if (choice === "creator") {
+        navigate("/org-setup", { replace: true });
+      } else {
+        // Real claim engine: code / QR / file / proximity.
+        navigate("/invitation/claim", { replace: true });
+      }
+    }, 150);
+  };
 
   const handleNext = () => {
-    if (isLast) {
-      setCompleted(true);
-      completeOnboarding({ ...state, completed: true });
-      navigate("/dashboard", { replace: true });
+    if (isBranchStep) {
+      // Branch is chosen on its own screen — Next is hidden there.
+      return;
+    }
+    setCurrent((c) => c + 1);
+    persist(current + 1, branch);
+  };
+
+  const handleBack = () => {
+    if (isBranchStep) {
+      setCurrent(SCREENS.length - 1);
+      persist(SCREENS.length - 1, branch);
+    } else if (current > 0) {
+      setCurrent((c) => c - 1);
+      persist(current - 1, branch);
     } else {
-      setScreenIndex((i) => i + 1);
+      // « Passer » / « Ignorer » à l'écran 0 — ne renvoie PAS vers /auth :
+      // c'est un comportement de log-out qui ferait perdre la session courante
+      // (et oblige le user à retaper ses identifiants). Ici on finalize
+      // l'onboarding SANS configurer d'organisation : le user retombe sur
+      // /dashboard avec le profil par défaut, et needsOnboarding() retourne
+      // false pour toute connexion future sur ce navigateur.
+      completeOnboarding(loadOnboardingState());
+      navigate("/dashboard", { replace: true });
     }
   };
 
-  const handleSkip = () => {
-    setCompleted(true);
-    completeOnboarding({ ...state, completed: true });
-    navigate("/dashboard", { replace: true });
-  };
+  const totalDots = TOTAL_STEPS;
 
   return (
     <IonPage>
-      <IonContent fullscreen className="bg-canvas">
+      <IonContent className="bg-canvas">
         <div data-screen-state="ready" className="min-h-dvh flex flex-col">
-          <TopHeader
-            title="Bienvenue"
-            subtitle={isLast ? "Dernière étape" : `Étape ${screenIndex + 1} sur ${SCREENS.length}`}
-            onBack={() => navigate(-1)}
-          />
-          <div className="flex-1 px-6 pt-2 pb-safe-calc">
-            <div className="max-w-md mx-auto">
-              {/* Progression */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-text-tertiary text-xs font-medium uppercase tracking-wide">
-                    Progression
-                  </span>
-                  <span className="text-text-primary text-xs font-medium">
-                    {screenIndex + 1} / {SCREENS.length}
-                  </span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-surface-hover overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${((screenIndex + 1) / SCREENS.length) * 100}%` }}
-                    transition={{ duration: 0.4 }}
-                    className="h-full rounded-full"
-                    style={{
-                      background: "linear-gradient(90deg, var(--accent-primary), var(--accent-dark))",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Contenu de l'écran actuel */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="text-center"
+          {/* Header with logo */}
+          <div className="flex items-center justify-between px-6 py-5">
+            <img
+              src="/lumina-logo.png"
+              alt="Lumina"
+              className="w-10 h-10 object-contain"
+            />
+            {!isBranchStep && current > 0 ? (
+              <button
+                onClick={handleBack}
+                className="text-text-tertiary text-sm font-medium"
               >
-                <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 mx-auto"
-                  style={{
-                    background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
-                    boxShadow: "var(--shadow-accent)",
-                  }}
-                >
-                  {current.icon && <current.icon className="w-10 h-10 text-white" />}
+                Précédent
+              </button>
+            ) : !isBranchStep ? (
+              <button
+                onClick={handleBack}
+                className="text-text-tertiary text-sm font-medium"
+              >
+                Passer
+              </button>
+            ) : (
+              <button
+                onClick={handleBack}
+                className="text-text-tertiary text-sm font-medium"
+              >
+                Précédent
+              </button>
+            )}
+          </div>
+
+          {isBranchStep ? (
+            /* ── Step 9 — choose your path ────────────────────────────── */
+            <div className="flex-1 flex flex-col px-8 pt-4">
+              <div className="flex-1 flex flex-col justify-center">
+                <div className="flex items-center gap-3 mb-2">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{ background: "var(--accent-primary)" }}
+                  >
+                    <Info className="w-6 h-6 text-on-accent" />
+                  </div>
+                  <div>
+                    <p
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--accent-primary)" }}
+                    >
+                      Votre parcours
+                    </p>
+                    <h1 className="text-text-primary font-bold text-2xl leading-tight">
+                      Comment démarrer ?
+                    </h1>
+                  </div>
                 </div>
 
-                <h2 className="text-text-primary font-bold text-3xl tracking-tight mb-4">
-                  {current.title}
-                </h2>
-                <p className="text-text-tertiary text-lg leading-relaxed mb-8">
-                  {current.subtitle}
+                <p className="text-text-secondary text-sm leading-relaxed mb-8">
+                  Vous avez 2 portes d'entrée. Le premier créateur fonde son
+                  organisation&nbsp;; les autres s'y joignent par invitation.
                 </p>
 
-                <Section title="Ce que vous allez pouvoir faire">
-                  <div className="space-y-3">
-                    {current.features.map((feature, i) => (
-                      <ListItem
-                        key={i}
-                        icon={
-                          <CheckCircle2
-                            className="w-4 h-4"
-                            style={{ color: "var(--in)" }}
-                          />
-                        }
-                        title={feature}
-                        chevron={false}
-                      />
-                    ))}
-                  </div>
-                </Section>
-              </motion.div>
-
-              {/* Boutons de navigation */}
-              <div className="mt-10 flex gap-3">
-                {!isLast && (
-                  <button
-                    onClick={handleSkip}
-                    className="flex-1 py-4 rounded-xl font-medium text-sm transition-all"
-                    style={{
-                      backgroundColor: "transparent",
-                      border: "1px solid var(--border)",
-                      color: "var(--text-secondary)",
-                    }}
-                  >
-                    Passer
-                  </button>
-                )}
-                <ActionCard
-                  tone="primary"
-                  onClick={handleNext}
-                  aria-label={isLast ? "Terminer l'onboarding" : "Suivant"}
+                {/* Creator */}
+                <button
+                  onClick={() => handleBranchChoice("creator")}
+                  disabled={branchLoading !== null}
+                  className="w-full text-left rounded-2xl p-5 mb-4 transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{
+                    background: "var(--surface)",
+                    border:
+                      branchLoading === "creator"
+                        ? "2px solid var(--accent-primary)"
+                        : "1px solid var(--surface-hover)",
+                  }}
                 >
-                  {isLast ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      <span>Commencer</span>
-                    </>
-                  ) : (
-                    <>
-                      Suivant <ChevronRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </ActionCard>
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: "color-mix(in srgb, var(--accent-primary) 20%, transparent)",
+                      }}
+                    >
+                      <ShieldCheck
+                        className="w-6 h-6"
+                        style={{ color: "var(--accent-primary)" }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-text-primary font-semibold">
+                        Je crée mon organisation
+                      </p>
+                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
+                        Administrateur — vous fondez l'organisation&nbsp;:
+                        nom, type, thème et modules.
+                      </p>
+                    </div>
+                    {branchLoading === "creator" && (
+                      <div
+                        className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
+                        style={{
+                          borderColor: "var(--accent-primary)",
+                          borderTopColor: "transparent",
+                        }}
+                      />
+                    )}
+                  </div>
+                </button>
+
+                {/* Member */}
+                <button
+                  onClick={() => handleBranchChoice("member")}
+                  disabled={branchLoading !== null}
+                  className="w-full text-left rounded-2xl p-5 transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{
+                    background: "var(--surface)",
+                    border:
+                      branchLoading === "member"
+                        ? "2px solid var(--accent-primary)"
+                        : "1px solid var(--surface-hover)",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--accent-primary) 20%, transparent)",
+                      }}
+                    >
+                      <UserPlus
+                        className="w-6 h-6"
+                        style={{ color: "var(--accent-primary)" }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-text-primary font-semibold">
+                        Je rejoins par invitation
+                      </p>
+                      <p className="text-text-tertiary text-xs mt-1 leading-relaxed">
+                        Membre / collaborateur — code, QR, fichier ou
+                        proximité. Vous êtes intégré au rôle qui vous a été
+                        attribué.
+                      </p>
+                    </div>
+                    {branchLoading === "member" && (
+                      <div
+                        className="w-5 h-5 rounded-full border-2 border-t-transparent animate-spin"
+                        style={{
+                          borderColor: "var(--accent-primary)",
+                          borderTopColor: "transparent",
+                        }}
+                      />
+                    )}
+                  </div>
+                </button>
               </div>
             </div>
+          ) : (
+            <>
+              {/* Illustration */}
+              <div className="flex-shrink-0 px-8 pt-4 pb-2">
+                <div
+                  className="rounded-2xl overflow-hidden"
+                  style={{ background: "var(--card)" }}
+                >
+                  {screen.illustration}
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 px-8 pt-8 pb-4">
+                <p
+                  className="text-sm font-semibold mb-2"
+                  style={{
+                    color:
+                      screen.id === "welcome"
+                        ? "var(--accent-primary)"
+                        : "var(--text-tertiary)",
+                  }}
+                >
+                  {screen.subtitle}
+                </p>
+                <h1 className="text-text-primary font-bold text-2xl leading-tight mb-3">
+                  {screen.title}
+                </h1>
+                <p className="text-text-secondary text-sm leading-relaxed">
+                  {screen.description}
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Bottom */}
+          <div className="px-8 pb-10">
+            {/* Dots */}
+            <div className="flex justify-center gap-1.5 mb-8">
+              {Array.from({ length: totalDots }).map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-full transition-all"
+                  style={{
+                    width: i === current ? "24px" : "6px",
+                    height: "6px",
+                    backgroundColor:
+                      i === current
+                        ? "var(--accent-primary)"
+                        : "var(--surface-hover)",
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Buttons */}
+            {isBranchStep ? (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleBack}
+                  className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  Précédent
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  onClick={handleBack}
+                  className="flex-1 py-3.5 rounded-full font-semibold text-sm transition-all active:scale-95"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {current > 0 ? "Précédent" : "Ignorer"}
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="flex-1 py-3.5 rounded-full font-semibold text-sm text-on-accent transition-all active:scale-95 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "var(--accent-primary)" }}
+                >
+                  Suivant
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
-          <BottomNav />
         </div>
       </IonContent>
     </IonPage>
