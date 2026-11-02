@@ -377,7 +377,7 @@ export default function OrgSetup() {
       completeOnboarding(state);
 
       await selectRole(effectiveRole);
-      navigate("/dashboard", { replace: true });
+      navigate("/onboarding", { replace: true });
     } catch (err) {
       setCreateError(
         err instanceof Error && err.message

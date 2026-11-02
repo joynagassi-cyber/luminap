@@ -102,7 +102,7 @@ export default function AuthPage() {
     const returnTo = readReturnToFromSearch(location.search);
     const to =
       opts?.forceOnboarding || needsOnboarding()
-        ? "/onboarding"
+        ? "/org-setup"
         : (returnTo ?? "/dashboard");
     navigate(to, { replace: true });
   };

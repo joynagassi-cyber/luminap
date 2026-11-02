@@ -52,7 +52,7 @@ export default function Splash() {
       const session = await authService.getSession();
       if (session) {
         // Session existante → onboarding ou dashboard
-        navigate(needsOnboarding() ? "/onboarding/choice" : "/dashboard", {
+        navigate(needsOnboarding() ? "/org-setup" : "/dashboard", {
           replace: true,
         });
       } else {
