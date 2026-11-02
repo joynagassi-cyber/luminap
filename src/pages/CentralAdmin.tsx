@@ -480,7 +480,7 @@ function OrgDetail({ orgId, onBack }: { orgId: string; onBack: () => void }) {
           <div className="space-y-3">
             {/* M24 — grammaire canonique IonItem + IonLabel + IonSelect */}
             <IonItem lines="none" className="bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">
+              <IonLabel position="stacked" className="text-sm text-text-secondary">
                 Profil
               </IonLabel>
               <IonSelect

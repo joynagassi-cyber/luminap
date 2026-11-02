@@ -176,7 +176,7 @@ export default function DocumentPicker({
       {/* + Ajouter des documents (upload bucket `archives`) */}
       <div className="space-y-2">
         <IonItem lines="none" className="bg-card rounded-xl">
-          <IonLabel position="floating" className="text-sm text-text-secondary">
+          <IonLabel position="stacked" className="text-sm text-text-secondary">
             Ajouter un document
           </IonLabel>
           <IonInput

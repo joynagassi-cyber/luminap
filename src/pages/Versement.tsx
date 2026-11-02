@@ -228,7 +228,7 @@ export default function Versement() {
                 {/* M3 — Caisse selector : IonSelect + IonLabel (remplace le
                     label/div ad-hoc du pattern M24 pour rester cohérent) */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">Sélectionner une caisse</IonLabel>
+                  <IonLabel position="stacked">Sélectionner une caisse</IonLabel>
                   <IonSelect
                     value={selectedCaisse}
                     onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedCaisse(e.detail.value)}
@@ -274,7 +274,7 @@ export default function Versement() {
                       : undefined
                   }
                 >
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Montant à verser (FCFA)</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Montant à verser (FCFA)</IonLabel>
                   <IonInput
                     type="text"
                     inputMode="decimal"
@@ -297,7 +297,7 @@ export default function Versement() {
 
                 {/* Comment */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
                   <IonTextarea
                     value={comment}
                     onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}

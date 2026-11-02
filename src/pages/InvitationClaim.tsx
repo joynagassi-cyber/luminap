@@ -332,7 +332,7 @@ export default function InvitationClaim() {
             {mode === "code" ? (
               <div className="space-y-4">
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">Code d'invitation</IonLabel>
+                  <IonLabel position="stacked">Code d'invitation</IonLabel>
                   <IonInput
                     type="text"
                     value={codeInput}
@@ -366,7 +366,7 @@ export default function InvitationClaim() {
 
                 {/* Manual raw input fallback */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">Coller le code d'invitation</IonLabel>
+                  <IonLabel position="stacked">Coller le code d'invitation</IonLabel>
                   <IonInput
                     value={rawPayload}
                     onIonInput={(e) => setRawPayload(e.detail.value!)}

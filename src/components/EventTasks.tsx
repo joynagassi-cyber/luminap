@@ -330,7 +330,7 @@ export default function EventTasks({
               <div className="space-y-4">
                 {/* Titre (obligatoire) */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Titre *
                   </IonLabel>
                   <IonInput
@@ -345,7 +345,7 @@ export default function EventTasks({
 
                 {/* Échéance */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Échéance
                   </IonLabel>
                   <IonInput
@@ -359,7 +359,7 @@ export default function EventTasks({
 
                 {/* Groupe « doit » */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Groupe assigné
                   </IonLabel>
                   <IonSelect
@@ -380,7 +380,7 @@ export default function EventTasks({
 
                 {/* Description */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Description
                   </IonLabel>
                   <IonTextarea
@@ -408,7 +408,7 @@ export default function EventTasks({
 
                 {isSub && parents.length > 0 && (
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">
                       Tâche parente
                     </IonLabel>
                     <IonSelect

@@ -269,8 +269,8 @@ textarea:focus-visible,
  *   un style inline `calc(env(safe-area-inset-bottom, 0px) + 64px)`.
  * - .pt-safe     : haut de page SCROLLABLE (défile par-dessus la
  *   barre de statut) — remplace pt-16.
- * - .pt-safe-calc : haut de page AVEC TopHeader fixe (~4rem = 64px) —
- *   remplace pt-16 devant un TopHeader.
+ * - .pt-safe-calc : haut de page SOUS un TopHeader sticky en flux —
+ *   simple respiration (le header occupe déjà sa hauteur).
  */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -282,7 +282,14 @@ textarea:focus-visible,
   padding-top: env(safe-area-inset-top, 0px);
 }
 .pt-safe-calc {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 4rem);
+  /* Bug P1-4 : l'ancien `inset-top + 4rem` supposait un TopHeader FIXE en
+     surimpression. Or le TopHeader est `sticky` DANS le flux de scroll
+     (theme.css) : il occupe déjà sa hauteur, et ces 64 px + inset
+     s'ajoutaient en double → 120-170 px de vide en haut des écrans.
+     Il ne faut ici qu'une respiration normale sous l'en-tête ; la
+     safe-area haute est gérée par la barre elle-même (IonToolbar /
+     --ion-safe-area-top). */
+  padding-top: 1.25rem;
 }
 
 /* ── L22 — TopHeader : classes nommées pour le bouton d'action iconique

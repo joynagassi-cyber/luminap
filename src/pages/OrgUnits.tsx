@@ -190,7 +190,7 @@ export default function OrgUnits() {
                 }}
               >
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Nom</IonLabel>
                   <IonInput
                     id="unit-name"
                     data-testid="unit-name"
@@ -201,7 +201,7 @@ export default function OrgUnits() {
                   />
                 </IonItem>
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Type</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Type</IonLabel>
                   <IonSelect
                     id="unit-type"
                     data-testid="unit-type"
@@ -217,7 +217,7 @@ export default function OrgUnits() {
                   </IonSelect>
                 </IonItem>
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                   <IonInput
                     id="unit-desc"
                     data-testid="unit-desc"

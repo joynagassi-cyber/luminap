@@ -483,7 +483,7 @@ export default function GroupCotisation() {
 
               <div className="space-y-3">
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">
+                  <IonLabel position="stacked">
                     Nom de la session
                   </IonLabel>
                   <IonInput
@@ -497,7 +497,7 @@ export default function GroupCotisation() {
                 </IonItem>
 
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">
+                  <IonLabel position="stacked">
                     Date de la session
                   </IonLabel>
                   <IonInput
@@ -510,7 +510,7 @@ export default function GroupCotisation() {
                 </IonItem>
 
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating">
+                  <IonLabel position="stacked">
                     Montant obligatoire (FCFA)
                   </IonLabel>
                   <IonInput

@@ -425,7 +425,7 @@ export default function Federation() {
                 style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
               >
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Nom</IonLabel>
                   <IonInput
                     id="org-name"
                     data-testid="org-name"
@@ -437,7 +437,7 @@ export default function Federation() {
                 </IonItem>
                 {/* M24 — grammaire canonique : IonItem + IonLabel + IonSelect */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Type d'organisation
                   </IonLabel>
                   <IonSelect
@@ -455,7 +455,7 @@ export default function Federation() {
                   </IonSelect>
                 </IonItem>
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Organisation parente (optionnel)
                   </IonLabel>
                   <IonSelect

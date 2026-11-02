@@ -233,7 +233,7 @@ export default function Balance() {
                   className="font-black text-base tabular-nums mt-2"
                   style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}
                 >
-                  {netResult >= 0 ? "+" : "-"}
+                  {netResult >= 0 ? "+" : "−"}
                   {formatCurrencyCompact(Math.abs(netResult))}
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function Balance() {
                         {cat.label}
                       </span>
                       <span className="text-text-tertiary">
-                        {cat.net >= 0 ? "+" : "-"}
+                        {cat.net >= 0 ? "+" : "−"}
                         {formatCurrencyCompact(Math.abs(cat.net))}
                       </span>
                     </div>
