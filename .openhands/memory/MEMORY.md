@@ -30,7 +30,45 @@
   https://app.all-hands.dev/api/v1/app-conversations` (`Authorization: Bearer
   $OPENHANDS_API_KEY`) → renvoie un *start-task* ; poller
   `/app-conversations/start-tasks?ids=<id>` pour l'`app_conversation_id`.
-  Aucun backend Agent Canvas local (localhost:8001 → HTTP 000).
+  **Quota Cloud** : « Daily sandbox limit of 20 reached » → les start-tasks
+  restent en `ERROR` sans `app_conversation_id` (vérifié 2026-11-02).
+- **Backend Agent Canvas LOCAL existe** (vérifié 2026-11-02) : le process
+  `openhands-agent-server --port 60000` tourne dans CE conteneur. Auth =
+  `SESSION_API_KEY` (lisible dans `/proc/<pid>/environ`, **ne jamais
+  l'imprimer**). `POST /api/conversations` (JSON) crée une conversation dans
+  `{"kind":"LocalWorkspace","working_dir":…}`. Recette LLM qui marche :
+  récupérer `GET /api/settings` → `agent_settings`, y injecter
+  `llm.api_key` = corps de `GET https://app.all-hands.dev/api/keys/llm/managed/current`
+  (header `X-Session-API-Key`), `llm.base_url = https://llm-proxy.app.all-hands.dev`,
+  `llm.model = "openai/deepseek-v4.1-flash"` (SEUL modèle accessible à l'équipe ;
+  `gpt-5.6` → 403 team_model_access_denied). Sans le préfixe `openai/` litellm
+  répond « LLM Provider NOT provided ». Passer `agent_settings` (pas
+  `agent_profile_id`, qui exige un profil nommé absent) évite
+  `unresolved_profile_references`. Poller `GET /api/conversations/{id}` →
+  `execution_status`, puis `/agent_final_response`.
+
+## PR #400 (refonte design) a clobberé la logique auditée de `main` (2026-11-02)
+- **Constat** : la fusion de la PR #400 (`arena/db368bef-luminap`) a écrasé la
+  logique de production de `main` (6a779956) — 40 pages remplacées par des
+  mocks/statiques, **10 streams PowerSync supprimés** de `sync-config.yaml`
+  (audit_entries, documents, org_budgets, org_budget_lines, giving_donors,
+  giving_campaigns, pledges, tax_receipts, transaction_giving,
+  report_definitions → perte de données SILENCIEUSE), gardes R52 retirées,
+  purge PR3 débranchée, et **11 fichiers de test affaiblis**. La PR #400 n'a
+  ajouté AUCUN test.
+- **Leçon** : les **gardes de test existantes** (sync-stream-coverage,
+  r52-readiness, audit-coverage, route-reachability, …) sont le filet qui
+  révèle le clobber. `git diff --name-status <parent-de-merge>` liste
+  exactement l'écart.
+- **Correctif prod-green** : `git checkout <parent-de-merge> -- <fichiers M>`
+  puis suppression des artefacts morts de la refonte (`src/design/*`, pages non
+  routées, deps framer-motion/@tailwindcss/forms inutilisées, PROMPT_META.md,
+  package-lock.json). Résultat : `tsc -b --force --noEmit` = 0 erreur,
+  `vitest run` = 245 fichiers / 2496 tests PASS (vs 31 fichiers / 77 tests en
+  échec), `vite build` OK. Branche `fix/prod-green`, commit 1f7234ca.
+- **Piège** : l'arbre de travail avant ce correctif contenait 79 changements
+  non commités (patches tsc de session + clobber PR#400). Toujours
+  `git stash push -u` AVANT de restaurer, pour ne rien perdre.
 
 ## E2E isolation — 2 flakies de course (2026-11-01, run 41342904303, PR #247)
 - **`cross-tenant.cy.ts` « jeton vide »** : ne JAMAIS lire la session via
