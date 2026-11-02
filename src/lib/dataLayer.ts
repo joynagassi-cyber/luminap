@@ -1009,48 +1009,7 @@ export function usePowerSyncStatus(): boolean {
   // encore en cours » (ne doit PAS déclarer indisponible).
   const statusRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (!sync) return;
-
-    const applyStatus = (status: any) => {
-      statusRef.current = status;
-      if (status?.connected && status?.hasSynced) {
-        setReady(true);
-        markPowerSyncReady();
-      }
-    };
-
-    // API PowerSync réelle : `registerListener({ statusChanged })` +
-    // propriété `currentStatus`. Les noms `addListener` / `getStatus()`
-    // n'existent pas dans le SDK : l'appel optionnel ne levait pas, mais
-    // n'enregistrait rien → `_psReady` restait `false` pour toujours et
-    // TOUS les hooks de lecture retombaient sur le repli local (vide au
-    // premier lancement), alors que `useQuery` renvoyait bien les lignes.
-    const unregister = (sync as any).registerListener?.({
-      statusChanged: applyStatus,
-    });
-
-    applyStatus((sync as any).currentStatus);
-
-    // Borne de disponibilité (P0 « zéro écran muet ») : si la réplique n'est
-    // toujours pas prête après le délai, on la déclare INDISPONIBLE. Les
-    // écrans cessent alors d'afficher un squelette perpétuel et montrent un
-    // état explicite (« synchronisation indisponible »). Le délai couvre une
-    // première synchronisation normale, même lente.
-    //
-    // Si `connected === true`, la synchronisation est EN COURS (1re sync d'une
-    // grosse organisation peut dépasser le délai) : ne PAS déclarer
-    // indisponible. Seule une absence de connexion durable le fait.
-    const deadline = setTimeout(() => {
-      if (isPowerSyncReadyNow()) return;
-      if (statusRef.current?.connected) return;
-      markPowerSyncUnavailable();
-    }, 30_000);
-
-    return () => {
-      clearTimeout(deadline);
-      if (typeof unregister === "function") unregister();
-    };
+  useEffect(() => {    // Borne de disponibilité (P0 « zéro écran muet ») : si la réplique n'est    // toujours pas prête après le délai, on déclare PowerSync DISPONIBLE en    // mode dégradé. Les écrans cessent alors d'afficher un squelette perpétuel    // et montrent le contenu (éventuellement vide) ou un état explicite.    // Sans cela, en mode local-only (PowerSync non initialisé), TOUTES les    // pages resteraient bloquées sur un skeleton infini.    const deadline = setTimeout(() => {      if (isPowerSyncReadyNow()) return;      setReady(true);      markPowerSyncReady();      if (!statusRef.current?.connected) {        markPowerSyncUnavailable();      }    }, 5_000);    if (!sync) {      // Pas de PowerSync du tout (mode local-only) : le délai ci-dessus      // suffit à sortir du skeleton après 5 s.      return () => clearTimeout(deadline);    }    const applyStatus = (status: any) => {      statusRef.current = status;      if (status?.connected && status?.hasSynced) {        setReady(true);        markPowerSyncReady();      }    };    const unregister = (sync as any).registerListener?.({      statusChanged: applyStatus,    });    applyStatus((sync as any).currentStatus);    return () => {      clearTimeout(deadline);      if (typeof unregister === "function") unregister();    };  }, [sync]);
   }, [sync]);
 
   return ready;
