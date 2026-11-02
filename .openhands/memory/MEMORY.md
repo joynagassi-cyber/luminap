@@ -1,20 +1,31 @@
 # Mémoire projet — Lumina
 
 ## Environnement d'agent (contraintes lourdes, vérifiées)
-- **Cypress TOURNE en local** (vérifié 2026-10-28) : binaire 16.0.0 présent,
-  il manque seulement **Xvfb** → `sudo apt-get update && sudo apt-get install
-  -y xvfb`, puis
-  `xvfb-run -a node node_modules/cypress/bin/cypress run --spec cypress/e2e/<S>.cy.ts --browser electron --config video=false`
-  avec `CYPRESS_BASE_URL=http://localhost:8080`. `pnpm` absent du PATH → lancer
-  Vite via `node node_modules/vite/bin/vite.js` (le shim `.bin/vite` est un
-  script shell, pas du JS). Reproduire un échec CI en local est donc possible.
+- **Cypress TOURNE en local** (vérifié 2026-11-02) : binaire **16.0.0** +
+  **Xvfb installés** dans ce conteneur. Recette :
+  `npx vite --port 8080 --strictPort &` puis
+  `CYPRESS_BASE_URL=http://localhost:8080 xvfb-run -a npx cypress run --browser electron --config video=false`.
+  Suite complète = **41 specs / 237 tests** ; 6 specs critiques (cloud réel) =
+  **15/15** (auth-real, self-serve-org, comprehensive-flow, reports-budgets,
+  local-dashboard, cloud-sync). `pnpm` absent → utiliser `npx`/`node`.
+- **`cypress.yml` (« Cypress Tests ») est VERT depuis le 2026-11-02** (merge
+  #401). Ses flakes DATA-DÉPENDANTS (2 conteneurs parallèles sur UN SEUL compte
+  Supabase : `org-reports`, `offline-write-sync`, `members`) sont absorbés par
+  `retries { runMode: 2, openMode: 0 }` (`cypress.config.ts`). Gate E2E offline
+  = job « E2E (Cypress) » de `ci.yml`.
 - **Accès DB possible** : Docker **est** installé (`sudo dockerd &` +
   `chmod 666 /var/run/docker.sock`) ; la chaîne Postgres passe par le **pooler**
   `aws-0-eu-west-2.pooler.supabase.com:5432` (l'hôte direct `db.<ref>…` **ne
   résout pas** dans le conteneur). Le MCP Supabase (`execute_sql`) reste la voie
   SQL la plus simple.
-- **`PS_ADMIN_TOKEN` disponible** dans le coffre local `~/.ps-secrets` →
-  `powersync deploy sync-config` **fonctionne** (E1 close le 2026-10-27).
+- **`PS_ADMIN_TOKEN` disponible** dans l'environnement : le secret
+  **`$POWERSYNC_TOKEN` sert directement de `PS_ADMIN_TOKEN`** (vérifié
+  2026-11-02 : `PS_ADMIN_TOKEN="$POWERSYNC_TOKEN" npx --yes powersync@0.10.3 fetch status`
+  fonctionne). Commandes : `fetch config`, `deploy --dry-run`, `deploy sync-config`.
+  **Vérifié 2026-11-02** : la config **déployée** correspond EXACTEMENT au YAML
+  local (10 streams restaurés présents, `deploy --dry-run` → « matches the
+  deployed sync config, nothing to update »). Le CLI est le paquet npm
+  **`powersync`** (pas `@powersync/cli`, inexistant).
 - **`npx tsc --noEmit` à la racine ne vérifie RIEN** (tsconfig `"files": []`,
   sort toujours 0). Utiliser **`npx tsc -b`** (et **`--force`** en cas de doute :
   le cache incrémental masque de vraies erreurs, ex. `TS2451`).
@@ -69,6 +80,31 @@
 - **Piège** : l'arbre de travail avant ce correctif contenait 79 changements
   non commités (patches tsc de session + clobber PR#400). Toujours
   `git stash push -u` AVANT de restaurer, pour ne rien perdre.
+- **Résolu 2026-11-02** : PR **#401** mergée sur `main` (`637ed2f9`). Tous les
+  workflows verts (CI Pipeline, Cypress Tests 2 conteneurs, Lumina Android).
+  Parcours cloud réel vérifié 15/15. Release **v1.2.2** publiée (APK signé
+  v1+v2+v3, sha256 OK).
+
+## Processus de release Android (VÉRIFIÉ 2026-11-02)
+- Bumper `android/app/build.gradle` : `versionCode` **STRICTEMENT croissant**
+  (sinon Android refuse le downgrade `INSTALL_FAILED_VERSION_DOWNGRADE`) +
+  `versionName`.
+- Écrire le body `.github/release-bodies/release-<ver>.md` (sinon la Release
+  n'a que le message du tag).
+- Commit + push `main`, puis `git tag -a v<ver> && git push origin v<ver>` →
+  `release.yml` (**tag-only**) : Prepare → Build unsigned → Sign (apksigner
+  v1+v2+v3) → GitHub Release avec `app-release.apk` + `app-release.apk.sha256`.
+- Autres workflows Android : `lumina-android.yml` = APK **debug** sur push
+  `main` ; `android-debug.yml` = PR (`develop`/PR vers `main`).
+- Vérif APK : SHA-256 identique au `.sha256` compagnon ; signature = `META-INF/
+  LUMINA.{SF,RSA}` (v1) + bloc `APK Sig Block 42` (v2/v3).
+
+## Piège GitHub : PR en brouillon
+- L'API REST `PATCH /pulls/<n>` avec `{"draft": false}` **ne démarque PAS** une
+  PR (renvoie toujours `draft: true`). Utiliser la mutation GraphQL
+  `markPullRequestReadyForReview(pullRequestId: <node_id>)` — `node_id` se lit
+  dans `GET /pulls/<n>` → `node_id` (`PR_kwDO…`). Un `PUT /merge` sur un
+  brouillon renvoie « Pull Request is still a draft ».
 
 ## E2E isolation — 2 flakies de course (2026-11-01, run 41342904303, PR #247)
 - **`cross-tenant.cy.ts` « jeton vide »** : ne JAMAIS lire la session via
