@@ -182,7 +182,7 @@ export default function JustificatifsSection({
                 onClick={() => handleRemove(r)}
                 disabled={busy}
                 className="p-2 rounded-full"
-                style={{ color: "var(--out)" }}
+                style={{ color: "var(--danger, var(--text-secondary))" }}
                 aria-label="Supprimer le justificatif"
               >
                 <Trash2 className="w-4 h-4" />
@@ -193,7 +193,7 @@ export default function JustificatifsSection({
       )}
 
       {error && (
-        <p className="text-xs mt-2" style={{ color: "var(--out)" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--danger)" }}>
           {error}
         </p>
       )}

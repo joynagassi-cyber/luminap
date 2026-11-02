@@ -1,3 +1,13 @@
+/**
+ * Splash v2 — Écran de lancement premium Lumina.
+ *
+ * Design : fond sombre, logo centré avec halo d'accent, texte de marque
+ * en typographie Inter, indicateur de sync discret en haut à droite.
+ *
+ * Trois phases : logo → illustration → chargement (si nécessaire)
+ * Garde de sécurité : bascule forcée après délai pour éviter l'écran noir.
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePowerSyncStatus, useLoadInitialData } from "@/lib/dataLayer";
@@ -5,29 +15,13 @@ import { needsOnboarding } from "@/lib/onboardingState";
 import { authService } from "@/lib/auth";
 import { Wifi, WifiOff } from "lucide-react";
 import { IonPage, IonContent } from "@ionic/react";
+import { Section } from "@/design/components/PageShell";
 
-/**
- * Splash en deux phases, statiques :
- *  1. « logo » (~1,2 s) — logo Lumina centré + nom.
- *  2. « illustration » (~1,5 s) — illustration plate (gestion d'une
- *     organisation) au centre + logo en bas.
- *
- * Le gating existant (onboarding + chargement des données) est conservé :
- * si les données ne sont pas prêtes après les ~2,7 s d'affichage minimum,
- * on bascule sur le spinner de chargement (comportement actuel).
- */
-const PHASE_LOGO_MS = 800;
-const PHASE_ILLUSTRATION_MS = 800;
+const PHASE_LOGO_MS = 700;
+const PHASE_ILLUSTRATION_MS = 700;
+const STUCK_SAFETY_NET_MS = 3000;
 
 type SplashPhase = "logo" | "illustration" | "loading";
-
-// Garde dure (fix bug v1.0.2 « bloqué sur le splash screen ») : même si
-// le chargement initial (PowerSync / `useLoadInitialData`) ne se termine
-// jamais (réseau down, erreur de connexion, première ouverture après
-// install), l'app ne doit JAMAIS rester figée sur le splash — au bout
-// de la rampe minimum (~2,7 s) + ce délai de secours, on part de force
-// vers l'onboarding (ou le dashboard si le profil existe déjà).
-const STUCK_SAFETY_NET_MS = 3000;
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -36,40 +30,28 @@ export default function Splash() {
   const [phase, setPhase] = useState<SplashPhase>("logo");
   const navigatingRef = useRef(false);
   const initialDataLoadedRef = useRef(initialDataLoaded);
+
   useEffect(() => {
     initialDataLoadedRef.current = initialDataLoaded;
   }, [initialDataLoaded]);
 
-  // Transition vers l'étape suivante (auth / onboarding / dashboard), une fois.
-  // Fix : si aucune session active existe, naviguer directement vers /auth
-  // (route publique) au lieu de /onboarding (route protégée → RouteGuard
-  // redirigerait vers /auth de toute façon, mais le double-bounce splash →
-  // onboarding → auth peut laisser le view-stack Ionic stuck / écran blanc).
   const goToNext = async () => {
     if (navigatingRef.current) return;
     navigatingRef.current = true;
     try {
       const session = await authService.getSession();
       if (session) {
-        // Session existante → onboarding ou dashboard
-        navigate(needsOnboarding() ? "/onboarding" : "/dashboard", {
+        navigate(needsOnboarding() ? "/org-setup" : "/dashboard", {
           replace: true,
         });
       } else {
-        // Pas de session → écran d'accueil chaleureux (/welcome), qui mène
-        // ensuite vers la connexion / inscription (/auth). On évite de jeter
-        // l'utilisateur directement sur un formulaire froid.
         navigate("/welcome", { replace: true });
       }
     } catch {
-      // Erreur inattendue → toujours atterrir sur /welcome pour ne pas
-      // laisser le user bloqué sur le splash.
       navigate("/welcome", { replace: true });
     }
   };
 
-  // Les deux timers pilotent la rampe minimum (logo → illustration →
-  // transition) ; `goToNext` est idempotent via `navigatingRef`.
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("illustration"), PHASE_LOGO_MS);
     const t2 = setTimeout(() => {
@@ -84,135 +66,118 @@ export default function Splash() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Les données ont fini de charger PENDANT le spinner « loading » (après
-  // la rampe minimum de ~2,7 s) : on part. La garde `phase === "loading"`
-  // est indispensable — sans elle, l'effet s'exécuterait au 1er rendu avec
-  // `initialDataLoaded` déjà true (cas PowerSync prêt au montage) et
-  // court-circuiterait la rampe minimum.
   useEffect(() => {
     if (initialDataLoaded && phase === "loading") void goToNext();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDataLoaded, phase]);
 
-  // Garde de secours absolue (fix bug v1.0.2 « bloqué sur le splash ») :
-  // quel que soit l'état de `initialDataLoaded`/PowerSync au bout de
-  // `STUCK_SAFETY_NET_MS` s'ajouté à la rampe minimum (si on n'a pas déjà
-  // navigué), on part de force — l'écran ne peut plus rester figé
-  // indéfiniment, même si quelque chose bloque le chargement des données.
   useEffect(() => {
     const t = setTimeout(() => {
       if (!navigatingRef.current) void goToNext();
     }, PHASE_LOGO_MS + PHASE_ILLUSTRATION_MS + STUCK_SAFETY_NET_MS);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
+      <IonContent fullscreen className="bg-canvas">
         <div
           data-screen-state={phase === "loading" ? "loading" : "ready"}
           className="min-h-dvh flex flex-col items-center justify-center"
           style={{ backgroundColor: "var(--canvas)" }}
         >
-          {/* Sync indicator */}
+          {/* Indicateur de sync discret */}
           <div
-            className="absolute top-4 right-4 flex items-center gap-2 text-xs"
-            style={{ color: isPowerSyncReady ? "var(--in)" : "var(--text-secondary)" }}
+            className="absolute top-6 right-6 flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-full"
+            style={{
+              backgroundColor: "color-mix(in srgb, var(--surface) 80%, var(--canvas))",
+              border: "1px solid var(--border)",
+              backdropFilter: "blur(8px)",
+            }}
           >
-            {isPowerSyncReady ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
-            <span>{isPowerSyncReady ? "Sync" : "Offline"}</span>
+            {isPowerSyncReady ? (
+              <>
+                <Wifi className="w-3 h-3" style={{ color: "var(--in)" }} />
+                <span style={{ color: "var(--text-tertiary)" }}>Sync</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3" style={{ color: "var(--text-tertiary)" }} />
+                <span style={{ color: "var(--text-tertiary)" }}>Hors ligne</span>
+              </>
+            )}
           </div>
 
+          {/* Phase 1 — Logo Lumina centré */}
           {phase === "logo" && (
-            /* Phase 1 — logo Lumina centré (gros, blanc, sans glow/ombre) */
-            <div className="flex flex-col items-center" data-testid="splash-phase-logo">
-              <img
-                src="/lumina-logo-version-monochrome.png"
-                alt="Lumina"
-                width={160}
-                height={160}
-                className="splash-monochrome-logo"
-                style={{ filter: "none", boxShadow: "none", textShadow: "none" }}
-              />
-              <h1
-                className="font-bold text-3xl tracking-wide mt-4"
-                style={{ color: "var(--text-primary)", textShadow: "none" }}
-              >
-                Lumina
-              </h1>
-              <p
-                className="text-sm mt-1 text-center"
-                style={{ color: "var(--text-secondary)", textShadow: "none" }}
-              >
-                Une gestion complète, une foi partagée.
-              </p>
-            </div>
-          )}
-
-          {phase === "illustration" && (
-            /* Phase 2 — illustration plate au centre + logo en bas */
-            <div
-              className="flex flex-col items-center w-full"
-              data-testid="splash-phase-illustration"
-            >
-              <img
-                src="/lumina-logo-version-monochrome.png"
-                alt=""
-                width={280}
-                height={280}
-                className="splash-monochrome-illustration"
-                style={{ filter: "none", boxShadow: "none" }}
-              />
-              <div
-                className="absolute bottom-14 flex flex-col items-center"
-                aria-hidden={phase !== "illustration"}
-              >
-                <img
-                  src="/lumina-logo-version-monochrome.png"
-                  alt="Lumina"
-                  width={40}
-                  height={40}
-                  className="splash-monochrome-logo-small"
-                  style={{ filter: "none", boxShadow: "none" }}
-                />
-                <p
-                  className="font-bold text-base tracking-wide mt-2"
-                  style={{ color: "var(--text-primary)", textShadow: "none" }}
+            <Section titleClass="mb-8">
+              <div className="flex flex-col items-center">
+                <div
+                  className="w-24 h-24 rounded-2xl flex items-center justify-center mb-6"
+                  style={{
+                    background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
+                    boxShadow: "var(--shadow-accent)",
+                  }}
+                >
+                  <img
+                    src="/lumina-logo-version-monochrome.png"
+                    alt="Lumina"
+                    width={120}
+                    height={120}
+                    className="object-contain"
+                    style={{ filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.3))" }}
+                  />
+                </div>
+                <h1
+                  className="text-text-primary font-bold text-4xl tracking-tight leading-tight"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   Lumina
-                </p>
-                <p
-                  className="text-xs mt-0.5 text-center"
-                  style={{ color: "var(--text-secondary)", textShadow: "none" }}
-                >
+                </h1>
+                <p className="text-text-tertiary text-sm mt-2 text-center">
                   Une gestion complète, une foi partagée.
                 </p>
               </div>
-            </div>
+            </Section>
           )}
 
+          {/* Phase 2 — Illustration */}
+          {phase === "illustration" && (
+            <Section titleClass="mb-8">
+              <div className="flex flex-col items-center">
+                <div className="relative w-48 h-48 mb-6">
+                  <img
+                    src="/lumina-logo-version-monochrome.png"
+                    alt="Lumina"
+                    width={200}
+                    height={200}
+                    className="object-contain animate-bounce-slow"
+                    style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.4))" }}
+                  />
+                  <div
+                    className="absolute -inset-1 rounded-3xl bg-accent-primary/20 blur-xl animate-pulse"
+                  />
+                </div>
+                <p className="text-text-tertiary text-sm text-center max-w-xs">
+                  Préparation de votre espace de travail…
+                </p>
+              </div>
+            </Section>
+          )}
+
+          {/* Phase 3 — Chargement */}
           {phase === "loading" && (
-            /* Données pas encore prêtes : spinner de chargement (gate) */
-            <div className="flex flex-col items-center gap-3" data-testid="splash-loading">
-              <img
-                src="/lumina-logo-version-monochrome.png"
-                alt=""
-                width={48}
-                height={48}
-                className="splash-monochrome-logo spinner"
-                style={{ filter: "none", boxShadow: "none" }}
-              />
-              <p
-                className="text-xs"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                Chargement en cours…
-              </p>
-            </div>
+            <Section titleClass="mb-8">
+              <div className="flex flex-col items-center gap-3">
+                <div
+                  className="w-12 h-12 rounded-full border-4 border-border border-t-accent-primary animate-spin"
+                />
+                <p className="text-text-tertiary text-sm">
+                  Chargement en cours…
+                </p>
+              </div>
+            </Section>
           )}
         </div>
       </IonContent>

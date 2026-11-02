@@ -17,13 +17,11 @@
 #   JOINs). Un user 1-org = 1 ligne → `IN` = `=` sémantiquement ; un user
 #   multi-org = N lignes → `IN` couvre le double-scope.
 #
-# Pattern pour les tables historiquement « liaison sans org_id »
-#   `group_memberships`, `event_budgets`, `budget_lines`, `custom_field_values`
-#   étaient filtrées par JOIN sur le parent ; `org_id` a depuis été
-#   DÉNORMALISÉ sur ces tables (R89.b) et leur stream utilise le filtre direct
-#   `org_id IN (…)` ci-dessus — le JOIN avait été abandonné car PowerSync ne
-#   peut pas clé la partition sur une colonne absente de la ligne (1 bucket par
-#   ligne → plafond 1000, `PSYNC_S2305`).
+# Pattern pour les tables LIAISON sans `org_id`
+#   `group_memberships`     : liée à `groups` (a `org_id`) → filtre par group_id
+#   `event_budgets`         : liée à `events`  (a `org_id`) → filtre par event_id
+#   `budget_lines`          : liée à `event_budgets` → filtre transitif
+#   `custom_field_values`   : liée à `custom_field_definitions` (a `org_id`)
 #   Aucun alias sur la table source (pas de `gm`, `eb`, `bl`, `cv`) :
 #   PowerSync sync le source row sous l'alias si on en met, ce qui casse les
 #   requêtes client qui cherchent la table par son vrai nom.
@@ -210,16 +208,6 @@ streams:
       SELECT * FROM custom_field_definitions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
 
-  # Définitions de rapports (/reports, /report-builder). Scopées à
-  # l'organisation de l'utilisateur, comme `transactions`. Sans ce stream, la
-  # table locale restait vide et les rapports d'une autre session n'étaient
-  # jamais reçus (R184/#317).
-  report_definitions:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM report_definitions
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
   # ── Invitations ─────────────────────────────────────────────────────────
   # Les invitations sont créées par un admin et validées par un utilisateur.
   # On synchronise :
@@ -374,66 +362,4 @@ streams:
     auto_subscribe: true
     query: |
       SELECT * FROM transaction_attachments
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  # ── Tables du schéma client SANS stream (défaut mesuré 2026-11-01) ───────
-  # Ces 9 tables figurent dans `src/lib/powersync/schema.ts` et sont lues via
-  # le SQL LOCAL (`useQuery` / `db.execute`) MAIS n'étaient synchronisées par
-  # AUCUN stream : leur réplique restait donc vide (lecture locale = vide ;
-  # `/trace`, `/budgets`, `/giving`, corbeille `documents`) et un appareil neuf
-  # ne les recevait jamais. Vérifié contre la config DÉPLOYÉE
-  # (`powersync fetch status`). Toutes portent `org_id` (vérifié en base) →
-  # filtre direct éprouvé (cf. R89.b), pas de JOIN.
-  audit_entries:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM audit_entries
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  documents:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM documents
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  org_budgets:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM org_budgets
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  org_budget_lines:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM org_budget_lines
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  giving_donors:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM giving_donors
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  giving_campaigns:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM giving_campaigns
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  pledges:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM pledges
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  tax_receipts:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM tax_receipts
-      WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-
-  transaction_giving:
-    auto_subscribe: true
-    query: |
-      SELECT * FROM transaction_giving
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())

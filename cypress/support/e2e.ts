@@ -192,128 +192,6 @@ function getExposed(key: string): string {
   return ((Cypress.expose(key) as string) || '').trim();
 }
 
-/**
- * Vrai si le compte AUTHENTIFIÉ (JWT dans localStorage) possède DÉJÀ une
- * organisation RÉELLE en base (≠ sentinelles `__no_org__` / `no-org`).
- *
- * Cause racine P0 : rejouer le wizard de création pour un compte qui a déjà
- * une organisation créait une org de PLUS à chaque run. Mesure en base live :
- * `lumina-org-e2e@lumina.dev` était admin de 1493 organisations (1452 ACTIVE),
- * ce qui dépassait la limite PowerSync de 1000 résultats de paramètre
- * (`PSYNC_S2305`) → la synchronisation échouait et aucune donnée ne
- * descendait. On ne rejoue donc le wizard QUE si le compte n'a réellement
- * aucune organisation (self-serve neuf).
- */
-function accountHasOrg(win: Window): Cypress.Chainable<{
-  hasOrg: boolean;
-  orgId: string | null;
-  orgName: string | null;
-}> {
-  let token = '';
-  try {
-    const key = Object.keys(win.localStorage).find((k) => /-auth-token$/.test(k));
-    const parsed = JSON.parse((key && win.localStorage.getItem(key)) || '{}');
-    token = parsed?.access_token ?? '';
-  } catch {
-    /* session illisible — traité comme « pas d'org » (le login échouera avant) */
-  }
-  if (!token) return cy.wrap({ hasOrg: false, orgId: null, orgName: null });
-
-  const url =
-    (Cypress.expose('SUPABASE_URL') as string) ||
-    'https://hhgovvrnalibhgpakswi.supabase.co';
-  const anon = Cypress.expose('SUPABASE_ANON_KEY') as string;
-
-  const result: {
-    hasOrg: boolean;
-    orgId: string | null;
-    orgName: string | null;
-  } = { hasOrg: false, orgId: null, orgName: null };
-
-  return cy
-    .request({
-      method: 'GET',
-      url: `${url}/rest/v1/profiles?select=org_id&limit=1`,
-      headers: { apikey: anon, Authorization: `Bearer ${token}` },
-      failOnStatusCode: false,
-    })
-    .then((res) => {
-      const orgId = Array.isArray(res.body) ? (res.body[0]?.org_id ?? null) : null;
-      if (!orgId || orgId === '__no_org__' || orgId === 'no-org') return;
-      result.hasOrg = true;
-      result.orgId = String(orgId);
-      return cy
-        .request({
-          method: 'GET',
-          url: `${url}/rest/v1/organizations?select=name&id=eq.${encodeURIComponent(
-            orgId,
-          )}&limit=1`,
-          headers: { apikey: anon, Authorization: `Bearer ${token}` },
-          failOnStatusCode: false,
-        })
-        .then((orgRes) => {
-          result.orgName = Array.isArray(orgRes.body)
-            ? ((orgRes.body[0]?.name as string) ?? null)
-            : null;
-        });
-    })
-    .then(() => cy.wrap(result));
-}
-
-/**
- * Aligne les flags d'onboarding locaux d'un navigateur VIERGE sur
- * l'organisation EXISTANTE du compte (déjà en base) : aucun wizard, donc
- * AUCUNE nouvelle organisation. C'est le pendant « reuse » du wizard ; il
- * n'écrit que du localStorage dérivé de la vérité serveur.
- */
-function completeOnboardingForExistingOrg(
-  orgId: string,
-  orgName: string,
-  role = 'PASTEUR_PRINCIPAL',
-): void {
-  cy.window().then((win) => {
-    try {
-      win.localStorage.setItem('lumina-onboarded', 'true');
-      win.localStorage.setItem('lumina-role', role);
-      win.localStorage.setItem('lumina-active-org', orgId);
-      win.localStorage.setItem(
-        'lumina-onboarding',
-        JSON.stringify({
-          screen: -1,
-          branch: 'creator',
-          role,
-          completed: true,
-          org: { name: orgName, sigle: '', type: 'Eglise', theme: null, features: [] },
-        }),
-      );
-      let cfg: Record<string, unknown> = {};
-      try {
-        cfg = JSON.parse(win.localStorage.getItem('lumina-config') || '{}');
-      } catch {
-        /* config absente */
-      }
-      win.localStorage.setItem(
-        'lumina-config',
-        JSON.stringify({ ...cfg, churchName: orgName }),
-      );
-      let user: Record<string, unknown> = {};
-      try {
-        user = JSON.parse(win.localStorage.getItem('lumina-user') || '{}');
-      } catch {
-        /* user absent */
-      }
-      const org = (user.org as Record<string, unknown>) || {};
-      win.localStorage.setItem(
-        'lumina-user',
-        JSON.stringify({ ...user, org: { ...org, id: orgId, name: orgName } }),
-      );
-    } catch {
-      /* stockage indisponible — non fatal */
-    }
-  });
-}
-
-
 Cypress.Commands.add('login', function (email: string, password: string) {
   if (!email || !password) {
     cy.log('cy.login() — no credentials, skipping');
@@ -907,34 +785,18 @@ Cypress.Commands.add('signupOrgAccount', function (
         },
       }).then((result) => {
         if (result.navigated) {
-          // Le login a abouti. P0 — on ne rejoue le wizard QUE si le compte
-          // n'a RÉELLEMENT aucune organisation (self-serve neuf). Un compte qui
-          // possède déjà une org réutilise la sienne : rejouer le wizard créait
-          // une org de PLUS à chaque run (1452 ACTIVE mesurées → PSYNC_S2305).
+          // Le login a abouti : on rejoue l'onboarding si le navigateur est
+          // vierge (needsOnboarding()), sinon on rend la main tel quel —
+          // comportement identique à l'ancienne branche « login direct ».
           cy.location('pathname').then((path: string) => {
-            if (path !== '/onboarding') return;
-            cy.window().then((win) => {
-              accountHasOrg(win).then(({ hasOrg, orgId, orgName }) => {
-                if (hasOrg && orgId) {
-                  cy.log(
-                    `signupOrgAccount: compte ${existing.email} a déjà l'org ${orgId} — réutilisation (aucune création)`,
-                  );
-                  completeOnboardingForExistingOrg(
-                    orgId,
-                    orgName ?? '',
-                    overrides?.role ?? 'PASTEUR_PRINCIPAL',
-                  );
-                  cy.visit('/splash');
-                } else {
-                  cy.runOnboarding();
-                }
-              });
-            });
+            if (path === '/onboarding') {
+              cy.runOnboarding();
+              cy.location('pathname', { timeout: 90_000 }).should(
+                'eq',
+                '/dashboard',
+              );
+            }
           });
-          cy.location('pathname', { timeout: 90_000 }).should(
-            'eq',
-            '/dashboard',
-          );
           return cy.wrap(existing);
         }
 
@@ -1042,27 +904,8 @@ Cypress.Commands.add('loginOrgAccount', function (options?: {
       );
       if (path === '/onboarding') {
         // Navigateur vierge (clearLocalStorage ci-dessus) : needsOnboarding()
-        // = true. P0 — on ne rejoue le wizard QUE si le compte n'a RÉELLEMENT
-        // aucune organisation. Un compte qui en possède déjà une la RÉUTILISE
-        // (aucune création) : c'est ici que se produisait la prolifération,
-        // chaque spec rejouant le wizard → une org de plus par run.
-        cy.window().then((win) => {
-          accountHasOrg(win).then(({ hasOrg, orgId, orgName }) => {
-            if (hasOrg && orgId) {
-              console.info(
-                `[loginOrgAccount] org existante ${orgId} — réutilisation (aucune création)`,
-              );
-              completeOnboardingForExistingOrg(
-                orgId,
-                orgName ?? '',
-                getOrgCredentials().role,
-              );
-              cy.visit('/splash');
-            } else {
-              cy.runOnboarding();
-            }
-          });
-        });
+        // = true → on rejoue le wizard COMPLET (pas de raccourci localStorage).
+        cy.runOnboarding();
         cy.location('pathname', { timeout: 90_000 }).should('eq', '/dashboard');
       }
     });
@@ -1206,29 +1049,14 @@ Cypress.Commands.add('resumeOnboardingForOrgAccount', function (): Cypress.Chain
     cy.visit('/splash');
     cy.location('pathname', { timeout: 90_000 }).should('eq', '/onboarding');
 
-    // 4. Reprise de l'onboarding. P0 — si le compte possède DÉJÀ une
-    //    organisation en base, on la RÉUTILISE : le wizard n'est PAS rejoué,
-    //    donc AUCUNE organisation supplémentaire n'est créée (c'était la cause
-    //    de la prolifération : 1452 orgs ACTIVE pour ce seul compte → PSYNC_S2305).
-    //    Le scénario « reprendre l'onboarding » est prouvé par les points 2-3
-    //    (retour à /onboarding) ; la réutilisation le ramène au dashboard.
-    //    Le wizard COMPLET n'est joué QUE pour un compte réellement sans org.
-    cy.window().then((win) => {
-      accountHasOrg(win).then(({ hasOrg, orgId, orgName }) => {
-        if (hasOrg && orgId) {
-          cy.log(
-            `resumeOnboardingForOrgAccount: org ${orgId} déjà possédée — réutilisation (aucune création)`,
-          );
-          completeOnboardingForExistingOrg(orgId, orgName ?? '');
-          cy.visit('/splash');
-        } else {
-          cy.runOnboarding({
-            orgName: 'Lumina E2E Unconfigured',
-            orgType: 'Église',
-            role: 'PASTEUR_PRINCIPAL',
-          });
-        }
-      });
+    // 4. Le wizard COMPLET (présentation → branch → org-setup → dashboard),
+    //    SANS raccourci localStorage. Org nommée + typée + rôlée de façon
+    //    déterministe (le défaut de runOnboarding est dynamique en
+    //    Date.now() — hors du périmètre du déterminisme demandé).
+    cy.runOnboarding({
+      orgName: 'Lumina E2E Unconfigured',
+      orgType: 'Église',
+      role: 'PASTEUR_PRINCIPAL',
     });
 
     // Post-condition.
@@ -1261,9 +1089,5 @@ import './ionic';
 // trackTestArtifact) — see cypress/support/e2eCleanup.ts for the design
 // (archive-only, run-scoped, non-fatal).
 import './e2eCleanup';
-
-// Neutralise la remontée d'erreurs vers le dépôt public (défense en
-// profondeur — aucun test ne doit créer de vraie Issue GitHub).
-import './noErrorReporting';
 
 export {};

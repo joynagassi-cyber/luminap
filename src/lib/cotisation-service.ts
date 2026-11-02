@@ -15,7 +15,6 @@ import { formatDate, formatCentsToFCFA } from "./utils";
 import { getOrganizationId } from "./orgContext";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { executeWrite, updateCotisationPS, updateMemberPS, assertTransactionWritable } from "./dataLayer";
-import { writeAudit, resolveAuditActor } from "./audit";
 import {
   determinerStatutAvance,
   calculerDon,
@@ -136,34 +135,6 @@ export async function persistCulte(
       ],
     );
   }
-
-  // NeverBreak #6 — création d'un culte : le culte (Event) ET chacune des
-  // cotisations initialisées sont des mutations sensibles, donc tracées.
-  const actor = resolveAuditActor();
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...actor,
-    action: "CREATE",
-    entityType: "Event",
-    entityId: culte.id,
-    beforeState: null,
-    afterState: culte,
-    comment: null,
-  });
-  for (const cot of cotisations) {
-    await writeAudit({
-      orgId: getOrganizationId(),
-      transactionId: null,
-      ...actor,
-      action: "CREATE",
-      entityType: "Cotisation",
-      entityId: cot.id,
-      beforeState: null,
-      afterState: cot,
-      comment: null,
-    });
-  }
 }
 
 // ============================================================
@@ -246,7 +217,7 @@ export function markCotisationPaid(
       compensatesFor: null,
       comment:
         donCents > 0
-          ? `Cotisation + don ${formatCentsToFCFA(donCents)}`
+          ? `Cotisation + don ${formatCentsToFCFA(donCents)} FCFA`
           : "Cotisation",
       version: 1,
       sourceCaisseId: "main",
@@ -323,28 +294,6 @@ export async function persistMarkCotisationPaid(
       ],
     );
   }
-
-  // NeverBreak #6 — paiement d'une cotisation : tracé après l'écriture (statut,
-  // montant payé, date). Le libellé du statut distingue paiement simple et
-  // paiement en avance.
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: result.newTransaction?.id ?? null,
-    ...resolveAuditActor(),
-    action: "UPDATE",
-    entityType: "Cotisation",
-    entityId: result.cotisationId,
-    beforeState: null,
-    afterState: {
-      statut: result.updatedCot.statut,
-      montantPaye: result.updatedCot.montantPaye,
-      datePaiement: result.updatedCot.datePaiement,
-    },
-    comment:
-      result.updatedCot.statut === "EN_AVANCE"
-        ? "Paiement en avance"
-        : "Paiement de cotisation",
-  });
 }
 
 // ============================================================
@@ -375,27 +324,10 @@ export async function persistMarkCotisationsAbsent(
   state: CotisationState,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const touched: Cotisation[] = [];
   for (const cot of state.cotisations) {
     if (cot.culteId === culteId && membreIds.includes(cot.membreId)) {
       await updateCotisationPS(cot.id, { statut: "ABSENT", updatedat: now });
-      touched.push({ ...cot, statut: "ABSENT" as CotisationStatut, updatedAt: now });
     }
-  }
-  // NeverBreak #6 — chaque cotisation marquée absente est tracée.
-  const actor = resolveAuditActor();
-  for (const cot of touched) {
-    await writeAudit({
-      orgId: getOrganizationId(),
-      transactionId: null,
-      ...actor,
-      action: "UPDATE",
-      entityType: "Cotisation",
-      entityId: cot.id,
-      beforeState: null,
-      afterState: { ...cot, statut: "ABSENT" },
-      comment: "Marqué absent",
-    });
   }
 }
 
@@ -417,7 +349,6 @@ export function updateCotisation(
 export async function persistUpdateCotisation(
   id: string,
   data: Partial<Cotisation>,
-  beforeState: Cotisation | null = null,
 ): Promise<void> {
   // Traduction canonique camelCase → colonnes PS bas-casse.
   const updates: Parameters<typeof updateCotisationPS>[1] = {};
@@ -430,18 +361,6 @@ export async function persistUpdateCotisation(
   if (data.notes !== undefined) updates.notes = data.notes;
   if (data.updatedAt !== undefined) updates.updatedat = data.updatedAt;
   await updateCotisationPS(id, updates);
-  // NeverBreak #6 — mise à jour manuelle d'une cotisation tracée.
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "UPDATE",
-    entityType: "Cotisation",
-    entityId: id,
-    beforeState,
-    afterState: { id, ...data },
-    comment: null,
-  });
 }
 
 // ============================================================

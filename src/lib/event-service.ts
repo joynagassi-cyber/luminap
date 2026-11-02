@@ -6,8 +6,6 @@
 
 import { generateId } from "./utils";
 import { addEventPS, updateEventPS, deleteEventPS } from "./dataLayer";
-import { writeAudit, resolveAuditActor } from "./audit";
-import { getOrganizationId } from "./orgContext";
 import type { Event, BudgetItem, ShoppingItem } from "@/types";
 
 export interface EventState {
@@ -47,18 +45,6 @@ export async function persistAddEvent(newEvent: Event): Promise<void> {
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-  // NeverBreak #6 — création d'événement tracée.
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "CREATE",
-    entityType: "Event",
-    entityId: newEvent.id,
-    beforeState: null,
-    afterState: newEvent,
-    comment: null,
-  });
 }
 
 // --- updateEvent ---
@@ -76,25 +62,12 @@ export function applyUpdateEvent(
 export async function persistUpdateEvent(
   id: string,
   data: Partial<Event>,
-  beforeState: Event | null = null,
 ): Promise<void> {
   try {
     await updateEventPS(id, data);
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-  // NeverBreak #6 — mise à jour d'événement tracée (avant/après).
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "UPDATE",
-    entityType: "Event",
-    entityId: id,
-    beforeState,
-    afterState: { id, ...data },
-    comment: null,
-  });
 }
 
 // --- deleteEvent ---
@@ -103,27 +76,12 @@ export function applyDeleteEvent(events: Event[], id: string): Event[] {
   return events.filter((e) => e.id !== id);
 }
 
-export async function persistDeleteEvent(
-  id: string,
-  beforeState: Event | null = null,
-): Promise<void> {
+export async function persistDeleteEvent(id: string): Promise<void> {
   try {
     await deleteEventPS(id);
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-  // NeverBreak #6 — suppression d'événement tracée.
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "DELETE",
-    entityType: "Event",
-    entityId: id,
-    beforeState,
-    afterState: null,
-    comment: null,
-  });
 }
 
 // --- updateEventStatus ---

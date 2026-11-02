@@ -10,10 +10,7 @@ import { readReturnToFromSearch } from "@/lib/routeResolver";
 import { useLocalStore } from "@/store/useLocalStore";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { Loader2, Mail, Lock, User } from "lucide-react";
-import {
-  IonPage,
-  IonContent,
-} from "@ionic/react";
+import { IonPage, IonContent } from "@ionic/react";
 import GoogleButton from "@/components/GoogleButton";
 import { Capacitor } from "@capacitor/core";
 import {
@@ -40,9 +37,6 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [authState, setAuthState] = useState<any>(null);
 
-  // Le bouton « Mes comptes » n'est visible QUE si des comptes ont déjà
-  // été connectés dans ce navigateur (donc uniquement après une déconnexion).
-  // On lit la clé Supabase JS (sessions persistées) au montage.
   const [hasPersistedSessions, setHasPersistedSessions] = useState(false);
   useEffect(() => {
     try {
@@ -53,7 +47,6 @@ export default function AuthPage() {
     }
   }, []);
 
-  // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = authService.subscribe(() => {
       setAuthState(authService.getState());
@@ -61,13 +54,6 @@ export default function AuthPage() {
     return unsubscribe;
   }, []);
 
-  /**
-   * Once the session is established (email, signup or Google) we no longer
-   * pick a role here. The role is resolved either by onboarding (creator
-   * founds an org) or by invitation claim (member is granted the inviter's
-   * role). If onboarding is already done, go straight to the dashboard;
-   * otherwise land on the first onboarding screen.
-   */
   const proceedAfterAuth = async (
     profile: Pick<Profile, "role" | "id"> | null | undefined,
     opts?: { forceOnboarding?: boolean },
@@ -75,9 +61,6 @@ export default function AuthPage() {
     try {
       await loadInitialData();
     } catch (e) {
-      // loadInitialData doit JAMAIS bloquer la navigation post-auth :
-      // le fallback PowerSync est non critique (le store a déjà ses
-      // données seed locales). On logue et on continue.
       console.warn("[auth] loadInitialData failed, continuing:", e);
     }
     try {
@@ -86,31 +69,16 @@ export default function AuthPage() {
         profile?.id ?? user?.id ?? "",
       );
     } catch (e) {
-      // OneSignal non critique pour la navigation.
       console.warn("[auth] oneSignalService.login failed:", e);
     }
-    // Une inscription (nouveau compte) passe TOUJOURS par la première page
-    // (onboarding : accueil + config) — et non directement au dashboard
-    // principal — même si ce navigateur a déjà configuré un autre compte.
-    // La connexion d'un compte existant reste conditionnelle (onboarding
-    // uniquement s'il n'est pas encore finalisé pour ce navigateur).
-    //
-    // R126 — si un `returnTo` allowlisté est présent (`/auth?returnTo=…`,
-    // posé par le garde de route pour une route protégée), on y revient :
-    // c'était la cible du lien/onglet d'origine. L'onboarding forcé reste
-    // prioritaire (un nouveau compte doit d'abord créer son organisation).
     const returnTo = readReturnToFromSearch(location.search);
     const to =
       opts?.forceOnboarding || needsOnboarding()
-        ? "/onboarding"
+        ? "/org-setup"
         : (returnTo ?? "/dashboard");
     navigate(to, { replace: true });
   };
 
-  // Handle OAuth callback — one-shot par mount (useRef) pour éviter que
-  // l'effet ne se re-exécute à chaque changement de user?.id (qui arrive
-  // après proceedAfterAuth) et ne déclenche un 2e loadInitialData
-  // concurrent avec Splash.tsx. Dépendance minimale : location.pathname.
   const callbackHandledRef = useRef(false);
   useEffect(() => {
     if (callbackHandledRef.current) return;
@@ -119,38 +87,16 @@ export default function AuthPage() {
     const handleCallback = async () => {
       const result = await authService.handleOAuthCallback();
       if (result.error) {
-        // Fallback : le callback a échoué (code expiré, consommé, ou
-        // échange impossible). Ne pas rester bloqué sur un écran noir —
-        // afficher le message d'erreur sur la page de login.
-        //
-        // IMPORTANT : on garde `loading = false` ici pour réactiver le
-        // bouton Google (sinon il reste disabled à l'infini). Le user peut
-        // retenter le flow OAuth, ce qui relance une redirection Google
-        // complète et un nouvel échange PKCE — c'est la voie de sortie
-        // quand le code du premier passage était expiré.
         setError(result.error);
         setLoading(false);
         navigate("/auth", { replace: true });
       } else if (result.profile) {
-        // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
-        // Google connexion (compte existant, isNewUser false) → dashboard
-        // direct (sauf si l'onboarding de ce navigateur reste à finaliser).
-        void proceedAfterAuth(result.profile, {
-          forceOnboarding: result.isNewUser,
-        });
+        void proceedAfterAuth(result.profile, { forceOnboarding: result.isNewUser });
       } else {
-        // Aucun profil après le callback : le compte est probablement
-        // déjà signé (getSession a trouvé une session). Rediriger vers
-        // le dashboard plutôt que de rester bloqué.
         const state = authService.getState();
         if (state.profile) {
           void proceedAfterAuth(state.profile);
         } else if (state.user?.id) {
-          // La session existe mais le profil n'est pas encore résolu
-          // (ex. RPC upsert_profile a échoué au callback). On tente de
-          // le lire maintenant ; s'il est toujours absent, on continue
-          // avec le profile minimal de state (rôle par défaut MEMBRE).
-          // L'onboarding / invitation claim résoudra le rôle réel.
           void proceedAfterAuth({ id: state.user.id, role: "MEMBRE" });
         } else {
           navigate("/auth", { replace: true });
@@ -160,30 +106,25 @@ export default function AuthPage() {
     void handleCallback();
   }, [location.pathname, navigate]);
 
-  // Handle email/password login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const result = await authService.signInWithEmail(email, password);
     if (result.error) {
       setError(result.error);
       setLoading(false);
       return;
     }
-
     const state = authService.getState();
     setLoading(false);
     await proceedAfterAuth(state.profile);
   };
 
-  // Handle email/password signup — no role at this stage.
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     const result = await authService.signUpWithEmail(
       email,
       password,
@@ -192,60 +133,30 @@ export default function AuthPage() {
     );
     if (result.error) {
       setError(result.error);
-      // UX: if the e-mail already has an account, switch the user back to the
-      // login tab so they can sign in with the same e-mail. This is what was
-      // missing — previously the error was shown but the form stayed in
-      // "signup" mode with first/last name fields still visible.
       if (/already exists/i.test(result.error)) {
         setMode("login");
       }
       setLoading(false);
       return;
     }
-
     const state = authService.getState();
     setLoading(false);
-    // result.isNewUser pilote la force de l'onboarding :
-    //   - true  → sign-up propre (nouveau compte Supabase) : le wizard est
-    //             OBLIGATOIRE, même si ce navigateur a déjà configuré un
-    //             autre compte (needsOnboarding() peut être false mais on
-    //             ignore : un nouveau compte n'a pas encore d'organisation).
-    //   - false → fallback login (l'email était déjà inscrit) : ce n'est
-    //             PAS un sign-up. On respecte needsOnboarding() : un login
-    //             retour d'org (onboarding déjà complet) atterrit direct
-    //             sur /dashboard SANS re-montrer le wizard.
     await proceedAfterAuth(state.profile, { forceOnboarding: result.isNewUser });
   };
 
-  // Handle Google OAuth login
   const handleGoogleLogin = async () => {
     setError("");
     setLoading(true);
-
     const result = await authService.signInWithGoogle();
     if (result.error) {
       setError(result.error);
       setLoading(false);
     }
-    // If no error, the OAuth flow redirects and the callback effect routes
-    // the user to onboarding / dashboard.
   };
 
-  /**
-   * Native OAuth deep-link (Android / iOS).
-   *
-   * The generic `appUrlOpen` listener now lives at the app root (useAppUrlOpen
-   * in App.tsx), which exchanges the `lumina://` callback code for a session
-   * and dispatches a `lumina:deeplink` event. This screen keeps ONLY its
-   * screen-specific intent — routing to onboarding / dashboard and surfacing
-   * an OAuth error on the login form — so no listener is registered twice.
-   */
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-
-    const onNativeDeepLink = (
-      evt: Event,
-    ) => {
+    const onNativeDeepLink = (evt: Event) => {
       const detail = (evt as CustomEvent<LuminaDeepLinkDetail>).detail;
       if (!detail) return;
       if (detail.error) {
@@ -253,35 +164,27 @@ export default function AuthPage() {
         return;
       }
       if (detail.profile) {
-        // Même règle que le callback web : inscription Google (nouveau
-        // compte) → onboarding d'abord ; connexion existante → dashboard.
-        void proceedAfterAuth(detail.profile, {
-          forceOnboarding: detail.isNewUser,
-        });
+        void proceedAfterAuth(detail.profile, { forceOnboarding: detail.isNewUser });
       }
     };
-
     window.addEventListener(LUMINA_DEEPLINK_EVENT, onNativeDeepLink);
     return () => {
       window.removeEventListener(LUMINA_DEEPLINK_EVENT, onNativeDeepLink);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
+      <IonContent fullscreen className="bg-canvas">
         <div data-screen-state="ready" className="min-h-dvh flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5">
+          <div className="px-6 py-5 flex items-center justify-between">
             <img
-              src="/lumina-logo.png"
+              src="/lumina-logo-version-monochrome.png"
               alt="Lumina"
-              className="w-10 h-10 object-contain"
+              className="w-9 h-9 object-contain"
             />
             <div className="flex items-center gap-4">
-              {/* « Mes comptes » : visible uniquement après une déconnexion
-                  (des sessions sont déjà persistées en local). */}
               {hasPersistedSessions && (
                 <button
                   type="button"
@@ -299,23 +202,53 @@ export default function AuthPage() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 px-6 flex flex-col justify-center max-w-sm mx-auto w-full pb-12" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
-            <h1 className="text-text-primary font-bold text-2xl mb-1">
-              {mode === "login" ? "Bon retour" : "Créer un compte"}
-            </h1>
-            <p className="text-text-tertiary text-sm mb-8">
-              {mode === "login"
-                ? "Connectez-vous pour accéder à Lumina"
-                : "Inscrivez-vous pour commencer à utiliser Lumina"}
-            </p>
+          <div className="flex-1 px-6 flex flex-col justify-center max-w-md mx-auto w-full pb-12" style={keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : undefined}>
+            <div className="flex flex-col items-center text-center mb-8">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+                style={{
+                  background: "linear-gradient(135deg, var(--accent-primary), var(--accent-dark))",
+                  boxShadow: "var(--shadow-accent)",
+                }}
+              >
+                <img
+                  src="/lumina-logo-version-monochrome.png"
+                  alt="Lumina"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
+              </div>
+              <h1 className="text-text-primary font-bold text-2xl leading-tight mb-1">
+                {mode === "login" ? "Bon retour" : "Créer un compte"}
+              </h1>
+              <p className="text-text-tertiary text-sm mb-0">
+                {mode === "login"
+                  ? "Connectez-vous pour accéder à Lumina"
+                  : "Inscrivez-vous pour commencer à utiliser Lumina"}
+              </p>
+            </div>
 
-            {/* M19 — Google Sign In Button, partagé login & signup */}
-            <GoogleButton onClick={handleGoogleLogin} disabled={loading} />
+            {error && (
+              <div
+                className="w-full mb-5 p-3.5 rounded-xl text-sm text-center"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                  color: "var(--out)",
+                  border: "1px solid color-mix(in srgb, var(--out) 25%, var(--border))",
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            {/* M19 — Google Sign In Button */}
+            <GoogleButton onClick={handleGoogleLogin} disabled={loading} className="w-full mb-6" />
 
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex-1 h-px bg-surface-hover" />
+              <div className="flex-1 h-[1px] bg-border" />
               <span className="text-text-tertiary text-xs">ou</span>
-              <div className="flex-1 h-px bg-surface-hover" />
+              <div className="flex-1 h-[1px] bg-border" />
             </div>
 
             {/* Email/Password Form */}
@@ -325,103 +258,74 @@ export default function AuthPage() {
             >
               {mode === "signup" && (
                 <>
-                  <div>
-                    <label className="text-text-secondary text-xs font-medium mb-2 block">
-                      Prénom
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                      <input
-                        type="text"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        placeholder="Jean"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
-                        aria-label="Prénom"
-                        required
-                      />
-                    </div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Jean"
+                      className="w-full pl-10 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                      style={{
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
+                      }}
+                      aria-label="Prénom"
+                      required
+                    />
                   </div>
-
-                  <div>
-                    <label className="text-text-secondary text-xs font-medium mb-2 block">
-                      Nom
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                      <input
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        placeholder="Dupont"
-                        className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
-                        style={{
-                          backgroundColor: "var(--surface)",
-                          border: "1px solid var(--border)",
-                        }}
-                        aria-label="Nom"
-                      />
-                    </div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Dupont"
+                      className="w-full pl-10 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                      style={{
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
+                      }}
+                      aria-label="Nom"
+                      required
+                    />
                   </div>
                 </>
               )}
 
-              <div>
-                <label className="text-text-secondary text-xs font-medium mb-2 block">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jean@example.com"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                    aria-label="Adresse email"
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="jean@example.com"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                  aria-label="Adresse email"
+                  required
+                />
               </div>
 
-              <div>
-                <label className="text-text-secondary text-xs font-medium mb-2 block">
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                    aria-label="Mot de passe"
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                  aria-label="Mot de passe"
+                  required
+                />
               </div>
-
-              {error && (
-                <div
-                  className="p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-                >
-                  {error}
-                </div>
-              )}
 
               <button
                 type="submit"
@@ -431,11 +335,9 @@ export default function AuthPage() {
                   !password ||
                   (mode === "signup" && !firstName.trim())
                 }
-                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
+                className="w-full py-4 rounded-full font-bold text-sm text-black transition-all active:scale-[0.97] disabled:opacity-40 shadow-accent uppercase tracking-wider"
                 style={{ backgroundColor: "var(--accent-primary)" }}
-                aria-label={
-                  mode === "login" ? "Se connecter" : "Créer mon compte"
-                }
+                aria-label={mode === "login" ? "Se connecter" : "Créer mon compte"}
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin mx-auto" />
@@ -455,23 +357,14 @@ export default function AuthPage() {
                   setError("");
                 }}
                 className="text-text-tertiary text-sm hover:text-accent transition-colors"
-                aria-label={
-                  mode === "login"
-                    ? "Passer à l'inscription"
-                    : "Passer à la connexion"
-                }
+                aria-label={mode === "login" ? "Passer à l'inscription" : "Passer à la connexion"}
               >
-                {mode === "login"
-                  ? "Pas encore de compte ? Inscrire"
-                  : "Déjà un compte ? Se connecter"}
+                {mode === "login" ? "Pas encore de compte ? Inscrire" : "Déjà un compte ? Se connecter"}
               </button>
             </div>
 
-            {/* Entrée invitation : le claim est la porte d'entrée des membres
-                invités (code / JSON / fichier / QR). Page protégée (Route
-                Guard) : un visiteur non connecté est renvoyé vers /auth,
-                ce qui rend le parcours découverte → login → claim fluide. */}
-            <div className="mt-3 text-center">
+            {/* Entrée invitation */}
+            <div className="mt-4 text-center">
               <button
                 onClick={() => navigate("/invitation/claim")}
                 className="text-text-tertiary text-xs hover:text-accent transition-colors"

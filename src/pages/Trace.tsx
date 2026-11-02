@@ -69,11 +69,8 @@ export const ENTITY_LABELS: Record<string, string> = {
   BudgetLine: "Poste budgétaire",
   GroupMembership: "Adhésion",
   Versement: "Versement",
-  Cotisation: "Cotisation",
-  OwnershipTransfer: "Transfert de propriété",
   Account: "Compte",
   OrgAdmin: "Administrateur d'organisation",
-  Backup: "Sauvegarde",
 };
 
 const FILTERS = [
@@ -127,8 +124,6 @@ export default function TracePage() {
     BudgetLine: { label: "Poste budgétaire", type: "Budget" },
     GroupMembership: { label: "Adhésion", type: "Groupe" },
     Versement: { label: "Versement", type: "Transaction" },
-    Cotisation: { label: "Cotisation", type: "Transaction" },
-    OwnershipTransfer: { label: "Transfert de propriété", type: "Administrateur d'organisation" },
     Account: { label: "Compte", type: "Groupe" },
   };
 

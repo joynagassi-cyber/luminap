@@ -9,19 +9,14 @@
 > Ce fichier est le pendant « contrat » de `docs/agent/PROPOSITIONS.md`
 > (document de session, P1→P41). Les propositions de session restent la
 > référence détaillée ; ici on tient la liste contractuelle et sa catégorie.
->
-> **Analyse d'écart experte** : `docs/agent/PROPOSALS_GAP_ANALYSIS.md` — vérifie
-> dans le code l'état réel et identifie les features **partielles** (audit
-> incomplet, sauvegarde sans import, corbeille sans purge), traitées par les
-> PR dédiées (agents G/H/I).
 
 ## Robustesse / intégrité — implémentables pendant l'absence
 
 | # | Proposition | Valeur | Risque | Coût | Dépendances | Prio |
 |---|---|---|---|---|---|---|
-| PR1 ✅ | Journal d'audit consultable (UI) — `/trace` + détail d'entrée. **Étendu (NeverBreak #6)** à members / cotisations / versements / groupes / événements / transferts : chaque mutation de ces services écrit désormais une entrée (`audit-coverage-guard.test.ts` + `audit-coverage-behavior.test.ts`) | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
-| PR2 ✅ | Export/sauvegarde des données (UI) — JSON + CSV, `useBackupData` ; **export + import/restauration (JSON)** (`backupImport.ts` : `parseBackupBundle` fail-closed + `planRestore` borné à l'org active) | réversibilité, passation | faible | moyen | dataLayer | P1 |
-| PR3 ✅ | Corbeille / restauration (soft-delete) — `/archives` **+ purge / vidage corbeille** (`purgeEntity`, `purgeAllArchived`, garde fail-closed, audit `DELETE`) | anti-perte | moyen | moyen | archivage (existe) | P2 |
+| PR1 ✅ | Journal d'audit consultable (UI) — `/trace` + détail d'entrée | traçabilité des actions sensibles | faible | moyen | audit_entries (existe) | P1 |
+| PR2 ✅ | Export/sauvegarde des données (UI) — JSON + CSV, `useBackupData` | réversibilité, passation | faible | moyen | dataLayer | P1 |
+| PR3 ✅ | Corbeille / restauration (soft-delete) — `/archives` | anti-perte | moyen | moyen | archivage (existe) | P2 |
 | PR4 ✅ | Page de santé (version, base, sync, dernières erreurs) | exploitation autonome | faible | faible | `client_errors`, PowerSync status | P1 |
 | PR5 ✅ | Bouton « Signaler un problème » (contexte sans PII) | support | faible | faible | Sentry + `client_errors` | P2 |
 | PR6 ✅ | Écran « mise à jour requise » — source de version **fournie** (`schemaVersion.ts`, R106 corrigé) | compat APK | faible | faible | schéma de sync | P1 |

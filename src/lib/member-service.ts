@@ -6,8 +6,6 @@
 
 import { generateId } from "./utils";
 import { addMemberPS, updateMemberPS } from "./dataLayer";
-import { writeAudit, resolveAuditActor } from "./audit";
-import { getOrganizationId } from "./orgContext";
 import type { Member } from "@/types";
 
 export interface MemberState {
@@ -41,19 +39,6 @@ export async function persistCreateMember(member: Member): Promise<void> {
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-  // NeverBreak #6 — la création d'un membre est une action sensible : elle
-  // laisse une trace consultable dans `/trace`.
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "CREATE",
-    entityType: "Member",
-    entityId: member.id,
-    beforeState: null,
-    afterState: member,
-    comment: null,
-  });
 }
 
 // --- updateMember ---
@@ -71,25 +56,12 @@ export function applyUpdateMember(
 export async function persistUpdateMember(
   id: string,
   data: Partial<Member>,
-  beforeState: Member | null = null,
 ): Promise<void> {
   try {
     await updateMemberPS(id, data);
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-  // NeverBreak #6 — toute mise à jour de membre est tracée (avant/après).
-  await writeAudit({
-    orgId: getOrganizationId(),
-    transactionId: null,
-    ...resolveAuditActor(),
-    action: "UPDATE",
-    entityType: "Member",
-    entityId: id,
-    beforeState,
-    afterState: { id, ...data },
-    comment: null,
-  });
 }
 
 // --- deleteMember ---

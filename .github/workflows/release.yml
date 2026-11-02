@@ -196,32 +196,6 @@ jobs:
         id: version
         run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Inject versionName/versionCode from tag (self-update)
-        # CRITIQUE (audit 2026-11-01) : sans ce patch, `versionName` restait
-        # FIGÉ à la valeur commitée (1.2.1) quel que soit le tag. L'APK
-        # installé et la Release portaient alors la MÊME version → soit la
-        # mise à jour n'était jamais détectée, soit `compareVersions` restait
-        # > 0 en boucle (l'utilisateur réinstallait sans fin le même APK).
-        # `versionCode` doit être STRICTEMENT croissant (Android refuse un
-        # downgrade : INSTALL_FAILED_VERSION_DOWNGRADE).
-        run: |
-          set -euo pipefail
-          VER="${{ steps.version.outputs.APP_VERSION }}"
-          IFS='.' read -r MAJ MIN PAT <<< "$VER"
-          MAJ="${MAJ:-0}"; MIN="${MIN:-0}"; PAT="${PAT:-0}"
-          # Retire tout suffixe non numérique (ex. 1.2.1-rc1 → 1).
-          PAT="${PAT%%[!0-9]*}"; MIN="${MIN%%[!0-9]*}"; MAJ="${MAJ%%[!0-9]*}"
-          MAJ="${MAJ:-0}"; MIN="${MIN:-0}"; PAT="${PAT:-0}"
-          CODE=$(( MAJ * 10000 + MIN * 100 + PAT ))
-          F=android/app/build.gradle
-          sed -i -E "s/versionCode[[:space:]]+[0-9]+/versionCode ${CODE}/" "$F"
-          sed -i -E "s/versionName[[:space:]]+\"[^\"]*\"/versionName \"${VER}\"/" "$F"
-          echo "build.gradle → versionName=${VER}, versionCode=${CODE}"
-          # Échec bruyant si le patch n'a pas pris (jamais de panne muette).
-          grep -q "versionName \"${VER}\"" "$F" || { echo "::error::versionName non appliqué"; exit 1; }
-          grep -q "versionCode ${CODE}" "$F" || { echo "::error::versionCode non appliqué"; exit 1; }
-          grep -E "version(Name|Code)" "$F"
-
       - name: Upload patched android/ tree for the build job
         # Le patch est fait SUR le working tree de CE job (le fichier est
         # gitignored, donc PAS commité). On le pousse en artefact pour que

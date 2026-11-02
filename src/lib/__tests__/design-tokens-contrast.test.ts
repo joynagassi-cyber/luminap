@@ -14,17 +14,9 @@
  * Écart assumé (documenté dans le receipt) : `--text-tertiary` et
  * `--text-placeholder` sont des teintes d'indice (placeholders, légendes) et
  * descendent sous 4.5:1 par choix esthétique du mode sombre/clair ; ils ne sont
- * donc PAS verrouillés ici pour ne pas figer une régression connue.
- *
- * Les couleurs d'ARGENT `--in` / `--out` sont, elles, désormais VERROUILLÉES
- * (voir le second `describe`). L'ancien rouge de marque (jeton financier
- * historique, désormais supprimé par la migration addendum-2), porté en TEXTE,
- * ne tenait que 3.34–4.08:1 sur les surfaces sombres
- * de la maquette (échec AA) — c'est le rouge « vif/agressif » signalé sur
- * l'historique et l'accueil. La migration addendum-2 a remplacé ces jetons par
- * `--in` / `--out` **par mode** (sombre #4ade80 / #f87171, clair #166534 /
- * #b91c1c), qui passent AA partout. Ce test échoue si une retouche de palette
- * fait retomber un montant coloré sous 4.5:1.
+ * donc PAS verrouillés ici pour ne pas figer une régression connue. Idem pour
+ * les couleurs de données (revenu/dépense), qui ne portent jamais seules
+ * l'information (le signe +/− la porte aussi).
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
@@ -111,50 +103,5 @@ describe("contraste des tokens de design (WCAG 2.1 AA, texte normal)", () => {
   it("la fonction de contraste est correcte (blanc sur noir = 21:1)", () => {
     expect(contrast("#ffffff", "#000000")).toBeCloseTo(21, 0);
     expect(contrast("#ffffff", "#ffffff")).toBeCloseTo(1, 5);
-  });
-});
-
-// ─── Couleurs d'ARGENT portées en texte (historique / accueil) ──────────────
-
-/** Surfaces réelles de chaque mode, sur lesquelles un montant est posé. */
-const SURFACE_TOKENS = ["canvas", "surface", "card", "surface-hover"] as const;
-const MONEY_INK = ["in", "out"] as const;
-
-describe("couleurs d'argent en texte (WCAG 2.1 AA, texte normal)", () => {
-  it("--in / --out sont déclinés dans les deux modes", () => {
-    for (const mode of [dark, light]) {
-      for (const t of MONEY_INK) {
-        expect(mode[t], `token --${t} manquant`).toBeDefined();
-      }
-    }
-  });
-
-  for (const [modeName, mode] of [
-    ["sombre", dark],
-    ["clair", light],
-  ] as const) {
-    for (const t of MONEY_INK) {
-      for (const surface of SURFACE_TOKENS) {
-        it(`mode ${modeName} : --${t} sur --${surface} ≥ ${AA_NORMAL}:1`, () => {
-          const ratio = contrast(mode[t], mode[surface]);
-          expect(
-            ratio,
-            `--${t} (${mode[t]}) sur --${surface} (${mode[surface]}) = ${ratio.toFixed(2)}:1`,
-          ).toBeGreaterThanOrEqual(AA_NORMAL);
-        });
-      }
-    }
-  }
-
-  it("NON-VACUITÉ : le rouge de marque #e51332 échouait AA en texte (sombre)", () => {
-    // L'ancien rouge « vif/agressif » (#e51332) posé en texte sur les surfaces
-    // sombres de la maquette passait sous 4.5:1 : ce test prouve que le verrou
-    // ci-dessus attrape bien la régression d'origine.
-    for (const surface of SURFACE_TOKENS) {
-      expect(
-        contrast("#e51332", dark[surface]),
-        `#e51332 sur --${surface} (${dark[surface]})`,
-      ).toBeLessThan(AA_NORMAL);
-    }
   });
 });

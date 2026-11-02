@@ -40,19 +40,6 @@ const state = vi.hoisted(() => ({
 
 vi.mock("@/lib/clientErrors", () => ({ captureClientError: vi.fn() }));
 
-// NeverBreak #6 — les services de cotisation/versement écrivent désormais une
-// entrée d'audit. Ce test cible le GEL DE PÉRIODE : on neutralise l'audit (dont
-// la base n'est pas initialisée ici) pour ne pas coupler les deux préoccupations.
-vi.mock("@/lib/audit", () => ({
-  writeAudit: vi.fn(async () => {}),
-  resolveAuditActor: () => ({ userId: "local-user", actorRoleAtTime: null }),
-  auditLogRepo: {
-    write: vi.fn(async () => {}),
-    list: vi.fn(async () => []),
-    getByEntity: vi.fn(async () => []),
-  },
-}));
-
 vi.mock("@/lib/orgContext", () => ({
   getOrganizationId: () => "org-1",
   subscribeOrganization: () => () => {},

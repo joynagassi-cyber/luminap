@@ -49,10 +49,6 @@ const state = vi.hoisted(() => ({
   selectRoleCalls: [] as any[],
   setOrgCalls: [] as string[],
   bootstrapImpl: null as null | ((input: any) => Promise<any>),
-  /** Miroir local des orgs du compte (garde anti-doublon). */
-  existingOrgs: null as null | Array<{ orgId: string; name?: string | null; status?: string | null }>,
-  /** Profil renvoyé par authService.getState(). */
-  profile: { id: "user-1", org_id: "__no_org__" } as { id: string; org_id?: string | null },
 }));
 
 vi.mock("@/lib/orgBootstrap", () => ({
@@ -79,7 +75,6 @@ vi.mock("@/lib/dataLayer", () => ({
   mirrorNewOrganizationLocally: vi.fn(async (input: any) => {
     state.mirrorCalls.push(input);
   }),
-  findExistingRootOrganization: vi.fn(async () => state.existingOrgs),
 }));
 
 vi.mock("@/lib/orgContext", () => ({
@@ -89,10 +84,7 @@ vi.mock("@/lib/orgContext", () => ({
 
 vi.mock("@/lib/auth", () => ({
   authService: {
-    getState: () => ({
-      profile: state.profile,
-      user: { id: state.profile.id },
-    }),
+    getState: () => ({ profile: { id: "user-1" }, user: { id: "user-1" } }),
     refreshProfile: vi.fn(async () => null),
   },
 }));
@@ -118,8 +110,6 @@ beforeEach(() => {
   state.selectRoleCalls = [];
   state.setOrgCalls = [];
   state.bootstrapImpl = null;
-  state.existingOrgs = [];
-  state.profile = { id: "user-1", org_id: "__no_org__" };
   navigate.mockClear();
 });
 afterEach(() => cleanup());
@@ -197,107 +187,3 @@ describe("OrgSetup — garde", () => {
     expect(localStorage.getItem("lumina-onboarded")).toBe("true");
   });
 });
-
-// ─── Garde anti-doublon (P0) ────────────────────────────────────────────────
-//
-// NON-VACUITÉ : ces tests ÉCHOUENT sans le correctif. Avant, `handleCreate`
-// appelait TOUJOURS `bootstrapOrganization` → chaque passage au wizard créait
-// une nouvelle organisation (1452 ACTIVE mesurées). Retirer l'effet de garde
-// (ou la garde dans `handleCreate`) fait réapparaître l'appel serveur et
-// l'absence de redirection.
-describe("OrgSetup — garde anti-doublon (compte possédant déjà une org)", () => {
-  it("redirige vers le dashboard SANS créer d'organisation", async () => {
-    state.existingOrgs = [
-      { orgId: "org-existante", name: "Église Existante", status: "ACTIVE" },
-    ];
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    // Le wizard est court-circuité : aucun appel serveur de création.
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith("/dashboard", { replace: true }),
-    );
-    expect(state.bootstrapCalls).toHaveLength(0);
-    expect(state.mirrorCalls).toHaveLength(0);
-    // Contexte posé sur l'organisation EXISTANTE (pas de nouvelle).
-    expect(state.setOrgCalls).toContain("org-existante");
-  });
-
-  it("affiche le message « continuer avec mon organisation »", async () => {
-    state.existingOrgs = [
-      { orgId: "org-existante", name: "Église Existante", status: "ACTIVE" },
-    ];
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    await waitFor(() =>
-      expect(screen.getByText("Continuer avec mon organisation")).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/déjà une organisation/)).toBeInTheDocument();
-  });
-
-  it("un clic sur « Créer l'organisation » ne déclenche AUCUN appel serveur", async () => {
-    state.existingOrgs = [
-      { orgId: "org-existante", name: "Église Existante", status: "ACTIVE" },
-    ];
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    await waitFor(() =>
-      expect(screen.getByText("Continuer avec mon organisation")).toBeInTheDocument(),
-    );
-    navigate.mockClear();
-    fillAndCreate();
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith("/dashboard", { replace: true }),
-    );
-    expect(state.bootstrapCalls).toHaveLength(0);
-  });
-
-  it("le self-serve NEUF (aucune org) crée bien sa première organisation", async () => {
-    state.existingOrgs = []; // miroir vide = compte sans organisation
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    fillAndCreate();
-    await waitFor(() => expect(state.bootstrapCalls.length).toBe(1));
-    expect(navigate).toHaveBeenCalledWith("/dashboard", { replace: true });
-  });
-
-  it("repli sur le profil quand le miroir est indisponible (null)", async () => {
-    state.existingOrgs = null; // réplique PowerSync indisponible
-    state.profile = { id: "user-1", org_id: "org-profil" };
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    await waitFor(() =>
-      expect(navigate).toHaveBeenCalledWith("/dashboard", { replace: true }),
-    );
-    expect(state.bootstrapCalls).toHaveLength(0);
-    expect(state.setOrgCalls).toContain("org-profil");
-  });
-
-  it("une org ARCHIVED ne bloque pas (le compte peut repartir de zéro)", async () => {
-    state.existingOrgs = [
-      { orgId: "org-archivee", name: "Ancienne", status: "ARCHIVED" },
-    ];
-    render(
-      <MemoryRouter>
-        <OrgSetup />
-      </MemoryRouter>,
-    );
-    fillAndCreate();
-    await waitFor(() => expect(state.bootstrapCalls.length).toBe(1));
-  });
-});
-

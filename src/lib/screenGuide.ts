@@ -1858,10 +1858,10 @@ const SCREEN_GUIDE: ScreenGuide = {
         "title": "Gestion",
         "feature": "Aide & réglages",
         "section": "parametres",
-        "purpose": "Outils de gestion avancée : sauvegarde/export et import, corbeille, journal, état du système.",
+        "purpose": "Outils de gestion avancée : sauvegarde/export, corbeille, journal, état du système.",
         "steps": [
-          "Choisissez l'outil voulu (export, import, corbeille, santé).",
-          "Exportez vos données pour les sauvegarder, ou importez un fichier JSON pour les restaurer.",
+          "Choisissez l'outil voulu (export, corbeille, santé).",
+          "Exportez vos données pour les sauvegarder.",
           "Consultez l'état du système en cas de doute."
         ],
         "annotations": [

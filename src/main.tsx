@@ -20,6 +20,7 @@ import "@ionic/core/css/ionic.bundle.css";
 import "./ionic/theme.css";
 import { applyStoredTheme, applyStoredThemeMode } from "./ionic/themes";
 import { initPowerSync } from "@/lib/powersync";
+import { initFloatingLabelFix } from "@/lib/formLabelFix";
 import { PowerSyncProvider } from "@/components/PowerSyncProvider";
 import { prefetchNavViews, useFeatureConfig } from "@/lib/features";
 import { initSentry } from "@/lib/sentry";
@@ -28,90 +29,111 @@ import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
 import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
 import { flushPendingReports } from "@/lib/observability/errorReporter";
 
-// Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
-// signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
-// PowerSync), une surcouche de récupération remplace l'écran noir silencieux.
-armBootWatchdog();
+// ─── Gestionnaires d'erreur globaux — afficher à l'écran au lieu du noir ───
+function showBootError(title: string, message: string, detail?: string): void {
+  const prev = document.getElementById("lumina-boot-error");
+  if (prev) prev.remove();
 
-// Initialise Sentry avant tout : il capture les erreurs de la phase de
-// boot (initPowerSync, applyStoredTheme, loadIonicDefinitions…). Silencieux
-// si le DSN (VITE_SENTRY_DSN) n'est pas défini — le SDK reste actif sans envoi.
-initSentry();
+  const el = document.createElement("div");
+  el.id = "lumina-boot-error";
+  el.setAttribute("role", "alert");
+  el.style.cssText =
+    "position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;" +
+    "align-items:center;justify-content:center;gap:16px;padding:24px;" +
+    "background:#ffffff;color:#111;font-family:system-ui,sans-serif;text-align:center;" +
+    "border:3px solid #dc2626;";
+  el.innerHTML = `
+    <div style="font-size:48px;line-height:1">🚨</div>
+    <p style="margin:0;font-weight:800;font-size:20px">${title}</p>
+    <p style="margin:0;font-size:15px;line-height:1.5;max-width:420px">${message}</p>
+    ${detail ? `<p style="margin:8px 0 0 0;font-size:12px;opacity:.75;max-width:420px;word-break:break-word">${detail}</p>` : ""}
+    <button id="lumina-boot-reload" style="margin-top:16px;padding:12px 28px;border:0;border-radius:8px;background:#111;color:#fff;font-weight:600;cursor:pointer;box-shadow:0 2px 4px rgba(0,0,0,.15)">Recharger l’application</button>
+  `;
+  el.querySelector("#lumina-boot-reload")?.addEventListener("click", () => {
+    window.location.reload();
+  });
+  document.body.appendChild(el);
+}
 
-// Observabilité — capture automatique du fil d'Ariane (clics, navigations,
-// réseau) et surveillance des tâches longues (interface gelée). Armés tôt pour
-// couvrir la phase de boot. Les rapports déjà en file (hors-ligne, rechargement)
-// sont ré-émis dès que possible.
-installBreadcrumbCapture();
-installLongTaskMonitor();
-void flushPendingReports().catch(() => {
-  /* fire-and-forget : la file est réessayée à la reconnexion / au prochain boot */
+window.addEventListener("error", (e) => {
+  showBootError(
+    "Erreur JavaScript",
+    e.message,
+    e.filename ? `${e.filename}:${e.lineno ?? ""}:${e.colno ?? ""}` : undefined,
+  );
+});
+window.addEventListener("unhandledrejection", (e) => {
+  const reason = e.reason?.message ?? String(e.reason ?? "promesse rejetée");
+  showBootError("Promesse rejetée", reason);
 });
 
+// ─── Sentry ───────────────────────────────────────────────────────────────
+try {
+  initSentry();
+} catch (e) {
+  console.warn("[Lumina] Sentry init failed:", e);
+}
 
-// Initialize PowerSync before React mounts. This is fire-and-forget: it
-// registers the shared database/connector singletons synchronously so the
-// data layer can use `getPowerSyncDatabase()` on first render, while the
-// actual first sync runs in the background and retries on failure. Without
-// this call the data layer would throw "Database not initialized" and the
-// app would stay stuck on its offline fallback.
-initPowerSync().catch((err) => {
-  console.warn("[Lumina] PowerSync init failed, staying offline:", err);
-});
+// ─── Watchdog de démarrage ────────────────────────────────────────────────
+try {
+  armBootWatchdog();
+} catch (e) {
+  console.warn("[Lumina] Boot watchdog failed:", e);
+}
 
-// Restore the persisted brand theme (chosen during onboarding) before the
-// first paint. No-op when no theme has been stored yet.
-applyStoredTheme();
+// ─── PowerSync — fire-and-forget, ne bloque JAMAIS le boot ────────────────
+try {
+  void initPowerSync().catch((err) => {
+    console.warn("[Lumina] PowerSync init failed, staying offline:", err);
+  });
+} catch (e) {
+  console.warn("[Lumina] PowerSync init threw:", e);
+}
 
-// Restore the persisted light/dark mode (dark by default) before the first
-// paint. Sets `data-theme` on <html> so every CSS token + Ionic var is
-// already in the right state (index.html also primes it pre-bundle).
-applyStoredThemeMode();
+// ─── Thème (avant le premier paint) ───────────────────────────────────────
+try {
+  applyStoredTheme();
+} catch (e) {
+  console.warn("[Lumina] applyStoredTheme failed:", e);
+}
+try {
+  applyStoredThemeMode();
+} catch (e) {
+  console.warn("[Lumina] applyStoredThemeMode failed:", e);
+}
 
-// OneSignal est initialisé à la demande (flux déclenché par l'utilisateur,
-// ex. SettingsNotifications), jamais au boot : le plugin a
-// promptForNotifications:true, donc l'init au premier lancement demanderait
-// la permission push avant tout usage des notifications.
+// ─── Montage React — protégé par try/catch ────────────────────────────────
+try {
+  const rootEl = document.getElementById("root");
+  if (!rootEl) {
+    showBootError("Élément #root introuvable", "Le conteneur racine est absent du DOM.");
+    throw new Error("#root introuvable");
+  }
 
-// Best effort : précharger les définitions d'éléments personnalisés Ionic.
-// Avec React 19, monter un custom element NON encore défini peut faire
-// perdre ses enfants React (barre d'onglets / boutons ionic vides). Les
-// composants critiques (BottomNav, boutons du header) sont désormais en
-// HTML natif — ce préchargement couvre les autres éléments ionic.
-import("@ionic/core")
-  .then((m) => {
-    const loader = (
-      m as {
-        loadIonicDefinitions?: () => Promise<void>;
-        registerIonContent?: () => void;
-      }
-    ).loadIonicDefinitions;
-    return loader?.();
-  })
-  .catch(() => {});
+  createRoot(rootEl).render(
+    <PowerSyncProvider>
+      <App />
+    </PowerSyncProvider>,
+  );
 
-// Le `<PowerSyncProvider>` DOIT envelopper `<App />` : les hooks de lecture
-// du dataLayer (`useQuery` de @powersync/react) lisent la base via
-// `PowerSyncContext`. Sans provider, `useQuery` renvoie
-// `{ data: [], error: new Error("PowerSync not configured.") }` : toutes
-// les listes de l'app retombaient sur le repli local (vide au premier
-// lancement) — la base SQLite contenait pourtant bien les lignes
-// synchronisées. Le provider était défini mais jamais monté.
-createRoot(document.getElementById("root")!).render(
-  <PowerSyncProvider>
-    <App />
-  </PowerSyncProvider>,
-);
+  rootEl.classList.add("is-hydrated");
 
-// Signale à la CSS statique d'index.html que le root React est
-// hydraté : le splash HTML/CSS (index.html) est masqué (display:none)
-// dès que le premier rendu React a du contenu, pour ne pas laisser
-// deux écrans de splash superposés. Le splash React (route /splash)
-// prend le relais visuellement.
-document.getElementById("root")?.classList.add("is-hydrated");
-
-// Affichage fluide : dès le départ, on préchauffe (hors du chemin critique
-// de rendu, au repos du navigateur) les chunks des vues de la nav que
-// l'utilisateur a configurée (défaut sinon). Le premier clic sur un onglet
-// n'affiche alors plus le squelette de chargement.
-prefetchNavViews(useFeatureConfig.getState().navTabs);
+  // Correction globale des labels flottants Ion (chevauchement avec la valeur)
+  try {
+    initFloatingLabelFix();
+  } catch (e) {
+    console.warn("[Lumina] formLabelFix failed:", e);
+  }
+} catch (e) {
+  showBootError(
+    "Échec du montage de l’application",
+    e instanceof Error ? e.message : String(e),
+    "Vérifiez la console du navigateur (F12) pour plus de détails.",
+  );
+}
+// ─── Préchargement des vues de nav (hors chemin critique) ─────────────────
+try {
+  void prefetchNavViews(useFeatureConfig.getState().navTabs).catch(() => {});
+} catch (e) {
+  console.warn("[Lumina] prefetchNavViews failed:", e);
+}

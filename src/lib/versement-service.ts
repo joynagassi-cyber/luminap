@@ -9,7 +9,6 @@ import { getOrganizationId } from "./orgContext";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { generateId } from "./utils";
 import { executeWrite, assertTransactionWritable } from "./dataLayer";
-import { writeAudit } from "./audit";
 import type { Transaction } from "@/types";
 
 export interface CreateVersementParams {
@@ -179,36 +178,6 @@ export async function createVersement(
   } catch (error) {
     // Persist failure is non-fatal; offline queue will retry
   }
-
-  // NeverBreak #6 — un versement déplace de l'argent entre caisses : création
-  // tracée. `transactionId` lie la trace à la transaction source (l'entrée
-  // d'audit pointe la paire via `versementId` dans l'état après).
-  await writeAudit({
-    orgId,
-    transactionId: sourceTx.id,
-    userId: sessionId,
-    actorRoleAtTime: null,
-    action: "CREATE",
-    entityType: "Versement",
-    entityId: versementId,
-    beforeState: null,
-    afterState: {
-      id: versementId,
-      orgId,
-      fromAccountId: params.sourceCaisseId,
-      toAccountId: "main",
-      amountCents: params.amount,
-      date,
-      status: "APPROVED" as const,
-      createdBy: sessionId,
-      approvedBy: sessionId,
-      approvedAt: now,
-      createdAt: now,
-      sourceTxId: sourceTx.id,
-      targetTxId: targetTx.id,
-    },
-    comment,
-  });
 
   return { versementId, sourceTx, targetTx };
 }

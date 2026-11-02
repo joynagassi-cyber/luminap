@@ -53,27 +53,8 @@ public class ApkUpdaterPlugin extends Plugin {
 
     @PluginMethod
     public void canInstall(PluginCall call) {
+        boolean ok = getContext().getPackageManager().canRequestPackageInstalls();
         JSObject ret = new JSObject();
-        // `canRequestPackageInstalls()` n'existe qu'à partir de l'API 26
-        // (PackageManager). Sur API 21–25, l'appeler lèverait
-        // NoSuchMethodError → la promesse JS rejetterait → `startUpdate()`
-        // échouait AVANT tout téléchargement (panne silencieuse : l'utilisateur
-        // ne voyait aucune mise à jour s'installer). Le fallback lanceur
-        // système (installLegacy) gère lui-même le réglage « sources
-        // inconnues » : sur API < 26, on considère donc l'installation possible.
-        if (Build.VERSION.SDK_INT < 26) {
-            ret.put("value", true);
-            call.resolve(ret);
-            return;
-        }
-        boolean ok;
-        try {
-            ok = getContext().getPackageManager().canRequestPackageInstalls();
-        } catch (Exception e) {
-            // Diagnostic : ne jamais avaler l'erreur (panne silencieuse).
-            Log.e(TAG, "canRequestPackageInstalls() a échoué", e);
-            ok = false;
-        }
         ret.put("value", ok);
         call.resolve(ret);
     }

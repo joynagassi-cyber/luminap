@@ -1,53 +1,22 @@
 /**
- * OrgReportDetail — page de détail d'un rapport de gestion inter-organisations
- * (Phase 4 Feature 2 — rapports organisations).
+ * OrgReportDetail v2 — Détail d'un rapport de gestion reçu.
  *
- * Route : `/admin/reports/:id` (montée dans `src/ionic/routes/admin.tsx`).
+ * Route : `/admin/reports/:id`.
  *
- * Lecture : `org_reports WHERE id = ?` (PowerSync watch-query) +
- * `organizations WHERE id = ?` (nom de l'annexe émettrice).
+ * Design : fond sombre, carte header (titre + badge format + période +
+ * émetteur), cards d'agrégats 2×2, preview du fichier (PDF / DOCX / XLSX /
+ * PNG), documents joints, bouton partager.
+ * Tokens CSS `var(--*)`.
  *
- * Header : titre du rapport + badge format + période + annoter `read_at`
- * (marque lu à l'ouverture — `executeWrite` UPDATE `read_at = now(),
- * status = 'READ' WHERE id = ? AND read_at IS NULL` — idempotent si déjà
- * lu).
- *
- * Section `content` (jsonb) : rendu des agrégats du rapport
- * (`totalIncome` / `totalExpense` / `netResult` + compteurs
- * `eventCount` / `memberCount` / `documentCount`) — cards grid 2×2.
- *
- * Preview du fichier (`pdf_path`) : selon `format` :
- *  - `pdf`  → `<PdfPreview>` (react-pdf canvas, zoom 0.5–2.0, pagination,
- *              download via `getReportUrl`) ;
- *  - `docx` → bouton « Télécharger » (URL signée) + notice « Aperçu non
- *              disponible pour DOCX — téléchargez pour consulter dans Word » ;
- *  - `xlsx` → bouton « Télécharger » (URL signée) + notice « Aperçu non
- *              disponible pour XLSX — téléchargez pour consulter dans
- *              Excel » ;
- *  - `png`  → `<img src={getReportUrl(pdfPath)}>` (canvas render +
- *              toDataURL, rendu natif).
- *
- * Liste des documents joints (`document_refs`) : `useDocuments()` +
- * filtre local sur les ids + `getDocumentUrl` pour chaque → cards
- * miniatures (titre + icône par `mime_type`).
- *
- * Bouton « Partager » : `navigator.share` (Web Share API) sur l'URL
- * signée du rapport (si `pdf_path`) ou le contenu JSON (si pas de
- * fichier) — fallback `navigator.clipboard` si `share` est absent.
- *
- * Tokens Lumina uniquement (zéro couleur brute). Non-régression : la
- * page n'impacte ni `CentralAdmin.tsx` ni `OrgReportSend.tsx` (le
- * bouton d'émission y reste intact). RLS `org_reports_receiver` : la
- * lecture `WHERE id = ?` passe par la policy (l'org ne voit que ce qui
- * lui est destiné).
+ * Logique métier inchangée : lecture PowerSync `org_reports`, mark as read,
+ * résolution émetteur, partage (Web Share API / clipboard), download.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
+  IonHeader,
   IonToolbar,
   IonButtons,
   IonBackButton,
@@ -69,6 +38,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
 import EmptyState from "@/components/EmptyState";
+import { PdfPreview } from "@/components/PdfPreview";
 import {
   getPowerSyncDatabase,
 } from "@/lib/powersync";
@@ -80,8 +50,7 @@ import {
 import { getOrganizationId } from "@/lib/orgContext";
 import { federation } from "@/capabilities/federation";
 import { getReportUrl, getDocumentUrl } from "@/lib/storageService";
-import { formatCurrencyCompact, formatDate } from "@/lib/utils";
-import PdfPreview from "@/components/PdfPreview";
+import { formatCurrencyCompact, formatDate, formatBytes } from "@/lib/utils";
 
 /** Vue locale d'un rapport `org_reports` (PowerSync — snake_case). */
 interface OrgReportRow {
@@ -114,18 +83,19 @@ interface ReportSummary {
 
 /** Icône par format de fichier (pdf/docx/xlsx/png). */
 function FormatIcon({ format, className = "w-4 h-4" }: { format: string; className?: string }) {
+  const cls = className;
   const color = "var(--text-secondary)";
   switch (format) {
     case "pdf":
-      return <FileText className={className} style={{ color }} />;
+      return <FileText className={cls} style={{ color }} />;
     case "xlsx":
-      return <Sheet className={className} style={{ color }} />;
+      return <Sheet className={cls} style={{ color }} />;
     case "png":
-      return <ImageIcon className={className} style={{ color }} />;
+      return <ImageIcon className={cls} style={{ color }} />;
     case "docx":
-      return <File className={className} style={{ color }} />;
+      return <File className={cls} style={{ color }} />;
     default:
-      return <File className={className} style={{ color }} />;
+      return <File className={cls} style={{ color }} />;
   }
 }
 
@@ -165,8 +135,273 @@ function parseDocumentRefs(raw: string): string[] {
 }
 
 /**
- * OrgReportDetail — page de détail d'un rapport reçu.
+ * Cards grid 2×2 des agrégats du rapport (`totalIncome` / `totalExpense` /
+ * `netResult` / compteurs). Tokens Lumina uniquement.
  */
+function ReportSummaryCards({ summary }: { summary: ReportSummary }) {
+  const netPositive = summary.netResult >= 0;
+  const netColor = netPositive ? "var(--in)" : "var(--out)";
+  const cellStyle = {
+    backgroundColor: "var(--surface)",
+    border: "1px solid var(--border)",
+  } as const;
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <SummaryCard label="Revenus" value={formatCurrencyCompact(summary.totalIncome)} color="var(--in)" />
+      <SummaryCard label="Dépenses" value={formatCurrencyCompact(summary.totalExpense)} color="var(--out)" />
+      <SummaryCard label="Résultat net" value={formatCurrencyCompact(summary.netResult)} color={netColor} />
+      <div className="rounded-xl p-3" style={cellStyle}>
+        <p className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>
+          Compteurs
+        </p>
+        <p className="text-sm font-semibold tabular-nums mt-1" style={{ color: "var(--text-primary)" }}>
+          {summary.eventCount} év. · {summary.memberCount} m. · {summary.documentCount} doc.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: string;
+  color: string;
+}) {
+  return (
+    <div className="rounded-xl p-3" style={{
+      backgroundColor: "var(--surface)",
+      border: "1px solid var(--border)",
+    }}>
+      <p className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>
+        {label}
+      </p>
+      <p className="text-lg font-bold tabular-nums mt-1" style={{ color }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Preview du fichier selon le `format` du rapport :
+ *  - `pdf`  → `<PdfPreview>` (canvas react-pdf) ;
+ *  - `docx` / `xlsx` → bouton « Télécharger » (URL signée) + notice ;
+ *  - `png`  → `` (URL signée) ;
+ *  - sans `pdf_path` → notice « Aucun fichier joint ».
+ */
+function ReportFilePreview({
+  report,
+  fileName,
+}: {
+  report: OrgReportRow;
+  fileName: string;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadUrl = useCallback(() => {
+    if (!report.pdf_path) return;
+    setLoading(true);
+    setError(null);
+    getReportUrl(report.pdf_path)
+      .then((signed) => setUrl(signed))
+      .catch((e: unknown) =>
+        setError(e instanceof Error ? e.message : "URL signée impossible."),
+      )
+      .finally(() => setLoading(false));
+  }, [report.pdf_path]);
+
+  useEffect(() => {
+    loadUrl();
+  }, [loadUrl]);
+
+  const handleDownload = async () => {
+    if (!url || !report.pdf_path) return;
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      /* hors-ligne ou CORS */
+    }
+  };
+
+  // Pas de fichier joint → notice.
+  if (!report.pdf_path) {
+    return (
+      <div className="rounded-xl p-6 flex flex-col items-center gap-2 text-center" style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}>
+        <WifiOff className="w-6 h-6" style={{ color: "var(--text-tertiary)" }} />
+        <p className="text-sm" style={{ color: "var(--text-primary)" }}>
+          Aucun fichier joint à ce rapport.
+        </p>
+        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+          Les agrégats ci-dessus restent consultables.
+        </p>
+      </div>
+    );
+  }
+
+  const noticeByFormat: Record<string, string> = {
+    docx: "Aperçu non disponible pour DOCX — téléchargez pour consulter dans Word.",
+    xlsx: "Aperçu non disponible pour XLSX — téléchargez pour consulter dans Excel.",
+  };
+
+  return (
+    <div className="space-y-3">
+      {report.format === "pdf" && (
+        <PdfPreview src={report.pdf_path} height={480} fileName={fileName} />
+      )}
+      {report.format === "png" && (
+        <div className="rounded-xl overflow-hidden flex items-center justify-center" style={{
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+          minHeight: 200,
+        }}>
+          {loading ? (
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--text-tertiary)" }} />
+          ) : error ? (
+            <p className="text-sm p-4" style={{ color: "var(--text-tertiary)" }}>{error}</p>
+          ) : url ? (
+            <img src={url} alt={fileName} className="max-w-full h-auto" style={{ maxHeight: 480 }} />
+          ) : null}
+        </div>
+      )}
+      {(report.format === "docx" || report.format === "xlsx") && (
+        <div className="rounded-xl p-4 flex flex-col gap-3" style={{
+          backgroundColor: "var(--surface)",
+          border: "1px solid var(--border)",
+        }}>
+          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+            {noticeByFormat[report.format]}
+          </p>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={loading || !url}
+            className="flex items-center justify-center gap-1.5 py-2.5 rounded-full font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
+            style={{
+              color: "var(--on-accent)",
+              backgroundColor: "var(--accent-primary)",
+            }}
+            aria-label={`Télécharger ${fileName}`}
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Télécharger {fileName}
+          </button>
+          {error && (
+            <p className="text-xs" style={{ color: "var(--out)" }}>{error}</p>
+          )}
+        </div>
+      )}
+      {/* Bouton download secondaire pour PDF/PNG (si le preview est présent) */}
+      {(report.format === "pdf" || report.format === "png") && url && (
+        <button
+          type="button"
+          onClick={handleDownload}
+          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-medium transition-all active:scale-95"
+          style={{
+            border: "1px solid var(--border)",
+            color: "var(--text-secondary)",
+            backgroundColor: "var(--surface)",
+          }}
+          aria-label={`Télécharger ${fileName}`}
+        >
+          <Download className="w-3.5 h-3.5" />
+          Télécharger {fileName}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Card miniature d'un document joint (titre + icône par `mime_type` +
+ * bouton download via `getDocumentUrl` URL signée).
+ */
+function JoinedDocCard({ doc }: { doc: PSDocument }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const mime = doc.mime_type ?? "";
+  const iconColor = "var(--text-secondary)";
+  const iconClass = "w-5 h-5";
+  const icon = mime.startsWith("image/") ? (
+    <ImageIcon className={iconClass} style={{ color: iconColor }} />
+  ) : mime === "application/pdf" ? (
+    <FileText className={iconClass} style={{ color: iconColor }} />
+  ) : (
+    <File className={iconClass} style={{ color: iconColor }} />
+  );
+
+  const handleDownload = async () => {
+    if (!doc.file_path) return;
+    setLoading(true);
+    try {
+      const signed = await getDocumentUrl(doc.bucket as "archives", doc.file_path);
+      setUrl(signed);
+      window.open(signed, "_blank", "noopener,noreferrer");
+    } catch {
+      /* hors-ligne — l'URL signée n'a pas pu être obtenue */
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  void url; // l'URL est ouverte via window.open ; pas de rendu <a>
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={loading || !doc.file_path}
+      className="rounded-xl p-3 flex flex-col gap-2 text-left transition-all active:scale-95 disabled:opacity-50"
+      style={{
+        backgroundColor: "var(--surface)",
+        border: "1px solid var(--border)",
+      }}
+      aria-label={`Télécharger ${doc.title}`}
+    >
+      <div className="flex items-center gap-2">
+        {loading ? (
+          <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--text-tertiary)" }} />
+        ) : (
+          icon
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>
+            {doc.title}
+          </p>
+          <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
+            {doc.purpose || doc.entity_type || "Document"}
+          </p>
+        </div>
+      </div>
+      {doc.file_size != null && doc.file_size > 0 && (
+        <p className="text-xs tabular-nums" style={{ color: "var(--text-tertiary)" }}>
+          {formatBytes(doc.file_size)}
+        </p>
+      )}
+    </button>
+  );
+}
+
 export default function OrgReportDetail() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -278,8 +513,8 @@ export default function OrgReportDetail() {
             <IonTitle>Rapport</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent className="bg-canvas">
-        <h1 className="sr-only">Détail du rapport d'organisation</h1>
+        <IonContent fullscreen className="bg-canvas">
+          <h1 className="sr-only">Détail du rapport d'organisation</h1>
           <div className="min-h-dvh flex items-center justify-center">
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--text-tertiary)" }} />
           </div>
@@ -299,8 +534,8 @@ export default function OrgReportDetail() {
             <IonTitle>Rapport</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent className="bg-canvas">
-        <h1 className="sr-only">Détail du rapport d'organisation</h1>
+        <IonContent fullscreen className="bg-canvas">
+          <h1 className="sr-only">Détail du rapport d'organisation</h1>
           <div className="min-h-dvh">
             <TopHeader title="Rapport introuvable" />
             <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
@@ -386,27 +621,20 @@ export default function OrgReportDetail() {
           </IonButtons>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="bg-canvas">
-      <h1 className="sr-only">Détail du rapport d'organisation</h1>
+      <IonContent fullscreen className="bg-canvas">
+        <h1 className="sr-only">Détail du rapport d'organisation</h1>
         <div className="min-h-dvh">
           <TopHeader title="Rapport reçu" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc space-y-4">
             {/* Header : titre + badge format + période + émetteur + statut lu */}
-            <div
-              className="rounded-xl p-4"
-              style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}
-            >
+            <div className="rounded-xl p-4" style={{
+              backgroundColor: "var(--surface)",
+              border: "1px solid var(--border)",
+            }}>
               <div className="flex items-start gap-3">
-                <div
-                  className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in srgb, var(--accent-primary) 10%, transparent)",
-                  }}
-                >
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg" style={{
+                  backgroundColor: "color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+                }}>
                   <FormatIcon format={report.format} className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -423,15 +651,10 @@ export default function OrgReportDetail() {
                 </div>
               </div>
               {markedRead && report.read_at && (
-                <div
-                  className="mt-3 flex items-center gap-2 text-xs rounded-lg p-2"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in srgb, var(--in) 10%, transparent)",
-                    color: "var(--in)",
-                  }}
-                  role="status"
-                >
+                <div className="mt-3 flex items-center gap-2 text-xs rounded-lg p-2" style={{
+                  backgroundColor: "color-mix(in srgb, var(--in) 10%, transparent)",
+                  color: "var(--in)",
+                }} role="status">
                   <Check className="w-3.5 h-3.5" />
                   Marqué comme lu le {formatDate(report.read_at)}
                 </div>
@@ -456,17 +679,13 @@ export default function OrgReportDetail() {
                   Documents joints ({docRefs.length})
                 </h3>
                 {joinedDocs.length === 0 ? (
-                  <div
-                    className="rounded-xl p-4 flex items-center gap-2"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: "1px solid var(--border)",
-                    }}
-                  >
+                  <div className="rounded-xl p-4 flex items-center gap-2" style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}>
                     <Paperclip className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
                     <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {docRefs.length} document(s) référencé(s), non présent(s)
-                      dans le cache local (hors-ligne ?).
+                      {docRefs.length} document(s) référencé(s), non présent(s) dans le cache local (hors-ligne ?).
                     </p>
                   </div>
                 ) : (
@@ -512,313 +731,6 @@ export default function OrgReportDetail() {
       </IonContent>
     </IonPage>
   );
-}
-
-/**
- * Cards grid 2×2 des agrégats du rapport (`totalIncome` / `totalExpense` /
- * `netResult` / compteurs). Tokens Lumina uniquement.
- */
-function ReportSummaryCards({ summary }: { summary: ReportSummary }) {
-  const netPositive = summary.netResult >= 0;
-  const netColor = netPositive ? "var(--in)" : "var(--out)";
-  const cellStyle = {
-    backgroundColor: "var(--surface)",
-    border: "1px solid var(--border)",
-  } as const;
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <SummaryCard label="Revenus" value={formatCurrencyCompact(summary.totalIncome)} color="var(--in)" />
-      <SummaryCard label="Dépenses" value={formatCurrencyCompact(summary.totalExpense)} color="var(--out)" />
-      <SummaryCard label="Résultat net" value={formatCurrencyCompact(summary.netResult)} color={netColor} />
-      <div
-        className="rounded-xl p-3"
-        style={cellStyle}
-      >
-        <p className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>
-          Compteurs
-        </p>
-        <p className="text-sm font-semibold tabular-nums mt-1" style={{ color: "var(--text-primary)" }}>
-          {summary.eventCount} év. · {summary.memberCount} m. · {summary.documentCount} doc.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div
-      className="rounded-xl p-3"
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-      }}
-    >
-      <p className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>
-        {label}
-      </p>
-      <p
-        className="text-lg font-bold tabular-nums mt-1"
-        style={{ color }}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
-/**
- * Preview du fichier selon le `format` du rapport :
- *  - `pdf`  → `<PdfPreview>` (canvas react-pdf) ;
- *  - `docx` / `xlsx` → bouton « Télécharger » (URL signée) + notice ;
- *  - `png`  → `<img>` (URL signée) ;
- *  - sans `pdf_path` → notice « Aucun fichier joint ».
- */
-function ReportFilePreview({
-  report,
-  fileName,
-}: {
-  report: OrgReportRow;
-  fileName: string;
-}) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const loadUrl = useCallback(() => {
-    if (!report.pdf_path) return;
-    setLoading(true);
-    setError(null);
-    getReportUrl(report.pdf_path)
-      .then((signed) => setUrl(signed))
-      .catch((e: unknown) =>
-        setError(e instanceof Error ? e.message : "URL signée impossible."),
-      )
-      .finally(() => setLoading(false));
-  }, [report.pdf_path]);
-
-  useEffect(() => {
-    loadUrl();
-  }, [loadUrl]);
-
-  const handleDownload = async () => {
-    if (!url || !report.pdf_path) return;
-    try {
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      a.click();
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      /* hors-ligne ou CORS */
-    }
-  };
-
-  // Pas de fichier joint → notice.
-  if (!report.pdf_path) {
-    return (
-      <div
-        className="rounded-xl p-6 flex flex-col items-center gap-2 text-center"
-        style={{
-          backgroundColor: "var(--surface)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <WifiOff className="w-6 h-6" style={{ color: "var(--text-tertiary)" }} />
-        <p className="text-sm" style={{ color: "var(--text-primary)" }}>
-          Aucun fichier joint à ce rapport.
-        </p>
-        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-          Les agrégats ci-dessus restent consultables.
-        </p>
-      </div>
-    );
-  }
-
-  const noticeByFormat: Record<string, string> = {
-    docx: "Aperçu non disponible pour DOCX — téléchargez pour consulter dans Word.",
-    xlsx: "Aperçu non disponible pour XLSX — téléchargez pour consulter dans Excel.",
-  };
-
-  return (
-    <div className="space-y-3">
-      {report.format === "pdf" && (
-        <PdfPreview src={report.pdf_path} height={480} fileName={fileName} />
-      )}
-
-      {report.format === "png" && (
-        <div
-          className="rounded-xl overflow-hidden flex items-center justify-center"
-          style={{
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-            minHeight: 200,
-          }}
-        >
-          {loading ? (
-            <Loader2 className="w-6 h-6 animate-spin" style={{ color: "var(--text-tertiary)" }} />
-          ) : error ? (
-            <p className="text-sm p-4" style={{ color: "var(--text-tertiary)" }}>
-              {error}
-            </p>
-          ) : url ? (
-            <img
-              src={url}
-              alt={fileName}
-              className="max-w-full h-auto"
-              style={{ maxHeight: 480 }}
-            />
-          ) : null}
-        </div>
-      )}
-
-      {(report.format === "docx" || report.format === "xlsx") && (
-        <div
-          className="rounded-xl p-4 flex flex-col gap-3"
-          style={{
-            backgroundColor: "var(--surface)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-            {noticeByFormat[report.format]}
-          </p>
-          <button
-            type="button"
-            onClick={handleDownload}
-            disabled={loading || !url}
-            className="flex items-center justify-center gap-1.5 py-2.5 rounded-full font-semibold text-sm transition-all active:scale-95 disabled:opacity-50"
-            style={{
-              color: "var(--on-accent)",
-              backgroundColor: "var(--accent-primary)",
-            }}
-            aria-label={`Télécharger ${fileName}`}
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            Télécharger {fileName}
-          </button>
-          {error && (
-            <p className="text-xs" style={{ color: "var(--out)" }}>
-              {error}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Bouton download secondaire pour PDF/PNG (si le preview est présent) */}
-      {(report.format === "pdf" || report.format === "png") && url && (
-        <button
-          type="button"
-          onClick={handleDownload}
-          className="flex items-center justify-center gap-1.5 w-full py-2 rounded-full text-xs font-medium transition-all active:scale-95"
-          style={{
-            border: "1px solid var(--border)",
-            color: "var(--text-secondary)",
-            backgroundColor: "var(--surface)",
-          }}
-          aria-label={`Télécharger ${fileName}`}
-        >
-          <Download className="w-3.5 h-3.5" />
-          Télécharger {fileName}
-        </button>
-      )}
-    </div>
-  );
-}
-
-/**
- * Card miniature d'un document joint (titre + icône par `mime_type` +
- * bouton download via `getDocumentUrl` URL signée).
- */
-function JoinedDocCard({ doc }: { doc: PSDocument }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const mime = doc.mime_type ?? "";
-  const iconColor = "var(--text-secondary)";
-  const iconClass = "w-5 h-5";
-  const icon = mime.startsWith("image/") ? (
-    <ImageIcon className={iconClass} style={{ color: iconColor }} />
-  ) : mime === "application/pdf" ? (
-    <FileText className={iconClass} style={{ color: iconColor }} />
-  ) : (
-    <File className={iconClass} style={{ color: iconColor }} />
-  );
-
-  const handleDownload = async () => {
-    if (!doc.file_path) return;
-    setLoading(true);
-    try {
-      const signed = await getDocumentUrl(doc.bucket as "archives", doc.file_path);
-      setUrl(signed);
-      // Déclenche le téléchargement (ouverture dans un nouvel onglet /
-      // trigger du navigateur mobile).
-      window.open(signed, "_blank", "noopener,noreferrer");
-    } catch {
-      /* hors-ligne — l'URL signée n'a pas pu être obtenue */
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  void url; // l'URL est ouverte via window.open ; pas de rendu <a>
-
-  return (
-    <button
-      type="button"
-      onClick={handleDownload}
-      disabled={loading || !doc.file_path}
-      className="rounded-xl p-3 flex flex-col gap-2 text-left transition-all active:scale-95 disabled:opacity-50"
-      style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border)",
-      }}
-      aria-label={`Télécharger ${doc.title}`}
-    >
-      <div className="flex items-center gap-2">
-        {loading ? (
-          <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--text-tertiary)" }} />
-        ) : (
-          icon
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium truncate" style={{ color: "var(--text-primary)" }}>
-            {doc.title}
-          </p>
-          <p className="text-xs truncate" style={{ color: "var(--text-tertiary)" }}>
-            {doc.purpose || doc.entity_type || "Document"}
-          </p>
-        </div>
-      </div>
-      {doc.file_size != null && doc.file_size > 0 && (
-        <p className="text-xs tabular-nums" style={{ color: "var(--text-tertiary)" }}>
-          {formatBytes(doc.file_size)}
-        </p>
-      )}
-    </button>
-  );
-}
-
-/** Formatage d'une taille en octets (Ko/Mo) — utilitaire local. */
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} o`;
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} Ko`;
-  return `${(n / (1024 * 1024)).toFixed(1)} Mo`;
 }
 
 // ── Export pour test unitaire / réutilisation ──────────────────────────────

@@ -92,7 +92,7 @@ export default function SettingsAbout() {
             </span>
           )}
           {status === "error" && (
-            <span style={{ color: "var(--data-alert)" }}>
+            <span style={{ color: "var(--data-danger, #ff5c5c)" }}>
               {updater.error}
             </span>
           )}
@@ -107,7 +107,7 @@ export default function SettingsAbout() {
         }}
       >
         <img
-          src="/lumina-logo.png"
+          src="/lumina-logo-version-monochrome.png"
           alt="Lumina"
           className="w-14 h-14 rounded-xl mx-auto mb-3"
           style={{ border: "1px solid var(--border)" }}

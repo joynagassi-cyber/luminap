@@ -52,7 +52,7 @@ export function UpdateDialog() {
           style={{
             padding: "0.5rem 0",
             fontSize: 14,
-            color: "var(--data-alert)",
+            color: "var(--data-danger, #ff5c5c)",
           }}
         >
           {error}

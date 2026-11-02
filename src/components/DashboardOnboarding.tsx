@@ -195,8 +195,8 @@ export default function DashboardOnboarding() {
       data-testid="dashboard-onboarding"
       className="mb-6 rounded-2xl p-4"
       style={{
-        background: "var(--card)",
-        border: "1px solid var(--border)",
+        background: "var(--surface-raised, var(--surface-2))",
+        border: "1px solid var(--border-subtle, var(--border))",
       }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -231,7 +231,7 @@ export default function DashboardOnboarding() {
 
       <div
         className="mt-2 h-1.5 rounded-full overflow-hidden"
-        style={{ background: "var(--divider)" }}
+        style={{ background: "var(--border-subtle, var(--border))" }}
         role="progressbar"
         aria-valuenow={doneCount}
         aria-valuemin={0}
@@ -287,7 +287,7 @@ export default function DashboardOnboarding() {
                 >
                   <span
                     className="w-4 h-4 shrink-0 rounded-full border"
-                    style={{ borderColor: "var(--border)" }}
+                    style={{ borderColor: "var(--border-strong, var(--border))" }}
                     aria-hidden="true"
                   />
                   <span className="text-xs text-text-secondary truncate">

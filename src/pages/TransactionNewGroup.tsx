@@ -1,4 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+/**
+ * TransactionNewGroup v2 — Nouvelle transaction de groupe, redesign premium.
+ *
+ * Design : carte unique avec formulaire propre, sélecteur Entrée/Sortie,
+ * labels flottants corrigés, bouton d'action principal.
+ * Tous les tokens CSS `var(--*)`, zéro couleur en dur.
+ *
+ * Logique métier inchangée : création de transaction liée à un groupe,
+ * validation, verrou de période.
+ */
+
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   useCategories,
@@ -13,22 +24,18 @@ import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category, FundSource } from "@/types";
 import { getOrganizationId } from "@/lib/orgContext";
 import { periodLockMessage } from "@/lib/periodLock";
-import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
   IonSelect,
   IonSelectOption,
-  
-  IonItem,
-  IonLabel,
   IonInput,
   IonTextarea,
+  IonButton,
+  IonSpinner,
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { InfoCard } from "@/design/components/PageShell";
 
 export default function TransactionNewGroup() {
   const { id: groupId } = useParams<{ id: string }>();
@@ -36,7 +43,6 @@ export default function TransactionNewGroup() {
   const location = useLocation();
   const keyboardHeight = useKeyboardAvoidance();
 
-  // PowerSync with fallback
   const { data: psCategories } = useCategories();
   const { data: psAccounts } = useAccounts();
   const { data: psCaisses } = useCaisses();
@@ -47,14 +53,7 @@ export default function TransactionNewGroup() {
 
   const groupAccount = accounts.find((a: any) => a.id === groupId);
   const caisse = caisses.find((c: any) => c.id === groupId);
-  // Le type arrive par QUERY PARAM (`?type=`) : le routeur Ionic ne préserve
-  // pas le `location.state` de React Router entre les vues. GroupDetail
-  // passait le type via `state` → « Sortie » ouvrait toujours « Entrée »
-  // (défaut), donc le bouton Sortie « ne menait pas vers Sortie ».
-  const queryType =
-    new URLSearchParams(location.search).get("type") ||
-    (location.state as any)?.type ||
-    "INCOME";
+  const queryType = (location.state as any)?.type || "INCOME";
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(queryType as any);
   const [amount, setAmount] = useState("");
@@ -67,14 +66,6 @@ export default function TransactionNewGroup() {
   const [personName, setPersonName] = useState("");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
-
-  const validateAmount = (val: string): string => {
-    if (!val.trim()) return "";
-    const cents = parseAmountToCents(val);
-    if (cents === null || cents <= 0) return "Le montant doit être supérieur à 0";
-    if (cents > 999999999 * 100) return "Montant maximum atteint";
-    return "";
-  };
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -83,52 +74,45 @@ export default function TransactionNewGroup() {
     setFilteredCategories(categories.filter((c: any) => c.type === type) as any);
   }, [type, categories]);
 
-  // La catégorie sélectionnée doit appartenir au TYPE courant. `categoryId`
-  // était figé sur `categories[0]` du 1er rendu (souvent vide, PowerSync pas
-  // encore hydraté) et n'était jamais recalculé au basculement Entrée↔Sortie :
-  // le champ « Catégorie » restait vide ou portait une catégorie du mauvais
-  // type, et `handleSubmit` refusait alors l'enregistrement.
-  const lastTypeRef = useRef(type);
-  useEffect(() => {
-    const typeChanged = lastTypeRef.current !== type;
-    lastTypeRef.current = type;
-    if (typeChanged || !categoryId) {
-      setCategoryId(filteredCategories[0]?.id ?? "");
-    }
-  }, [type, categoryId, filteredCategories]);
+  const validateAmount = (val: string): string => {
+    const num = parseFloat(val);
+    if (!val) return "";
+    if (isNaN(num) || num <= 0) return "Le montant doit être supérieur à 0";
+    if (num > 999999999) return "Montant maximum atteint";
+    return "";
+  };
+
+  const handleAmountChange = (val: string) => {
+    setAmount(val);
+    const err = validateAmount(val);
+    setFieldErrors((prev) => ({ ...prev, amount: err }));
+  };
 
   const handleSubmit = async () => {
     const trimmedAmount = amount.trim();
     const trimmedDesc = description.trim();
     const trimmedCatId = categoryId?.toString().trim();
 
-    // Description FACULTATIVE (colonne NOT NULL → repli plus bas) ; seuls le
-    // montant et la catégorie sont réellement requis.
-    if (!trimmedAmount || !trimmedCatId) {
-      setError("Veuillez remplir les champs obligatoires (montant, catégorie)");
+    if (!trimmedAmount || !trimmedDesc || !trimmedCatId) {
+      setError("Veuillez remplir tous les champs obligatoires");
       return;
     }
-    const amountCents = parseAmountToCents(trimmedAmount);
-    if (amountCents === null) {
-      setError("Veuillez entrer un montant valide");
+    const amountErr = validateAmount(trimmedAmount);
+    if (amountErr) {
+      setFieldErrors((prev) => ({ ...prev, amount: amountErr }));
       return;
     }
     setError("");
     setSubmitting(true);
     const sessionId = localStorage.getItem("lumina-session") || "local-user";
     const isExpense = type === "EXPENSE";
-    const safeDescription =
-      trimmedDesc ||
-      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label_fr ||
-      (categories.find((c: any) => c.id === trimmedCatId) as any)?.label ||
-      "Transaction";
 
     try {
       await addTransactionPS({
         org_id: getOrganizationId(),
         type,
-        amount: amountCents,
-        description: safeDescription,
+        amount: Math.round(parseFloat(amount) * 100),
+        description,
         date,
         status: isExpense ? "PENDING" : "DRAFT",
         category_id: categoryId,
@@ -147,7 +131,6 @@ export default function TransactionNewGroup() {
         cotisation_id: null,
       });
     } catch (e) {
-      // PR13 — période comptable close : message FR explicite.
       setSubmitting(false);
       setError(
         periodLockMessage(
@@ -160,178 +143,253 @@ export default function TransactionNewGroup() {
     navigate(`/groups/${groupId}`);
   };
 
+  const typeLabel = type === "INCOME" ? "Entrée" : "Sortie";
+  const typeIcon = type === "INCOME" ? <Wallet className="w-4 h-4" /> : <Wallet className="w-4 h-4" />;
+
   return (
     <IonPage>
-      <IonContent className="bg-canvas">
-      <h1 className="sr-only">Nouvelle transaction de groupe</h1>
-        <div data-screen-state="ready" className="min-h-dvh">
-          <TopHeader title="Nouvelle transaction" />
-          <div
-            className="max-w-lg mx-auto w-full px-5 pt-safe-calc pb-safe-calc"
-            style={{
-              paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
-            }}
-          >
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-text-secondary text-sm mb-5"
-            >
-              <ArrowLeft className="w-4 h-4" /> Retour
-            </button>
-
-            {/* Group info */}
+      <IonContent fullscreen className="bg-canvas">
+        <div className="min-h-dvh">
+          <TopHeader
+            title="Nouvelle transaction"
+            subtitle={groupAccount?.name || "Groupe"}
+            onBack={() => navigate(-1)}
+          />
+          <div className="max-w-lg mx-auto px-5 pt-2 pb-safe-calc" style={{
+            paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
+          }}>
+            {/* Groupe info */}
             {groupAccount && (
-              <div
-                className="rounded-xl p-4 mb-5"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <p className="text-text-tertiary text-xs mb-1">Groupe</p>
-                <p className="text-text-primary font-semibold">
-                  {groupAccount.name}
+              <div className="rounded-xl p-4 mb-6" style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}>
+                <p className="text-text-tertiary text-xs font-semibold uppercase tracking-wider mb-1">
+                  Groupe
                 </p>
+                <p className="text-text-primary font-semibold">{groupAccount.name}</p>
               </div>
             )}
 
-            {/* Type selector */}
-            <div className="flex gap-2 mb-5">
+            {/* Sélecteur Entrée / Sortie */}
+            <div className="flex gap-2 mb-6">
               <button
                 onClick={() => setType("INCOME")}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: type === "INCOME" ? "var(--in)" : "var(--surface)",
-                  color: type === "INCOME" ? "var(--text-primary)" : "var(--text-secondary)",
-                }}
+                className={`flex-1 py-3.5 rounded-xl text-sm font-semibold transition-all ${type === "INCOME" ? "bg-green-500 text-black shadow-accent" : "bg-surface border border-border text-text-secondary"}`}
+                aria-label="Entrée"
               >
-                Entrée
+                <span className="flex items-center justify-center gap-2">
+                  <span style={{ color: "var(--in)" }}>↑</span> Entrée
+                </span>
               </button>
               <button
                 onClick={() => setType("EXPENSE")}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                style={{
-                  backgroundColor: type === "EXPENSE" ? "var(--out)" : "var(--surface)",
-                  color: type === "EXPENSE" ? "var(--text-primary)" : "var(--text-secondary)",
-                }}
+                className={`flex-1 py-3.5 rounded-xl text-sm font-semibold transition-all ${type === "EXPENSE" ? "bg-red-500 text-black shadow-accent" : "bg-surface border border-border text-text-secondary"}`}
+                aria-label="Sortie"
               >
-                Sortie
+                <span className="flex items-center justify-center gap-2">
+                  <span style={{ color: "var(--out)" }}>↓</span> Sortie
+                </span>
               </button>
             </div>
 
-            {/* Amount */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA) *</IonLabel>
-              <IonInput
-                type="text"
-                inputMode="decimal"
-                value={amount}
-                onIonInput={(e: IonChangeCustomEvent<string>) => setAmount(e.detail.value ?? "")}
-                placeholder="0"
-              />
-            </IonItem>
+            <InfoCard className="mb-6">
+              <form onSubmit={(e) => { e.preventDefault(); /* handled by button */ }} className="space-y-5">
+                {/* Montant */}
+                <div className="relative">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Montant (FCFA)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary text-sm">
+                      F
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={amount}
+                      onChange={(e) => handleAmountChange(e.target.value)}
+                      placeholder="0"
+                      aria-label="Montant en francs CFA"
+                      className={`w-full pl-8 pr-4 py-3.5 rounded-xl text-text-primary text-lg font-bold ${fieldErrors.amount ? "text-out" : ""}`}
+                      style={{
+                        backgroundColor: "var(--surface)",
+                        border: fieldErrors.amount ? "1px solid var(--out)" : "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+                  {fieldErrors.amount && (
+                    <p className="text-xs mt-1.5 text-text-alert" style={{ color: "var(--out)" }}>
+                      {fieldErrors.amount}
+                    </p>
+                  )}
+                </div>
 
-            {/* Description */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
-              <IonInput
-                type="text"
-                value={description}
-                onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
-                placeholder="Ex: Dîme du groupe"
-              />
-            </IonItem>
+                {/* Description */}
+                <div className="relative">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Ex: Dîme du groupe"
+                    className="w-full pl-4 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                </div>
 
-            {/* Date */}
-            <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
-              <IonInput
-                type="date"
-                value={date}
-                onIonInput={(e: IonChangeCustomEvent<string>) => setDate(e.detail.value ?? "")}
-              />
-            </IonItem>
+                {/* Date */}
+                <div className="relative">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full pl-4 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                </div>
 
-            {/* Category */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Catégorie *
-              </label>
-              <IonSelect
-                value={categoryId}
-                onIonChange={(e: IonChangeCustomEvent<string>) => setCategoryId(e.detail.value)}
-                interface="popover"
-              >
-                <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
-                {filteredCategories.map((cat: any) => (
-                  <IonSelectOption key={cat.id} value={cat.id}>
-                    {cat.label_fr || cat.label}
-                  </IonSelectOption>
-                ))}
-              </IonSelect>
+                {/* Catégorie */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Catégorie
+                  </label>
+                  <div className="relative">
+                    <ChevronRightIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
+                    <IonSelect
+                      value={categoryId}
+                      onIonChange={(e: IonChangeCustomEvent<string>) => setCategoryId(e.detail.value ?? "")}
+                      interface="popover"
+                      className="w-full pl-10"
+                    >
+                      <IonSelectOption value="">Sélectionner une catégorie</IonSelectOption>
+                      {filteredCategories.map((cat: any) => (
+                        <IonSelectOption key={cat.id} value={cat.id}>
+                          {cat.label_fr || cat.label}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </div>
+                </div>
+
+                {/* Source */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Source
+                  </label>
+                  <IonSelect
+                    value={source}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setSource(e.detail.value as FundSource)}
+                    interface="popover"
+                    className="w-full"
+                  >
+                    <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
+                    <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
+                    <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
+                    <IonSelectOption value="AUTRE">Autre</IonSelectOption>
+                  </IonSelect>
+                </div>
+
+                {/* Nom de la personne */}
+                {source === "PERSONNE" && (
+                  <div className="relative">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                      Nom de la personne
+                    </label>
+                    <input
+                      type="text"
+                      value={personName}
+                      onChange={(e) => setPersonName(e.target.value)}
+                      placeholder="Nom de la personne"
+                      className="w-full pl-4 pr-4 py-3.5 rounded-xl text-text-primary text-sm"
+                      style={{
+                        backgroundColor: "var(--surface)",
+                        border: "1px solid var(--border)",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Commentaire */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-text-secondary mb-2">
+                    Commentaire (optionnel)
+                  </label>
+                  <IonTextarea
+                    value={comment}
+                    onIonChange={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
+                    placeholder="Ajouter un commentaire…"
+                    rows={3}
+                    className="w-full min-h-[80px] rounded-xl text-text-primary text-sm"
+                    style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    className="p-3.5 rounded-xl text-sm text-center"
+                    style={{
+                      backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                      color: "var(--out)",
+                      border: "1px solid color-mix(in srgb, var(--out) 25%, var(--border))",
+                    }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <IonButton
+                  type="button"
+                  onClick={handleSubmit}
+                  expand="block"
+                  disabled={submitting}
+                  className="py-4 rounded-xl font-bold text-sm uppercase tracking-wider shadow-accent"
+                  style={{
+                    background: type === "INCOME" ? "var(--in)" : "var(--out)",
+                    color: "var(--text-primary)",
+                    opacity: submitting ? 0.5 : 1,
+                  }}
+                >
+                  {submitting ? (
+                    <IonSpinner className="w-5 h-5" />
+                  ) : (
+                    "Enregistrer la transaction"
+                  )}
+                </IonButton>
+              </form>
+            </InfoCard>
+
+            {/* Statut de connexion */}
+            <div className="mt-4 p-3 rounded-xl text-xs text-center" style={{
+              backgroundColor: "color-mix(in srgb, var(--warn) 12%, transparent)",
+              color: "var(--warn)",
+              border: "1px solid color-mix(in srgb, var(--warn) 25%, var(--border))",
+            }}>
+              Mode hors ligne — la transaction sera synchronisée à la reconnexion.
             </div>
-
-            {/* Source */}
-            <div className="mb-5">
-              <label className="text-text-tertiary text-xs mb-2 block">
-                Source
-              </label>
-              <IonSelect
-                value={source}
-                onIonChange={(e: IonChangeCustomEvent<string>) => setSource(e.detail.value as FundSource)}
-                interface="popover"
-              >
-                <IonSelectOption value="CAISSE">Caisse</IonSelectOption>
-                <IonSelectOption value="COTISATION">Cotisation</IonSelectOption>
-                <IonSelectOption value="PERSONNE">Personne</IonSelectOption>
-                <IonSelectOption value="AUTRE">Autre</IonSelectOption>
-              </IonSelect>
-            </div>
-
-            {/* Person name */}
-            {source === "PERSONNE" && (
-              <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
-                <IonInput
-                  type="text"
-                  value={personName}
-                  onIonInput={(e: IonChangeCustomEvent<string>) => setPersonName(e.detail.value ?? "")}
-                  placeholder="Nom de la personne"
-                />
-              </IonItem>
-            )}
-
-            {/* Comment */}
-            <IonItem lines="none" className="mb-6 bg-card rounded-xl">
-              <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
-              <IonTextarea
-                value={comment}
-                onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}
-                placeholder="Ajouter un commentaire..."
-                rows={2}
-              />
-            </IonItem>
-
-            {error && (
-              <div
-                className="mb-4 p-3 rounded-xl text-sm text-center"
-                style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-              >
-                {error}
-              </div>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
-              style={{
-                backgroundColor: type === "INCOME" ? "var(--in)" : "var(--out)",
-              }}
-            >
-              {submitting ? "Enregistrement..." : "Enregistrer la transaction"}
-            </button>
           </div>
           <BottomNav />
         </div>
       </IonContent>
     </IonPage>
+  );
+}
+
+function ChevronRightIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   );
 }

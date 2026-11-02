@@ -3,7 +3,6 @@ import SettingsShell from "@/components/SettingsShell";
 import ThemeToggle from "@/components/ThemeToggle";
 import ThemePicker from "@/components/ThemePicker";
 import BadgeGallery from "@/components/BadgeGallery";
-import MoneyFormatPicker from "@/components/MoneyFormatPicker";
 import { getStoredThemeId, type ThemeId } from "@/ionic/themes";
 
 export default function SettingsTheme() {
@@ -42,21 +41,6 @@ export default function SettingsTheme() {
           (inchangée entre les modes sombre et clair) et se conserve.
         </p>
         <ThemePicker value={themeId} onChange={(id) => setThemeId(id)} />
-      </div>
-
-      <div
-        className="rounded-xl p-4"
-        style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-      >
-        <p className="text-text-primary font-semibold text-sm mb-1">
-          Format des montants
-        </p>
-        <p className="text-text-tertiary text-xs mb-4">
-          Comment les montants s'affichent dans toute l'application (ex.
-          « 50 000 FCFA » ou « 50K »). La valeur enregistrée n'est jamais
-          modifiée : seul l'affichage change.
-        </p>
-        <MoneyFormatPicker />
       </div>
 
       <p className="text-text-primary font-semibold text-sm mt-6 mb-3">

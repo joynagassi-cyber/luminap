@@ -8,8 +8,6 @@ import {
   type ErrorReportPayload,
   type IssueListItem,
 } from "./issue.ts";
-import { dedupeKey } from "./dedupe.ts";
-import { isNonProductionReport } from "./environment.ts";
 import {
   ANON_MAX_PER_HOUR,
   DEFAULT_IP_SALT,
@@ -77,9 +75,8 @@ const DEFAULT_REPO = "joynagassi-cyber/luminap";
 /** Label déclencheur lu par l'automatisation OpenHands. */
 const TRIGGER_LABEL = Deno.env.get("GITHUB_TRIGGER_LABEL") ?? "openhands";
 
-/** Fenêtre de déduplication serveur : 6 h (alignée sur la RPC claim/release). */
-const DEDUPE_WINDOW_HOURS = 6;
-const DEDUPE_WINDOW_MS = DEDUPE_WINDOW_HOURS * 60 * 60 * 1000;
+/** Fenêtre de déduplication serveur (ms) : 6 h. */
+const DEDUPE_WINDOW_MS = 6 * 60 * 60 * 1000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -165,57 +162,6 @@ async function withinRateLimit(bucket: string, maxPerWindow: number): Promise<bo
   }
 }
 
-/** Client admin (service_role) réutilisé pour les RPC de déduplication. */
-function adminClient() {
-  return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-}
-
-/**
- * Réserve ATOMIQUEMENT la signature (migration 20261101000003). Renvoie `true`
- * si l'appelant peut créer l'Issue, `false` si un rapport identique a déjà été
- * traité dans la fenêtre.
- *
- * FAIL-OPEN : sans `service_role` ou si la RPC échoue, on autorise la création
- * — mieux vaut un doublon qu'une erreur perdue. La recherche GitHub reste
- * alors le seul filet.
- */
-async function claimSignature(key: string): Promise<boolean> {
-  if (!SERVICE_ROLE_KEY) return true;
-  try {
-    const { data, error } = await adminClient().rpc("claim_error_report", {
-      p_dedupe_key: key,
-      p_window_hours: DEDUPE_WINDOW_HOURS,
-    });
-    if (error) {
-      console.warn("[report-error] claim RPC indisponible:", error.message);
-      return true;
-    }
-    return data !== false;
-  } catch (e) {
-    console.warn("[report-error] claim RPC erreur:", e);
-    return true;
-  }
-}
-
-/**
- * Libère une réservation prise par `claimSignature` quand la création de
- * l'Issue a échoué : sans cela, la signature resterait « dédupliquée » 6 h
- * alors qu'aucune Issue n'existe (rapport perdu en silence).
- */
-async function releaseSignature(key: string): Promise<void> {
-  if (!SERVICE_ROLE_KEY) return;
-  try {
-    await adminClient().rpc("release_error_report", {
-      p_dedupe_key: key,
-      p_window_hours: DEDUPE_WINDOW_HOURS,
-    });
-  } catch (e) {
-    console.warn("[report-error] release RPC erreur:", e);
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -238,15 +184,6 @@ serve(async (req) => {
   const report = payload.report;
   if (!report || typeof report !== "object" || !report.message) {
     return fail(400, "Rapport manquant ou invalide.");
-  }
-
-  // 1bis. Filtre d'environnement (AUTORITAIRE). Un client périmé ou un serveur
-  // de développement (CI Cypress `pnpm run dev`, APK non mis à jour) peut
-  // appeler l'endpoint public alors que le client courant ne le fait plus.
-  // Mesuré : ~58 Issues créées depuis `environment: development` (PR #200).
-  // Aucune Issue n'est ouverte pour un rapport non-production.
-  if (isNonProductionReport(report)) {
-    return ok({ ok: true, skipped: "non-production" });
   }
 
   // 2. Identification de l'appelant : JWT utilisateur vérifié, sinon anonyme.
@@ -297,20 +234,9 @@ serve(async (req) => {
     return fail(400, "Dépôt non autorisé.");
   }
 
-  // 5. Déduplication — DÉTERMINISTE d'abord (réservation atomique en base), puis
-  //    recherche GitHub (filet pour les Issues créées AVANT la table). L'ordre
-  //    est critique : l'index de recherche GitHub a un délai d'indexation de
-  //    plusieurs secondes, donc deux rapports en rafale passeraient tous deux
-  //    le contrôle de recherche (mesuré : #307 ET #308 pour la même signature).
-  const key = dedupeKey(repo, report.signature);
-  if (key && !(await claimSignature(key))) {
-    return ok({ ok: true, deduped: true });
-  }
+  // 5. Déduplication (une Issue ouverte avec la même signature ne suffit pas).
   const duplicate = await findExistingIssue(repo, report.signature);
   if (duplicate) {
-    // Issue déjà présente côté GitHub (créée avant la table, ou par un autre
-    // chemin) : la réservation qu'on vient de prendre est inutile, on la rend.
-    if (key) await releaseSignature(key);
     return ok({ ok: true, deduped: true, issueNumber: duplicate.number });
   }
 
@@ -327,9 +253,6 @@ serve(async (req) => {
 
   if (!createRes.ok) {
     const detail = await createRes.text();
-    // Création échouée : libérer la réservation pour ne pas perdre le rapport
-    // pendant 6 h (le prochain flush retentera).
-    if (key) await releaseSignature(key);
     return fail(502, `Échec de création de l'Issue GitHub : ${createRes.status} ${detail.slice(0, 300)}`);
   }
 

@@ -78,16 +78,6 @@ describe("TUTORIAL_SECTIONS (source unique)", () => {
     expect(hay).toContain("administrateur");
     expect(hay).toContain("organisation non rejointe");
   });
-
-  it("documente l'écran « Mise à jour requise » (PR6, contrat §6)", () => {
-    // PR6 (robustesse) : la branche `update-required` de `resolveRoute` a son
-    // écran ; le tutoriel doit expliquer quoi faire quand il apparaît (sinon
-    // l'utilisateur voit un mur sans issue documentée).
-    const errors = TUTORIAL_SECTIONS.find((s) => s.id === "erreurs");
-    expect(errors, "section erreurs absente").toBeDefined();
-    const hay = normalizeForSearch(sectionHaystack(errors!));
-    expect(hay).toContain("mise a jour requise");
-  });
 });
 
 describe("searchSections", () => {

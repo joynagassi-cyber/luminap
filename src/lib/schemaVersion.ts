@@ -19,12 +19,8 @@
  *
  * À incrémenter quand la forme des données locales change de façon
  * incompatible (nouvelle table obligatoire, colonne renommée, etc.).
- *
- * v3 (2026-11-01, R184/#317) : ajout de la colonne `report_definitions.kind`
- * (et du stream de synchronisation associé). Un client v2 ouvrant une base
- * locale v3 (ou l'inverse) doit être averti via `VITE_MIN_SCHEMA_VERSION`.
  */
-export const CLIENT_SCHEMA_VERSION = 3;
+export const CLIENT_SCHEMA_VERSION = 2;
 
 /**
  * Parse une version minimale. Retourne `undefined` si la valeur est absente,

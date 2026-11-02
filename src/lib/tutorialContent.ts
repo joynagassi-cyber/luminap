@@ -381,8 +381,7 @@ const SECTIONS: SectionData[] = [
     iconBg: "color-mix(in srgb, var(--out) 12%, transparent)",
     titleColor: CHART_COLORS.expense,
     paragraphs: [
-      "La page Trace d'activité affiche l'historique complet de toutes les actions sensibles : créations, modifications, suppressions, approbations, rejets, archivages et restaurations.",
-      "Sont tracées non seulement les opérations financières, mais aussi les membres, les groupes, les événements, les cotisations, les versements et les transferts de propriété.",
+      "La page Trace d'activité affiche l'historique complet de toutes les actions financières : créations, modifications, approbations, rejets, archivages et restaurations.",
       "Chaque entrée de trace indique l'action, l'entité concernée, le montant (le cas échéant), et l'auteur.",
       "Touchez une entrée pour déplier son DÉTAIL : le rôle de l'auteur au moment de l'action, le commentaire, et la différence entre l'état AVANT et APRÈS (uniquement les champs réellement modifiés).",
       "Une entrée sans état précédent est marquée « Créé », une entrée sans état suivant est marquée « Supprimé » — vous savez ainsi ce qui a changé, pas seulement qu'une action a eu lieu.",
@@ -408,7 +407,6 @@ const SECTIONS: SectionData[] = [
       "L'archivage permet de masquer les éléments inactifs sans les supprimer définitivement : groupes, comptes, membres et événements.",
       "Un groupe est archivé quand il n'a plus d'activité. Un événement devient « Archivé » quand il est annulé.",
       "La page Archives centralise tous les éléments archivés avec la possibilité de les restaurer en un clic.",
-      "Un administrateur peut aussi les supprimer définitivement (purge) : soit élément par élément, soit en vidant toute la corbeille.",
       "Les éléments archivés ne sont plus visibles dans les listes principales mais peuvent être restaurés à tout moment.",
     ],
     tips: [
@@ -416,9 +414,6 @@ const SECTIONS: SectionData[] = [
       "Un membre archivé peut être restauré pour retrouver son accès aux transactions passées.",
       "Un groupe restauré retrouve son compte caisse et son historique de transactions.",
       "La recherche dans les archives permet de retrouver rapidement un élément spécifique.",
-    ],
-    warnings: [
-      "La suppression définitive est irréversible : elle efface l'élément et ses données associées. Elle est réservée aux administrateurs et demande une confirmation explicite.",
     ],
   },
   {
@@ -476,7 +471,6 @@ const SECTIONS: SectionData[] = [
       "La sauvegarde se trouve dans Paramètres → onglet « Gérer » → section « Sauvegarde des données ». Elle produit une copie complète de l'organisation active, directement sur votre appareil.",
       "Le bouton « Exporter mes données (JSON) » télécharge un fichier auto-descriptif : il indique le format (lumina-backup), la version, l'organisation, la date et le nombre d'éléments de chaque entité, puis toutes les données (transactions, groupes, membres, événements, caisses, comptes, trace, notifications, documents, formulaires, champs personnalisés).",
       "Le bouton « Exporter (CSV) » produit un tableau unique (une ligne par élément, colonne « entity ») ouvrable dans un tableur. Les cellules sont échappées : une valeur commençant par « = », « + », « - » ou « @ » est neutralisée, elle ne peut donc pas s'exécuter comme formule.",
-      "Le bouton « Choisir un fichier JSON » restaure une sauvegarde exportée depuis la même organisation : le fichier est analysé, un résumé du plan (créations, mises à jour, conflits) s'affiche AVANT toute écriture, puis vous confirmez. Une sauvegarde appartenant à une autre organisation est refusée ; la restauration est tracée dans le journal d'audit.",
       "Tant que les données locales n'ont pas été lues, la section affiche « Chargement des données… » et non un compte à zéro : vous ne voyez jamais un chiffre faux pendant la synchronisation.",
     ],
     tips: [
@@ -609,11 +603,6 @@ const SECTIONS: SectionData[] = [
         title: "Champ personnalisé introuvable",
         solution:
           "Vérifiez que le champ personnalisé a bien été créé pour l'entité concernée (Transaction, Événement, etc.).",
-      },
-      {
-        title: "Champs obligatoires : qu'est-ce qui est vraiment requis ?",
-        solution:
-          "Les champs marqués d'un astérisque (*) sont obligatoires — pour une transaction, seuls le montant et la catégorie le sont. La description, le commentaire, l'e-mail et le téléphone sont facultatifs : laissez-les vides si vous n'en avez pas besoin.",
       },
       {
         title: "Événement ne s'affiche pas",
@@ -915,7 +904,7 @@ export const HELP_FAQ: FaqEntry[] = [
   },
   {
     q: "Comment sauvegarder mes données ?",
-    a: "Ouvrez Paramètres → Sauvegarde des données. Vous pouvez exporter en JSON (sauvegarde complète) ou en CSV (tableur), et restaurer un fichier JSON exporté depuis la même organisation (un résumé du plan s'affiche avant confirmation). Une erreur d'export est signalée par un message.",
+    a: "Ouvrez Paramètres → Sauvegarde des données. Vous pouvez exporter en JSON (restauration complète) ou en CSV (tableur). Une erreur d'export est signalée par un message.",
   },
   {
     q: "Une transaction est en attente d'approbation, que se passe-t-il ?",

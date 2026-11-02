@@ -420,12 +420,6 @@ const report_definitions = new Table(
     // id: column.text,  ← INTERDIT en PowerSync v2 : la PK id est automatique
     org_id: column.text,
     name: column.text,
-    // `kind` (FINANCE | FEATURE | AUDIT) : ajouté côté PostgreSQL par la
-    // migration `20260922000001_report_definitions_kind.sql`. Il était ABSENT
-    // du schéma local alors que `src/lib/reporting.ts` l'écrit (INSERT) et le
-    // lit (SELECT) → « no such column: kind » sur /reports et /report-builder
-    // (Issue #317, R184). Toute colonne utilisée par le client DOIT figurer ici.
-    kind: column.text,
     data_source: column.text,
     dimensions: column.text,
     metrics: column.text,

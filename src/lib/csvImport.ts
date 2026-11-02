@@ -27,7 +27,6 @@
  * testable sans PowerSync ni navigateur.
  */
 import { sanitizeImportedCell } from "./csv";
-import { parseAmountToCents } from "./amountInput";
 import {
   validateAddTransaction,
   type TransactionInput,
@@ -335,6 +334,18 @@ function parseType(raw: string): TransactionType | null {
   if (v === "EXPENSE" || v === "SORTIE" || v === "DEPENSE" || v === "DÉPENSE")
     return "EXPENSE";
   return null;
+}
+
+/** Normalise un montant « humain » (FCFA) : espaces/points de milliers, virgule. */
+function parseAmountToCents(raw: string): number | null {
+  const cleaned = raw
+    .replace(/\s|\u00a0/g, "")
+    .replace(/[.,](?=\d{3}\b)/g, "") // séparateurs de milliers
+    .replace(",", "."); // virgule décimale → point
+  if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null;
+  const value = Number.parseFloat(cleaned);
+  if (!Number.isFinite(value)) return null;
+  return Math.round(value * 100);
 }
 
 export interface ImportPlanRow {

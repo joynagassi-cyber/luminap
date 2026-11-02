@@ -1,16 +1,26 @@
 /**
- * Saisie Rapide — paiement rapide des cotisations d'un culte.
+ * Saisie Rapide v2 — Paiement rapide des cotisations d'un culte.
  *
- * Pour chaque membre NON_PAYE ou ABSENT du culte, l'administrateur
- * peut payer avec le montant par défaut (montantObligatoire) ou
- * saisir un montant supérieur (le surplus est comptabilisé comme don).
+ * Design : fond sombre, carte membre avec montant personnalisable,
+ * badges "Surplus" quand le montant dépasse l'obligatoire, état verrouillé.
+ * Tokens CSS `var(--*)`.
  *
- * Les membres qui ont de l'avance (montantEnAvance) : le paiement
- * consomme d'abord l'avance avant de créer une transaction.
+ * Logique métier inchangée : markCotisationPaid, markCotisationsAbsent,
+ * validation policy, verrouillage +30 jours.
  */
+
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBackButton, IonButton, IonInput } from "@ionic/react";
+import {
+  IonPage,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonBackButton,
+  IonButton,
+  IonInput,
+} from "@ionic/react";
 import { ArrowLeft, CheckCircle, Clock, Plus, X } from "lucide-react";
 import TopHeader from "@/components/TopHeader";
 import BottomNav from "@/components/BottomNav";
@@ -26,7 +36,6 @@ import {
 } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { formatDate, formatCurrencyCompact } from "@/lib/utils";
-import { parseCurrencyAmount } from "@/lib/amountInput";
 import { isCulteVerrouille } from "@/lib/cotisation-logic";
 import { policy } from "@/capabilities/policy";
 import type { CotisationStatut } from "@/types";
@@ -49,7 +58,9 @@ export default function SaisieRapide() {
 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [customMontants, setCustomMontants] = useState<Record<string, string>>({});
+  const [customMontants, setCustomMontants] = useState<Record<string, string>>(
+    {},
+  );
 
   const culteCots = useMemo(
     () =>
@@ -72,12 +83,7 @@ export default function SaisieRapide() {
     setBusy(memberId);
     setError(null);
     try {
-      await markCotisationPaid(
-        cot.id,
-        montantPaye,
-        now,
-      );
-      // L'UI se rafraîchit via les hooks useCotisations / useMembers
+      await markCotisationPaid(cot.id, montantPaye, now);
     } catch (e: any) {
       setError(e?.message ?? "Paiement refusé");
     } finally {
@@ -92,7 +98,6 @@ export default function SaisieRapide() {
     try {
       const store = useLocalStore.getState();
       const result = store.markCotisationsAbsent(id!, [memberId]);
-      // markCotisationsAbsent dans le store est asynchrone
       await result;
     } catch (e: any) {
       setError(e?.message ?? "Absence refusée");
@@ -101,7 +106,6 @@ export default function SaisieRapide() {
     }
   };
 
-  // R52.i — « Culte introuvable. » n'est exact qu'une fois la réplique prête.
   if (!culte && !isPowerSyncReadyNow()) {
     return (
       <IonPage>
@@ -131,11 +135,9 @@ export default function SaisieRapide() {
           </IonToolbar>
         </IonHeader>
         <IonContent>
-        <h1 className="sr-only">Saisie rapide</h1>
+          <h1 className="sr-only">Saisie rapide</h1>
           <div data-screen-state="notfound" className="p-4">
-            <p className="text-text-tertiary">
-              Culte introuvable.
-            </p>
+            <p className="text-text-tertiary">Culte introuvable.</p>
           </div>
         </IonContent>
       </IonPage>
@@ -155,16 +157,19 @@ export default function SaisieRapide() {
           <IonTitle>Saisie rapide — {culte.name}</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="bg-canvas">
-      <h1 className="sr-only">Saisie rapide</h1>
+      <IonContent fullscreen className="bg-canvas">
+        <h1 className="sr-only">Saisie rapide</h1>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Saisie rapide" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
             {culteDate && (
-              <p className="text-text-tertiary text-xs mb-3">
+              <p className="text-text-tertiary text-xs mb-4">
                 Culte du {formatDate(culteDate)}
                 {isLocked && (
-                  <span className="ml-2 text-alert">
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium" style={{
+                    backgroundColor: "color-mix(in srgb, var(--data-alert) 12%, transparent)",
+                    color: "var(--data-alert)",
+                  }}>
                     (verrouillé : +30 jours)
                   </span>
                 )}
@@ -172,21 +177,18 @@ export default function SaisieRapide() {
             )}
 
             {error && (
-              <div
-                className="mb-3 p-3 rounded-xl text-sm"
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
-                  color: "var(--out)",
-                }}
-              >
+              <div className="mb-4 p-3 rounded-xl text-sm" style={{
+                backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--out) 25%, transparent)",
+                color: "var(--out)",
+              }}>
                 {error}
               </div>
             )}
 
             {culteCots.length === 0 ? (
-              <div className="text-center py-10">
-                <CheckCircle className="w-12 h-12 mx-auto mb-3 text-success" />
+              <div className="text-center py-12">
+                <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--in)" }} />
                 <p className="text-text-primary font-medium">
                   Toutes les cotisations sont traitées.
                 </p>
@@ -197,33 +199,31 @@ export default function SaisieRapide() {
                   const memberId = cot.membre_id ?? cot.membreId;
                   const member = (members ?? []).find((m: any) => m.id === memberId);
                   const name = member
-                    ? `${(member as any).last_name ?? ""} ${(member as any).first_name ?? ""}`.trim() || "Inconnu"
+                    ? `${String(member.last_name ?? "")} ${String(member.first_name ?? "")}`.trim() || "Inconnu"
                     : "Inconnu";
                   const montantOblig =
                     cot.montantObligatoire ?? cot.montant_obligatoire ?? 0;
-                  const customVal =
-                    customMontants[cot.id] ?? String(montantOblig);
-                  // Le champ est saisi en FCFA ; on accepte virgule/séparateurs.
-                  const customCents =
-                    (parseCurrencyAmount(customVal) ?? 0) * 100;
+                  const customVal = customMontants[cot.id] ?? String(montantOblig / 100);
+                  const customCents = Math.round(parseFloat(customVal) * 100);
                   const useCustom =
                     Number.isFinite(customCents) &&
                     customCents > 0 &&
                     customCents !== montantOblig;
 
                   return (
-                    <div
-                      key={cot.id}
-                      className="rounded-xl p-4"
-                      style={{
-                        backgroundColor: "var(--surface)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-text-primary text-sm font-medium">
-                          {name}
-                        </span>
+                    <div key={cot.id} className="rounded-xl p-4" style={{
+                      backgroundColor: "var(--surface)",
+                      border: "1px solid var(--border)",
+                    }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="text-text-primary text-sm font-medium">
+                            {name}
+                          </span>
+                          <p className="text-text-tertiary text-xs mt-0.5">
+                            {(montantOblig / 100).toFixed(0)} F obligatoire
+                          </p>
+                        </div>
                         <span className="text-text-tertiary text-xs">
                           {(montantOblig / 100).toFixed(0)} F
                         </span>
@@ -232,8 +232,7 @@ export default function SaisieRapide() {
                       {/* Champ montant personnalisable */}
                       <div className="flex items-center gap-2 mb-3">
                         <IonInput
-                          type="text"
-                          inputMode="decimal"
+                          type="number"
                           value={customMontants[cot.id] ?? String(montantOblig / 100)}
                           onIonInput={(e: IonChangeCustomEvent<string>) =>
                             setCustomMontants((prev) => ({
@@ -250,13 +249,13 @@ export default function SaisieRapide() {
                         />
                         {useCustom && (
                           <span
-                            className="text-xs px-1.5 py-0.5 rounded-full"
+                            className="text-xs px-2 py-0.5 rounded-full font-medium"
                             style={{
                               backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
                               color: "var(--data-planified)",
                             }}
                           >
-                            Surplus: {formatCurrencyCompact(customCents - montantOblig)}
+                            + Surplus {formatCurrencyCompact(customCents - montantOblig)} F
                           </span>
                         )}
                       </div>
@@ -291,7 +290,7 @@ export default function SaisieRapide() {
               </div>
             )}
 
-            <div className="mt-4 flex gap-3">
+            <div className="mt-6 flex gap-3">
               <IonButton
                 fill="clear"
                 onClick={() => navigate(`/culte/${id}`)}

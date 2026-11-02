@@ -1,13 +1,15 @@
 /**
- * GroupCotisation — gère la cotisation propre d'un groupe.
+ * GroupCotisation v2 — Cotisation propre d'un groupe, redesign premium.
  *
- * Chaque groupe peut créer sa propre cotisation (indépendante de la
- * cotisation principale de l'organisation) avec son propre montant,
- * ses propres membres (via group_memberships) et son suivi individuel.
+ * Design : fond sombre, cartes de session, carte de détail avec stats,
+ * liste de membres avec badges de statut (payé/en attente/absent).
+ * Tokens CSS `var(--*)`, zéro couleur en dur.
  *
- * Règle métier : le montant est TOUJOURS choisi par l'administrateur —
- * aucun montant n'est imposé par défaut.
+ * Logique métier inchangée : création de session, collecte, absent,
+ * stats par session, validation policy.
  */
+
+/** @jsxImportSource react */
 import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -28,26 +30,26 @@ import {
 import { policy } from "@/capabilities/policy";
 import { getOrganizationId } from "@/lib/orgContext";
 import { formatCurrencyCompact, formatDate } from "@/lib/utils";
-import { parseAmountToCents } from "@/lib/amountInput";
-import { Plus, Check, Clock, X, Coins } from "lucide-react";
+import { Plus, Check, Clock, X, Coins, ArrowLeft } from "lucide-react";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { ListSkeleton } from "@/components/Skeleton";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
+  IonHeader,
   IonToolbar,
   IonButtons,
   IonBackButton,
-  IonButton,
-  IonInput,
-  IonSpinner,
   IonItem,
   IonLabel,
-  
+  IonInput,
+  IonButton,
+  IonSpinner,
+  IonSelectOption,
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import BottomNav from "@/components/BottomNav";
+import EmptyState from "@/components/EmptyState";
 
 export default function GroupCotisation() {
   const { id } = useParams<{ id: string }>();
@@ -73,8 +75,6 @@ export default function GroupCotisation() {
     return (members ?? []).filter((m: any) => ids.includes(m.id));
   }, [memberships, members, id]);
 
-  // Sessions créées pour ce groupe (events.type=CULTE où budget_items
-  // contient source: "group" et groupId = id).
   const groupSessions = useMemo(() => {
     return (events ?? [])
       .filter((e: any) => e.type === "CULTE")
@@ -91,7 +91,6 @@ export default function GroupCotisation() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  // Form fields
   const [sessionName, setSessionName] = useState("");
   const [sessionDate, setSessionDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -102,22 +101,20 @@ export default function GroupCotisation() {
 
   const selected = groupSessions.find((s: any) => s.id === selectedSession);
   const sessionCots = useMemo(
-    () =>
-      (cotisations ?? []).filter(
-        (c: any) => c.culteId === selected?.id,
-      ),
+    () => (cotisations ?? []).filter((c: any) => c.culteId === selected?.id),
     [cotisations, selected],
   );
 
   const handleCreateSession = async () => {
     setFormError(null);
     setBusy(true);
-    const montantCents = parseAmountToCents(sessionMontant);
-    if (montantCents === null || montantCents <= 0) {
+    const fcfa = parseFloat(sessionMontant);
+    if (!Number.isFinite(fcfa) || fcfa <= 0) {
       setFormError("Le montant de cotisation est requis (en FCFA).");
       setBusy(false);
       return;
     }
+    const montantCents = Math.round(fcfa * 100);
     const amountCheck = policy.cotisation.validateAmount(montantCents);
     if (!amountCheck.ok) {
       setFormError(amountCheck.message ?? "Montant invalide");
@@ -201,7 +198,6 @@ export default function GroupCotisation() {
     };
   }, [sessionCots]);
 
-  // R52.h — « Groupe introuvable. » n'est exact qu'une fois la réplique prête.
   if (!group && !isPowerSyncReadyNow()) {
     return (
       <IonPage>
@@ -229,7 +225,9 @@ export default function GroupCotisation() {
         <IonContent className="bg-canvas">
           <h1 className="sr-only">Cotisation groupe</h1>
           <div className="p-5">
-            <p data-screen-state="notfound" className="text-text-tertiary">Groupe introuvable.</p>
+            <p data-screen-state="notfound" className="text-text-tertiary">
+              Groupe introuvable.
+            </p>
           </div>
         </IonContent>
       </IonPage>
@@ -246,7 +244,7 @@ export default function GroupCotisation() {
           <IonTitle>Cotisation — {group.name}</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="bg-canvas" fullscreen>
+      <IonContent fullscreen className="bg-canvas">
         <h1 className="sr-only">Cotisation — {group.name}</h1>
         <div
           data-screen-state="ready"
@@ -255,23 +253,31 @@ export default function GroupCotisation() {
             paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined,
           }}
         >
-          <p className="text-text-tertiary text-xs mb-4">
-            {groupMembers.length} membre(s) dans ce groupe
-          </p>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <ArrowLeft className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
+              <h1 className="text-text-primary font-bold text-xl">
+                Cotisation — {group.name}
+              </h1>
+            </div>
+            <p className="text-text-tertiary text-sm">
+              {groupMembers.length} membre(s) dans ce groupe
+            </p>
+          </div>
 
           {formError && (
-            <div
-              className="mb-4 p-3 rounded-xl text-sm"
-              style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-            >
+            <div className="mb-5 p-3 rounded-xl text-sm" style={{
+              backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)",
+              color: "var(--out)",
+            }}>
               {formError}
             </div>
           )}
 
           {/* Sessions existantes */}
           {groupSessions.length > 0 && (
-            <div className="mb-5">
-              <p className="text-text-primary text-xs font-semibold mb-2 uppercase tracking-wide">
+            <div className="mb-6">
+              <p className="text-text-tertiary text-xs font-semibold uppercase tracking-wider mb-3">
                 Sessions de cotisation
               </p>
               <div className="space-y-2">
@@ -287,35 +293,25 @@ export default function GroupCotisation() {
                   return (
                     <button
                       key={s.id}
-                      onClick={() =>
-                        setSelectedSession(isActive ? null : s.id)
-                      }
-                      className="w-full flex items-center justify-between p-3.5 rounded-xl transition-all active:scale-95 text-left"
+                      onClick={() => setSelectedSession(isActive ? null : s.id)}
+                      className="w-full flex items-center justify-between p-4 rounded-xl transition-all active:scale-95"
                       style={{
                         backgroundColor: isActive ? "var(--surface-hover)" : "var(--surface)",
                         border: `1px solid ${isActive ? "var(--accent-primary)" : "var(--border)"}`,
                       }}
                     >
-                      <div>
-                        <p className="text-text-primary text-sm font-medium">
-                          {s.name}
-                        </p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary text-sm font-medium">{s.name}</p>
                         <p className="text-text-tertiary text-xs">
                           {formatDate(s.start_date ?? s.startDate)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-text-primary text-xs">
+                        <p className="text-text-primary text-xs font-medium">
                           {sPaid}/{sCots.length} payés
                         </p>
                         <p className="text-text-tertiary text-xs">
-                          {(
-                            sCots.reduce(
-                              (t: number, c: any) => t + (c.montantPaye ?? 0),
-                              0,
-                            ) / 100
-                          ).toFixed(0)}{" "}
-                          F
+                          {(sCots.reduce((t: number, c: any) => t + (c.montantPaye ?? 0), 0) / 100).toFixed(0)} F
                         </p>
                       </div>
                     </button>
@@ -327,19 +323,14 @@ export default function GroupCotisation() {
 
           {/* Détail de la session sélectionnée */}
           {selected && (
-            <div className="mb-5">
-              <div
-                className="rounded-xl p-4 mb-3"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
+            <div className="mb-6">
+              <div className="rounded-xl p-4 mb-4" style={{ backgroundColor: "var(--surface)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-text-primary text-sm font-medium">
-                    {selected.name}
-                  </p>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)", color: "var(--data-planified)" }}
-                  >
+                  <p className="text-text-primary text-sm font-medium">{selected.name}</p>
+                  <span className="text-xs px-2 py-0.5 rounded-full" style={{
+                    backgroundColor: "color-mix(in srgb, var(--data-planified) 12%, transparent)",
+                    color: "var(--data-planified)",
+                  }}>
                     {stats.paye}/{stats.total} payés
                   </span>
                 </div>
@@ -347,13 +338,13 @@ export default function GroupCotisation() {
                   <div>
                     <p className="text-text-tertiary">Collecté</p>
                     <p className="text-income font-bold text-sm">
-                      {formatCurrencyCompact(stats.totalCollecte)}
+                      {formatCurrencyCompact(stats.totalCollecte)} F
                     </p>
                   </div>
                   <div>
                     <p className="text-text-tertiary">Attendu</p>
                     <p className="text-text-primary font-bold text-sm">
-                      {formatCurrencyCompact(stats.attendu)}
+                      {formatCurrencyCompact(stats.attendu)} F
                     </p>
                   </div>
                   <div>
@@ -365,90 +356,88 @@ export default function GroupCotisation() {
                 </div>
               </div>
 
-              {sessionCots.map((cot: any) => {
-                const memberId = cot.membre_id ?? cot.membreId;
-                const member = (members ?? []).find((m: any) => m.id === memberId);
-                const memberAny = member as
-                  | Record<string, unknown>
-                  | undefined;
-                const name = member
-                  ? `${String(memberAny?.last_name ?? memberAny?.lastName ?? "")} ${String(
-                      memberAny?.first_name ?? memberAny?.firstName ?? "",
-                    )}`.trim() || "Inconnu"
-                  : "Inconnu";
-                const oblig = cot.montantObligatoire ?? cot.montant_obligatoire ?? 0;
-                const isPaid =
-                  cot.statut === "PAYE" || cot.statut === "EN_AVANCE";
-                const isAbsent = cot.statut === "ABSENT";
+              {sessionCots.length === 0 ? (
+                <EmptyState
+                  title="Aucune cotisation"
+                  description="Les cotisations des membres apparaîtront ici"
+                  icon={<Coins className="w-6 h-6" />}
+                />
+              ) : (
+                <div className="space-y-2">
+                  {sessionCots.map((cot: any) => {
+                    const memberId = cot.membre_id ?? cot.membreId;
+                    const member = (members ?? []).find((m: any) => m.id === memberId);
+                    const memberAny = member as Record<string, unknown> | undefined;
+                    const name = member
+                      ? `${String(memberAny?.last_name ?? memberAny?.lastName ?? "")} ${String(memberAny?.first_name ?? memberAny?.firstName ?? "")}`.trim() || "Inconnu"
+                      : "Inconnu";
+                    const oblig = cot.montantObligatoire ?? cot.montant_obligatoire ?? 0;
+                    const isPaid = cot.statut === "PAYE" || cot.statut === "EN_AVANCE";
+                    const isAbsent = cot.statut === "ABSENT";
 
-                return (
-                  <div
-                    key={cot.id}
-                    className="rounded-xl p-3.5 mb-2 flex items-center gap-3"
-                    style={{
-                      backgroundColor: isPaid
-                        ? "color-mix(in srgb, var(--in) 6%, transparent)"
-                        : isAbsent
-                          ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
-                          : "var(--surface)",
-                      border: `1px solid ${isPaid ? "color-mix(in srgb, var(--in) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
-                    }}
-                  >
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{
-                        backgroundColor: isPaid ? "color-mix(in srgb, var(--in) 12%, transparent)" : "var(--surface-hover)",
-                      }}
-                    >
-                      <span
-                        className="text-xs font-bold"
+                    return (
+                      <div
+                        key={cot.id}
+                        className="rounded-xl p-3.5 mb-2 flex items-center gap-3"
                         style={{
-                          color: isPaid ? "var(--in)" : "var(--accent-primary)",
+                          backgroundColor: isPaid
+                            ? "color-mix(in srgb, var(--in) 6%, transparent)"
+                            : isAbsent
+                              ? "color-mix(in srgb, var(--text-tertiary) 10%, transparent)"
+                              : "var(--surface)",
+                          border: `1px solid ${isPaid ? "color-mix(in srgb, var(--in) 20%, transparent)" : isAbsent ? "color-mix(in srgb, var(--text-tertiary) 30%, transparent)" : "var(--border)"}`,
                         }}
                       >
-                        {name.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-text-primary text-sm font-medium truncate">
-                        {name}
-                      </p>
-                      <p className="text-text-tertiary text-xs">
-                        {(oblig / 100).toFixed(0)} F
-                        {isPaid &&
-                          ` · payé ${((cot.montantPaye ?? 0) / 100).toFixed(0)} F`}
-                        {isAbsent && " · absent"}
-                      </p>
-                    </div>
-                    {!isPaid && !isAbsent && (
-                      <div className="flex gap-1">
-                        <IonButton
-                          size="small"
-                          fill="solid"
-                          style={{ backgroundColor: "var(--in)" }}
-                          disabled={busy}
-                          onClick={() => handlePay(cot, oblig)}
-                        >
-                          Payé
-                        </IonButton>
-                        <IonButton
-                          size="small"
-                          fill="outline"
-                          color="medium"
-                          disabled={busy}
-                          onClick={() => handleAbsent(cot)}
-                        >
-                          Absent
-                        </IonButton>
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{
+                          backgroundColor: isPaid ? "color-mix(in srgb, var(--in) 12%, transparent)" : "var(--surface-hover)",
+                        }}>
+                          <span className="text-xs font-bold" style={{
+                            color: isPaid ? "var(--in)" : "var(--accent-primary)",
+                          }}>
+                            {name.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-text-primary text-sm font-medium truncate">
+                            {name}
+                          </p>
+                          <p className="text-text-tertiary text-xs">
+                            {(oblig / 100).toFixed(0)} F
+                            {isPaid && ` · payé ${((cot.montantPaye ?? 0) / 100).toFixed(0)} F`}
+                            {isAbsent && " · absent"}
+                          </p>
+                        </div>
+                        {!isPaid && !isAbsent && (
+                          <div className="flex gap-1">
+                            <IonButton
+                              size="small"
+                              fill="solid"
+                              style={{ backgroundColor: "var(--in)" }}
+                              disabled={busy}
+                              onClick={() => handlePay(cot, oblig)}
+                            >
+                              Payé
+                            </IonButton>
+                            <IonButton
+                              size="small"
+                              fill="outline"
+                              color="medium"
+                              disabled={busy}
+                              onClick={() => handleAbsent(cot)}
+                            >
+                              Absent
+                            </IonButton>
+                          </div>
+                        )}
+                        {isPaid && <Check className="w-4 h-4" style={{ color: "var(--in)" }} />}
+                        {isAbsent && (
+                          <Clock className="w-4 h-4" style={{ color: "var(--text-tertiary)" }} />
+                        )}
                       </div>
-                    )}
-                    {isPaid && <Check className="w-4 h-4 text-income" />}
-                    {isAbsent && (
-                      <Clock className="w-4 h-4 text-text-tertiary" />
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -457,18 +446,16 @@ export default function GroupCotisation() {
             <IonButton
               expand="block"
               onClick={() => setShowForm(true)}
+              className="mb-5"
               style={{ backgroundColor: "var(--accent-primary)" }}
             >
-              <Plus className="w-4 h-4 mr-1" /> Nouvelle cotisation
+              <Plus className="w-4 h-4" style={{ marginRight: 8 }} /> Nouvelle cotisation
             </IonButton>
           ) : (
-            <div
-              className="rounded-xl p-4 space-y-3"
-              style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--accent-primary)",
-              }}
-            >
+            <div className="rounded-xl p-5 space-y-4 mb-5" style={{
+              backgroundColor: "var(--surface)",
+              border: "1px solid var(--accent-primary)",
+            }}>
               <div className="flex items-center justify-between">
                 <p className="text-text-primary text-sm font-medium">
                   Nouvelle cotisation — {group.name}
@@ -481,7 +468,7 @@ export default function GroupCotisation() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <IonItem lines="none" className="bg-card rounded-xl">
                   <IonLabel position="floating">
                     Nom de la session
@@ -514,8 +501,7 @@ export default function GroupCotisation() {
                     Montant obligatoire (FCFA)
                   </IonLabel>
                   <IonInput
-                    type="text"
-                    inputMode="decimal"
+                    type="number"
                     value={sessionMontant}
                     onIonInput={(e: IonChangeCustomEvent<string>) =>
                       setSessionMontant(e.detail.value ?? "")
@@ -537,8 +523,7 @@ export default function GroupCotisation() {
                 >
                   {busy ? (
                     <>
-                      <IonSpinner name="lines" style={{ marginRight: 6 }} />
-                      Création...
+                      <IonSpinner name="lines" style={{ marginRight: 6 }} /> Création...
                     </>
                   ) : (
                     "Créer la session"
@@ -553,6 +538,7 @@ export default function GroupCotisation() {
             Cotisations propres au groupe — le montant reste choisi par vous.
           </p>
         </div>
+        <BottomNav />
       </IonContent>
     </IonPage>
   );

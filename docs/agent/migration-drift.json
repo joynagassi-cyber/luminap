@@ -4,19 +4,19 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 91,
-    "repo_timestamped_files": 81,
+    "applied_versions_in_tracker": 87,
+    "repo_timestamped_files": 79,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 144,
+    "repo_total_sql_files": 142,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 71,
+    "applied_without_repo_file": 70,
     "repo_file_never_applied": 65,
-    "drift_ratio": "2/91",
-    "repo_filenames_sha256": "34dbe497ce25bb782056207f66e0adf7850ec1dabd83ef5b27682ce266f1e3e4",
+    "drift_ratio": "2/87",
+    "repo_filenames_sha256": "922e6f49d2edcd09d5a6e96c48ca4e52ab05f2f8265d13193b67ca0922c11fcb",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -47,10 +47,10 @@
     "1 migration ajoutee 20261031000002 (R141.b/c RLS ecriture des tables non financieres : documents, event_tasks, report_definitions, custom_field_*, form_*, categories) ; tracker non re-mesure (inaccessible en CI)."
   ],
   "notes_r17_reconcile": [
-    "1 migration ajoutee 20261031000003 (reconciliation R17 : recreation idempotente des 3 objets du fichier historique 20260909000002 jamais applique en l'etat \u2014 mark_expired_invitations + 2 triggers updated_at). Apres application, le delta depot <-> base est NUL (0 table/fonction/trigger/vue manquant)."
+    "1 migration ajoutee 20261031000003 (reconciliation R17 : recreation idempotente des 3 objets du fichier historique 20260909000002 jamais applique en l'etat — mark_expired_invitations + 2 triggers updated_at). Apres application, le delta depot <-> base est NUL (0 table/fonction/trigger/vue manquant)."
   ],
   "notes_r141d": [
-    "1 migration ajoutee 20261031000004 (R141.d \u2014 cloture du chantier d'autorisation d'ecriture : invitation_claims UPDATE -> invitation:manage ; notifications + role_assignments -> admin:settings ; audit_entries INSERT laisse au niveau membre). Apres application, plus AUCUNE politique d'ecriture REST non gardee (hors audit_entries INSERT volontaire et invitations deja gardee par can_manage_invitations)."
+    "1 migration ajoutee 20261031000004 (R141.d — cloture du chantier d'autorisation d'ecriture : invitation_claims UPDATE -> invitation:manage ; notifications + role_assignments -> admin:settings ; audit_entries INSERT laisse au niveau membre). Apres application, plus AUCUNE politique d'ecriture REST non gardee (hors audit_entries INSERT volontaire et invitations deja gardee par can_manage_invitations)."
   ],
   "notes_version_mismatch": [
     "MECANISME (decouvert 2026-10-31) : l'application via MCP `apply_migration` enregistre dans `supabase_migrations.schema_migrations` la version = HORODATAGE D'APPLICATION (YYYYMMDDHHMMSS), PAS le nom de fichier du depot. C'est la cause STRUCTURELLE de la 'derive' : une migration du depot appliquee via MCP apparait comme une version differente. D'ou 'versions_in_common = 2' alors que les OBJETS sont alignes (R17 : delta 0/0/0/0). Consequence : le ratio de derive SOUS-ESTIME l'alignement reel ; la seule mesure fiable d'alignement est par OBJETS (cf. repo_db_object_delta), pas par version. Le snapshot sert a detecter un CHANGEMENT cote depot (empreinte de noms), pas a mesurer l'alignement."
@@ -73,12 +73,5 @@
   ],
   "notes_error_throttle": [
     "1 migration ajoutee 20261101000002 (error_report_throttle : rate-limiting des rapports d'erreur ANONYMES pre-login + RPC register_anonymous_report SECURITY DEFINER reservee au service_role ; table deny-all). Additive (CREATE TABLE + RPC). Tracker re-mesure : 87 ; empreinte de noms re-mesuree : 79 horodatees / 142 total."
-  ],
-  "notes_profile_org_insert": [
-    "1 migration ajoutee 20261101000004 (guard_profile_org_insert : trigger BEFORE INSERT + upsert_profile borne, ferme l'injection d'organisation via le chemin INSERT de profil — fuite inter-org). Empreinte de noms re-mesuree : 81 horodatees / 144 total."
-  ],
-  "notes_r184": [
-    "BUG PRODUIT #317 (classe \u00ab no such column \u00bb) : la migration 20260922000001_report_definitions_kind.sql etait presente dans le depot mais ABSENTE de la base (non appliquee) -> colonne report_definitions.kind inexistante cote PostgreSQL, donc absente du schema PowerSync local et du stream de sync. Resultat : /reports et /report-builder levaient \u00ab no such column: kind \u00bb (wa-sqlite). Correctif : (1) migration re-appliquee (idempotente, ADD COLUMN IF NOT EXISTS) ; (2) colonne ajoutee au schema local (src/lib/powersync/schema.ts) ; (3) stream report_definitions ajoute a powersync/sync-config.yaml (la table n etait synchronisee par AUCUN stream) et deploye ; (4) CLIENT_SCHEMA_VERSION 2 -> 3 ; (5) garde generique src/lib/__tests__/powersync-schema-drift-guard.test.ts (SQL client <-> AppSchema).",
-    "RAPPEL de classe : toute colonne utilisee par le SQL client DOIT figurer dans src/lib/powersync/schema.ts ET dans un stream de sync-config.yaml. 2 autres occurrences CONNUES, en code mort et deja escaladees (E7) : org_units.updated_at (capabilities/organization addOrgUnit) et profiles.status (capabilities/invitation claimInvitation)."
   ]
 }

@@ -32,7 +32,6 @@ import type { Role } from "@/types";
 import { assignMemberRole } from "@/lib/orgAdmin";
 import { ORG_SETTING_KEYS, getOrgSetting, setOrgSetting } from "@/lib/orgSettings";
 import { getPowerSyncDatabase } from "@/lib/powersync";
-import { writeAudit } from "@/lib/audit";
 
 /** Rôle canonique retenu pour l'ancien propriétaire rétrogradé. */
 export const DEMOTED_ROLE: Role = "PASTEUR_PRINCIPAL";
@@ -329,30 +328,6 @@ export function defaultTransferPorts(orgId: string): OwnershipTransferPorts {
     },
     demoteAdmin: (userId) => assignMemberRole(userId, orgId, DEMOTED_ROLE),
   };
-}
-
-/**
- * NeverBreak #6 — trace un transfert de propriété RÉUSSI. Appelée par la page
- * (`TransferOwnership`) après `applyOwnershipTransfer` : le transfert est une
- * action sensible qui doit rester consultable dans `/trace`.
- */
-export async function auditOwnershipTransfer(
-  plan: TransferPlan,
-  actor: { userId: string; role: string | null },
-  targetLabel: string,
-): Promise<void> {
-  await writeAudit({
-    orgId: plan.orgId,
-    transactionId: null,
-    userId: actor.userId || "local-user",
-    actorRoleAtTime: actor.role ?? null,
-    action: "UPDATE",
-    entityType: "OwnershipTransfer",
-    entityId: plan.orgId,
-    beforeState: { ownerProfileId: plan.previousOwnerId },
-    afterState: { ownerProfileId: plan.targetId },
-    comment: `Transfert de propriété vers ${targetLabel}`,
-  });
 }
 
 // ─── Lecture (candidats, propriétaire) ──────────────────────────────────────

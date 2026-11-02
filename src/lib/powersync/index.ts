@@ -242,6 +242,11 @@ export function getPowerSyncDatabase(): PowerSyncDatabase {
   return _db;
 }
 
+/** Retourne true si la base PowerSync a été initialisée (sans lever d'erreur). */
+export function isPowerSyncInitialized(): boolean {
+  return !!_db;
+}
+
 export function getPowerSyncConnector(): SupabaseConnector {
   if (!_connector) {
     throw new Error(

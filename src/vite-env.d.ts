@@ -20,12 +20,6 @@ interface ImportMetaEnv {
    * déclare explicitement une version minimale.
    */
   readonly VITE_MIN_SCHEMA_VERSION?: string;
-  /**
-   * Force la remontée d'erreurs vers GitHub Issues même en développement
-   * (`vite dev`, localhost). Absent/false = remontée UNIQUEMENT depuis un build
-   * de production — évite de polluer le dépôt public avec du bruit de dev.
-   */
-  readonly VITE_REPORT_ERRORS_IN_DEV?: string;
 }
 
 interface ImportMeta {
