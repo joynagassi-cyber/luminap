@@ -476,7 +476,7 @@ export function parseBudgetItems(raw: unknown): any[] {
  * ("0 evenements", "Aucun membre") alors que les donnees sont bien
  * synchronisees - jusqu'au re-rendu suivant (mesure ~30 s).
  */
-function useOrganizationRevision(): number {
+export function useOrganizationRevision(): number {
   const [rev, setRev] = useState(0);
   const bump = () => setRev((n) => n + 1);
 

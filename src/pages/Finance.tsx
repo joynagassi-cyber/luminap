@@ -1,6 +1,6 @@
-import { Fragment, useCallback, useState, useMemo, useEffect } from "react";
+import { Fragment, useCallback, useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCategories, useAccounts, useCaisses } from "@/lib/dataLayer";
+import { useCategories, useAccounts, useCaisses, useOrganizationRevision } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
 import type { Transaction } from "@/types";
 import { formatCentsToFCFA } from "@/lib/utils";
@@ -57,9 +57,25 @@ export default function Finance() {
   const [loadError, setLoadError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(FINANCE_PAGE_SIZE);
 
+  // Révision d'organisation/readiness (même mécanisme que les hooks
+  // dataLayer) : cette page interroge PowerSync via `resource.list`,
+  // scopé par `getOrganizationId()`. Sans abonnement, un montage AVANT
+  // la résolution du contexte (boot froid : `AppContext` résout le
+  // profil de façon asynchrone) interroge avec `org_id = '__no_org__'`
+  // → liste vide DÉFINITIVE alors que les données sont locales — c'est
+  // le piège documenté dans `orgContext`/`useOrganizationRevision`,
+  // et l'échec R85 en E2E (transaction créée invisible dans /finance).
+  // On recharge donc à chaque révision (org résolue, réplique prête,
+  // borne de secours 10 s incluse dans le hook).
+  const orgRev = useOrganizationRevision();
+  const hasLoadedRef = useRef(false);
+
   // Load transactions via Resource capability.
   const loadTransactions = useCallback(() => {
-    setLoading(true);
+    // Squelette uniquement tant qu'on n'a rien à montrer (même règle
+    // que les hooks dataLayer) : un rechargement sur résolution ne
+    // doit pas faire clignoter une liste déjà affichée.
+    if (!hasLoadedRef.current) setLoading(true);
     setLoadError(false);
     resource
       .list<Transaction>("Transaction", {
@@ -69,20 +85,23 @@ export default function Finance() {
       })
       .then(({ items }) => {
         setTransactions(items as any);
+        hasLoadedRef.current = true;
         setLoading(false);
       })
       .catch((e) => {
         // R88 — ne pas avaler : sans trace, l'utilisateur voyait une liste
         // vide identique à « aucune transaction » (c'est ce qui a masqué R87).
         captureClientError(e, { message: "Échec du chargement des transactions" });
-        setLoadError(true);
+        // Écran d'erreur seulement si rien à montrer : un rechargement
+        // en échec ne doit pas effacer une liste déjà affichée.
+        if (!hasLoadedRef.current) setLoadError(true);
         setLoading(false);
       });
   }, []);
 
   useEffect(() => {
     loadTransactions();
-  }, [loadTransactions]);
+  }, [loadTransactions, orgRev]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
