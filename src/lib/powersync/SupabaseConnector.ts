@@ -9,6 +9,7 @@ import {
 
 import { Session, SupabaseClient, createClient } from "@supabase/supabase-js";
 import { AppSchema } from "./schema";
+import { recordRejectedSyncOp } from "./syncRejectedOps";
 import { coerceJsonbColumns } from "@/lib/jsonb";
 import { reportError } from "@/lib/observability/errorReporter";
 
@@ -601,6 +602,24 @@ export class SupabaseConnector
             skippedOps++;
             lastFatal = { table: op.table, op: String(op.op), code, msg: errMsg };
             logOpOutcome(op, false, code, errMsg, op.opData?.org_id);
+            // B-02 : l'op est jetée (obligatoire pour ne pas boucher la
+            // file) mais JAMAIS en silence — journal local persistant
+            // (notifié à l'utilisateur par SyncStatusNotifier) + remontée
+            // d'erreur. Avant, cette branche ne laissait qu'un log DEV :
+            // la donnée « synchronisée » localement divergeait du serveur
+            // sans que personne ne le sache.
+            recordRejectedSyncOp({
+              table: op.table,
+              op: String(op.op),
+              id: op.id ?? null,
+              code: code ?? null,
+              message: errMsg,
+            });
+            reportError(result.error, {
+              type: "sync",
+              source: "powersync-fatal",
+              context: { table: op.table, op: String(op.op), code },
+            });
             if (DEV_LOG) {
               const missingCols = code?.startsWith("23502")
                 ? Object.entries(opData)
@@ -687,7 +706,16 @@ export class SupabaseConnector
           };
         }
         // Erreur de synchronisation NON récupérable (op jetée, donnée
-        // potentiellement perdue) → remontée automatique.
+        // potentiellement perdue) → remontée automatique + journal local
+        // des rejets (B-02), notifié à l'utilisateur par
+        // SyncStatusNotifier.
+        recordRejectedSyncOp({
+          table: lastOp?.table ?? "unknown",
+          op: String(lastOp?.op ?? "unknown"),
+          id: lastOp?.id ?? null,
+          code: ex?.code ?? null,
+          message: String(ex?.message ?? ex),
+        });
         reportError(ex, {
           type: "sync",
           source: "powersync-fatal",

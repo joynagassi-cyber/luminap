@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
-import { SyncUnavailableBannerGate } from "./components/SyncUnavailableBanner";
+import { SyncStatusNotifier } from "./components/SyncStatusNotifier";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
@@ -484,7 +484,7 @@ const App = () => {
           <ObservabilityBridge />
           <AppRouter />
           <AppProvider>
-            <SyncUnavailableBannerGate />
+            <SyncStatusNotifier />
             <main id="main" style={{ height: "100%" }}>
               {/*
                 Le <Routes> est OBLIGATOIRE : @ionic/react-router
