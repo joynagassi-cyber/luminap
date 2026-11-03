@@ -8,6 +8,7 @@ import {
   addTransactionPS,
 } from "@/lib/dataLayer";
 import { addReceipt } from "@/lib/receipts";
+import { showError } from "@/utils/toast";
 import {
   ArrowLeft,
   Wallet,
@@ -21,6 +22,7 @@ import FormField from "@/components/FormField";
 import TopHeader from "@/components/TopHeader";
 import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
+import { getCurrentActorId } from "@/lib/auth";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
@@ -154,7 +156,7 @@ export default function TransactionNew() {
       return;
     }
     setError("");
-    const sessionId = localStorage.getItem("lumina-session") || "local-user";
+    const actorId = getCurrentActorId();
     const isExpense = type === "EXPENSE";
     // Statut dérivé du type, calculé UNE fois. Avant, le code lisait `status`
     // (identifiant libre) qui se résolvait en réalité sur `window.status`
@@ -209,10 +211,10 @@ export default function TransactionNew() {
         person_name: source === "PERSONNE" ? personName || null : null,
         compensates_for: null,
         comment: comment || null,
-        created_by_id: sessionId,
+        created_by_id: actorId,
         // Entrée approuvée d'office à la saisie : tracer qui/quand, comme le
         // fait `approveTransactionPS` sur le chemin d'approbation manuel.
-        approved_by_id: status === "APPROVED" ? sessionId : null,
+        approved_by_id: status === "APPROVED" ? actorId : null,
         approved_at: status === "APPROVED" ? new Date().toISOString() : null,
         versement_id: null,
         reversal_of_id: null,
@@ -238,14 +240,21 @@ export default function TransactionNew() {
       setProofUploading(true);
       try {
         for (const photo of proofPhotos) {
-          await addReceipt(txId, photo, { uploadedBy: sessionId });
+          await addReceipt(txId, photo, { uploadedBy: actorId });
         }
         setProofPhotos([]);
       } catch {
-        // Hors ligne / refus du bucket : la transaction est déjà créée,
-        // la preuve restera accessible une fois rebranché.
+        // Hors ligne / refus du bucket : la transaction est déjà créée.
+        // B-15 : le message doit survivre à la navigation vers le détail
+        // qui suit — un simple `setError` sur cet écran démonté aussitôt
+        // n'était jamais lu (preuve perdue en silence). Toast applicatif
+        // (visible sur l'écran de détail, où `JustificatifsSection`
+        // permet de rattacher la photo) + erreur locale conservée.
         setError(
           "Transaction enregistrée. L'envoi de la photo a échoué (hors ligne ?). La preuve pourra être relancée depuis le détail.",
+        );
+        showError(
+          "Transaction enregistrée, mais la photo n'a pas pu être envoyée. Rattachez-la depuis le détail (section Justificatifs).",
         );
         setProofPhotos([]);
       } finally {

@@ -6,6 +6,7 @@ import type { Transaction } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import { get, set, invalidate, asyncGetOrSet } from "./cache";
 import { FEATURES } from "./features";
+import { getCurrentActorId } from "./auth";
 
 /** Parse JSON defensively — returns the input unchanged on failure. */
 function safeParse(raw: string | object): Record<string, any> {
@@ -602,7 +603,7 @@ export const reportDefinitionRepo = {
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "CREATE",
       entityType: "ReportDefinition",
@@ -644,7 +645,7 @@ export const reportDefinitionRepo = {
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "DELETE",
       entityType: "ReportDefinition",

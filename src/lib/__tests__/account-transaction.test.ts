@@ -213,10 +213,23 @@ describe("persistAddTransaction", () => {
     expect(call.type).toBe("INCOME");
   });
 
-  it("swallows persist errors (non-fatal offline queue retry)", async () => {
+  it("propage les échecs d'écriture locale (B-05 : rien ne réessaiera)", async () => {
+    // Avant : l'erreur était AVALÉE (« offline queue will retry »), alors
+    // que l'INSERT est local — rien n'est en file. L'appelant affichait
+    // une transaction fantôme, perdue au redémarrage. L'échec doit
+    // remonter pour que le store n'ajoute pas la ligne et que l'écran
+    // signale l'erreur.
     const { addTransactionPS } = await import("@/lib/dataLayer");
-    vi.mocked(addTransactionPS).mockRejectedValueOnce(new Error("offline"));
-    await expect(persistAddTransaction(makeTx())).resolves.toBeUndefined();
+    vi.mocked(addTransactionPS).mockRejectedValueOnce(new Error("sqlite ko"));
+    await expect(persistAddTransaction(makeTx())).rejects.toThrow("sqlite ko");
+  });
+
+  it("transmet cotisation_id à addTransactionPS (B-13)", async () => {
+    const { addTransactionPS } = await import("@/lib/dataLayer");
+    vi.mocked(addTransactionPS).mockClear();
+    await persistAddTransaction(makeTx({ cotisationId: "cot-42" }));
+    const call = vi.mocked(addTransactionPS).mock.calls.at(-1)![0] as any;
+    expect(call.cotisation_id).toBe("cot-42");
   });
 });
 

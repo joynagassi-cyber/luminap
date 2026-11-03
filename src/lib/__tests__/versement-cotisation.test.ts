@@ -280,6 +280,7 @@ function makeState(overrides: Partial<CotisationState> = {}): CotisationState {
 beforeEach(() => {
   psStore.reset();
   localStorage.removeItem("lumina-session");
+  localStorage.removeItem("lumina-user");
   dl.addTransactionPS.mockClear();
   dl.addEventPS.mockClear();
   dl.addCotisationPS.mockClear();
@@ -294,7 +295,7 @@ afterEach(() => {
 
 describe("createVersement", () => {
   it("creates a paired EXPENSE/INCOME tx pair linked by versementId with distinct caisses and default FCFA comment", async () => {
-    localStorage.setItem("lumina-session", "session-A");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-A" }));
     const { versementId, sourceTx, targetTx } = await createVersement({
       sourceCaisseId: "caisse-juvenile",
       amount: 25000,
@@ -318,8 +319,8 @@ describe("createVersement", () => {
     expect(targetTx.amount).toBe(25000);
     expect(sourceTx.status).toBe("APPROVED");
     expect(sourceTx.orgId).toBe("test-org");
-    expect(sourceTx.createdById).toBe("session-A");
-    expect(targetTx.approvedById).toBe("session-A");
+    expect(sourceTx.createdById).toBe("user-A");
+    expect(targetTx.approvedById).toBe("user-A");
 
     // Default FCFA comment derived from the amount (amount/100 FCFA)
     expect(sourceTx.comment).toBe("Versement 250 FCFA -> Caisse principale");
@@ -352,7 +353,7 @@ describe("createVersement", () => {
     expect(v.amount_cents).toBe(7500);
     // Note: status is a hardcoded SQL literal ('APPROVED') in the INSERT, not a ? param.
     // The mock records params[positionally], so v.status receives params[6] = sessionId.
-    expect(v.created_by).toBe("local-user");
+    expect(v.created_by).toBe("");
 
     const txs = insertedRows("transactions");
     const byId = new Map(txs.map((t) => [t.id, t]));
@@ -524,7 +525,7 @@ describe("markCotisationPaid", () => {
   });
 
   it("(b) no avance: creates an INCOME transaction with cotisationId and don comment", () => {
-    localStorage.setItem("lumina-session", "session-B");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-B" }));
     const cot = makeCotisation({ id: "cot-npx", membreId: "mem-npx", montantObligatoire: 5000, statut: "NON_PAYE" });
     const membre = makeMember({ id: "mem-npx", firstName: "Awa", lastName: "Diallo", montantEnAvance: 0 });
     const state = makeState({
@@ -547,7 +548,7 @@ describe("markCotisationPaid", () => {
     expect(tx.eventId).toBe(cot.culteId);
     expect(tx.sourceCaisseId).toBe("main");
     expect(tx.personName).toBe("Awa Diallo");
-    expect(tx.createdById).toBe("session-B");
+    expect(tx.createdById).toBe("user-B");
     expect(tx.comment).toBe("Cotisation + don 30 FCFA"); // 3000 cents / 100
     expect(result.updatedCot.statut).toBe("PAYE");
   });
@@ -676,8 +677,8 @@ describe("markCotisationPaid", () => {
         cotisationId: "cot-cash",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        createdById: "local-user",
-        approvedById: "local-user",
+        createdById: "",
+        approvedById: "",
         approvedAt: new Date().toISOString(),
       },
     });
@@ -920,7 +921,7 @@ describe("cotisation-logic", () => {
 // ─── Multi-user: two simulated sessions, per-member state, no collision ──
 
 describe("multi-user sessions", () => {
-  it("two distinct lumina-session stores mark paid on the same culte independently (per-member separation, no cross-session collision)", async () => {
+  it("two distinct authenticated users mark paid on the same culte independently (per-member separation, no cross-user collision)", async () => {
     // Shared culte + shared global cotisation state, but each session
     // operates on its own member and records its own transaction actor.
     const sharedCulte = makeCulteEvent({ id: "ev-multi", startDate: isoDaysAgo(5) });
@@ -937,18 +938,18 @@ describe("multi-user sessions", () => {
     };
 
     // Session 1 (Aminata)
-    localStorage.setItem("lumina-session", "session-A");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-A" }));
     const rA = markCotisationPaid("cot-A", 5000, isoDaysAgo(4), state);
     expect(rA.error).toBeUndefined();
-    expect(rA.newTransaction?.createdById).toBe("session-A");
+    expect(rA.newTransaction?.createdById).toBe("user-A");
     expect(rA.newTransaction?.cotisationId).toBe("cot-A");
     expect(rA.newTransaction?.personName).toBe("Aminata A");
 
     // Session 2 (Boubou) — same culte, different member
-    localStorage.setItem("lumina-session", "session-B");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-B" }));
     const rB = markCotisationPaid("cot-B", 7000, isoDaysAgo(4), state);
     expect(rB.error).toBeUndefined();
-    expect(rB.newTransaction?.createdById).toBe("session-B");
+    expect(rB.newTransaction?.createdById).toBe("user-B");
     expect(rB.newTransaction?.cotisationId).toBe("cot-B");
     expect(rB.newTransaction?.personName).toBe("Boubou B");
     expect(rB.newTransaction?.comment).toBe("Cotisation + don 20 FCFA"); // 2000 don
@@ -963,19 +964,19 @@ describe("multi-user sessions", () => {
     expect(rA.newTransaction!.createdById).not.toBe(rB.newTransaction!.createdById);
 
     // Each session's transaction lands in the in-memory store on persist
-    localStorage.setItem("lumina-session", "session-A");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-A" }));
     psStore.reset();
     await persistMarkCotisationPaid({ ...rA, cotisationId: "cot-A" });
     const txsAfterA = insertedRows("transactions");
     expect(txsAfterA).toHaveLength(1);
-    expect(txsAfterA[0]).toMatchObject({ created_by_id: "session-A", cotisation_id: "cot-A" });
+    expect(txsAfterA[0]).toMatchObject({ created_by_id: "user-A", cotisation_id: "cot-A" });
 
-    localStorage.setItem("lumina-session", "session-B");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-B" }));
     psStore.reset();
     await persistMarkCotisationPaid({ ...rB, cotisationId: "cot-B" });
     const txsAfterB = insertedRows("transactions");
     expect(txsAfterB).toHaveLength(1);
-    expect(txsAfterB[0]).toMatchObject({ created_by_id: "session-B", cotisation_id: "cot-B" });
+    expect(txsAfterB[0]).toMatchObject({ created_by_id: "user-B", cotisation_id: "cot-B" });
 
     // Both sessions can coexist on the same culte: no lock, no shared mutation
     expect(txsAfterA.length + txsAfterB.length).toBe(2);
@@ -990,9 +991,9 @@ describe("multi-user sessions", () => {
       members: [makeMember({ id: "mem-A" })],
       transactions: [],
     };
-    localStorage.setItem("lumina-session", "session-A");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-A" }));
     expect(markCotisationPaid("cot-A", 5000, isoDaysAgo(1), state).error).toBe("PAIEMENT_VERROUILLE");
-    localStorage.setItem("lumina-session", "session-B");
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-B" }));
     expect(markCotisationPaid("cot-A", 5000, isoDaysAgo(1), state).error).toBe("PAIEMENT_VERROUILLE");
   });
 });

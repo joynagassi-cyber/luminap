@@ -20,7 +20,7 @@ import {
   listUserOrgs,
   type UserOrg,
 } from "./dataLayer";
-import { authService } from "./auth";
+import { authService, getCurrentActorId } from "./auth";
 
 export type ContextMode = "CENTRAL" | "ORG";
 
@@ -64,19 +64,11 @@ function getSnapshot(): number {
  * ("lumina-user"); this resolver keeps the two in agreement.
  */
 export function resolveCurrentUserId(): string {
-  try {
-    const id = authService.getState().profile?.id;
-    if (id) return id;
-  } catch {
-    /* auth not ready */
-  }
-  try {
-    const raw = localStorage.getItem("lumina-user");
-    if (raw) return (JSON.parse(raw as string) as { id?: string }).id ?? "";
-  } catch {
-    /* no storage */
-  }
-  return "";
+  // Délègue à l'implémentation unique d'auth.ts (état auth → token
+  // persisté → `lumina-user`) : même sémantique qu'historiquement ici,
+  // avec le repli token en plus. Une seule chaîne de résolution pour
+  // tout le code (contexte d'org ET acteur des écritures).
+  return getCurrentActorId();
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────

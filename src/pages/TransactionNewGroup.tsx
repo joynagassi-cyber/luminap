@@ -11,6 +11,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
 import type { Category, FundSource } from "@/types";
+import { getCurrentActorId } from "@/lib/auth";
 import { getOrganizationId } from "@/lib/orgContext";
 import { periodLockMessage } from "@/lib/periodLock";
 import { parseAmountToCents } from "@/lib/amountInput";
@@ -115,7 +116,7 @@ export default function TransactionNewGroup() {
     }
     setError("");
     setSubmitting(true);
-    const sessionId = localStorage.getItem("lumina-session") || "local-user";
+    const actorId = getCurrentActorId();
     const isExpense = type === "EXPENSE";
     const safeDescription =
       trimmedDesc ||
@@ -142,8 +143,8 @@ export default function TransactionNewGroup() {
         person_name: source === "PERSONNE" ? personName || null : null,
         compensates_for: null,
         comment: comment || null,
-        created_by_id: sessionId,
-        approved_by_id: isExpense ? null : sessionId,
+        created_by_id: actorId,
+        approved_by_id: isExpense ? null : actorId,
         approved_at: isExpense ? null : new Date().toISOString(),
         versement_id: null,
         reversal_of_id: null,

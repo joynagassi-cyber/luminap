@@ -1344,3 +1344,38 @@ export const authService = new AuthService();
 export function useAuth() {
   return authService;
 }
+
+/**
+ * Identifiant RÉEL de l'acteur courant pour les écritures synchronisées
+ * (`created_by_id`, `audit_entries.user_id`, `uploaded_by`…).
+ *
+ * Remplace les replis factices historiques — `"local-user"` et l'UUID de
+ * session aléatoire (`lumina-session`) — qui violaient les colonnes
+ * `uuid` + FK côté PostgreSQL : à l'upload, l'opération était rejetée
+ * (22P02/23503) et jetée en silence (perte de données, B-02/B-03), ou
+ * sauvée de justesse par la bornière du connecteur qui coercée l'acteur
+ * à `null` (audit sans auteur).
+ *
+ * Chaîne : état auth en mémoire → session persistée (token) → profil
+ * persisté (`lumina-user`). Rend `""` si l'acteur est inconnu : les
+ * bornières d'upload coerceront en `NULL` plutôt que d'inscrire un
+ * faux auteur.
+ */
+export function getCurrentActorId(): string {
+  try {
+    const state = authService.getState();
+    if (state.user?.id) return state.user.id;
+    if (state.profile?.id) return state.profile.id;
+  } catch {
+    /* service pas prêt — replis stockage ci-dessous */
+  }
+  const stored = readStoredSession();
+  if (stored?.user?.id) return stored.user.id;
+  try {
+    const raw = localStorage.getItem("lumina-user");
+    if (raw) return (JSON.parse(raw) as { id?: string }).id ?? "";
+  } catch {
+    /* stockage indisponible */
+  }
+  return "";
+}

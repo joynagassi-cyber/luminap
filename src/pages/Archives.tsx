@@ -40,6 +40,7 @@ import {
 import EmptyState from "@/components/EmptyState";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { Role } from "@/types";
+import { getCurrentActorId } from "@/lib/auth";
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -206,7 +207,7 @@ export default function Archives() {
   ) => {
     const entityType =
       type === "event" ? "Event" : type.charAt(0).toUpperCase() + type.slice(1);
-    await lifecycle.restore(entityType as any, id, "", "local-user");
+    await lifecycle.restore(entityType as any, id, "", getCurrentActorId());
     navigate(-1);
   };
 
@@ -221,7 +222,7 @@ export default function Archives() {
     setPurgeError("");
     setPurging(true);
     try {
-      await purgeEntity(toEntityType(type), id, user?.id ?? "local-user");
+      await purgeEntity(toEntityType(type), id, getCurrentActorId());
       await loadArchived();
     } catch {
       setPurgeError(
@@ -237,7 +238,7 @@ export default function Archives() {
     setPurgeError("");
     setPurging(true);
     try {
-      await purgeAllArchived(user?.id ?? "local-user");
+      await purgeAllArchived(getCurrentActorId());
       await loadArchived();
     } catch {
       setPurgeError("Vidage impossible. Réessayez (hors ligne ?).");

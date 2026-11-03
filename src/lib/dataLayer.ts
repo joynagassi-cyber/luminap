@@ -1361,8 +1361,8 @@ export async function addTransactionPS(
       category_id, org_unit_id, compensates_for, comment,
       version, created_by_id, approved_by_id, created_at,
       updated_at, approved_at, event_id, source, person_name,
-      source_caisse_id, versement_id, reversal_of_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      source_caisse_id, versement_id, reversal_of_id, cotisation_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       tx.org_id,
@@ -1387,6 +1387,10 @@ export async function addTransactionPS(
       tx.source_caisse_id,
       tx.versement_id,
       tx.reversal_of_id,
+      // B-13 : la colonne existait (type + schéma + serveur) mais
+      // n'était JAMAIS écrite — le lien transaction ↔ cotisation était
+      // perdu en silence (0 ligne liée en production).
+      tx.cotisation_id ?? null,
     ],
   );
 
@@ -1455,6 +1459,7 @@ export async function updateTransactionPS(
     ["version", "version"],
     ["approved_by_id", "approved_by_id"],
     ["approved_at", "approved_at"],
+    ["cotisation_id", "cotisation_id"],
   ];
 
   for (const [key, col] of fieldMap) {
@@ -2619,14 +2624,24 @@ export async function mirrorNewOrganizationLocally(input: {
   }
 
   // 3) L'appartenance multi-org (miroir du flux d'invitation).
+  //    Id = UUID réel : l'ancien format `om-<org>-<user>` violait la PK
+  //    `uuid` côté PostgreSQL → rejet 22P02 à l'upload, op jetée et
+  //    ligne miroir orpheline en local pour toujours. Insertion
+  //    seulement si absente (clé naturelle user+org) : si la ligne
+  //    serveur (créée par le RPC) est déjà descendue, on ne la duplique
+  //    pas et on ne la supprime pas.
   try {
-    const membershipId = `om-${input.orgId}-${input.userId}`;
-    await db.execute(`DELETE FROM org_memberships WHERE id = ?`, [membershipId]);
-    await db.execute(
-      `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
-       VALUES (?, ?, ?, ?, 1, 'ACTIVE', ?)`,
-      [membershipId, input.userId, input.orgId, input.role, now],
+    const existing = await db.getOptional<number>(
+      `SELECT 1 FROM org_memberships WHERE user_id = ? AND org_id = ? LIMIT 1`,
+      [input.userId, input.orgId],
     );
+    if (!existing) {
+      await db.execute(
+        `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
+         VALUES (?, ?, ?, ?, 1, 'ACTIVE', ?)`,
+        [crypto.randomUUID(), input.userId, input.orgId, input.role, now],
+      );
+    }
   } catch (e) {
     console.warn("[dataLayer] mirror org_memberships failed (non-fatal)", e);
   }
