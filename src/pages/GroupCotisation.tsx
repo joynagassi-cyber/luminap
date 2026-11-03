@@ -48,6 +48,7 @@ import {
   
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { getCurrentActorId } from "@/lib/auth";
 
 export default function GroupCotisation() {
   const { id } = useParams<{ id: string }>();
@@ -132,7 +133,7 @@ export default function GroupCotisation() {
           startDate: sessionDate,
           montantCotisationCents: montantCents,
           orgId,
-          actorId: user?.id ?? "local-user",
+          actorId: getCurrentActorId(),
         },
       );
       setSelectedSession(result.event.id);
@@ -159,7 +160,7 @@ export default function GroupCotisation() {
         cot.id,
         montantCents,
         new Date().toISOString(),
-        user?.id ?? "local-user",
+        getCurrentActorId(),
       );
       await new Promise((r) => setTimeout(r, 500));
     } catch (e: any) {
@@ -173,7 +174,7 @@ export default function GroupCotisation() {
     setBusy(true);
     setFormError(null);
     try {
-      await markCotisationAbsent(cot.id, user?.id ?? "local-user");
+      await markCotisationAbsent(cot.id, getCurrentActorId());
       await new Promise((r) => setTimeout(r, 500));
     } catch (e: any) {
       setFormError(e?.message ?? "Erreur");

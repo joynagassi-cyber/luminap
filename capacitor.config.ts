@@ -30,7 +30,10 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      // 0 = aucune durée forcée : l'unique splash visible est la page
+      // React /splash. Le fond système (#121212 = canvas) couvre le
+      // court instant de démarrage du WebView, sans écran supplémentaire.
+      launchShowDuration: 0,
       launchAutoHide: true,
       backgroundColor: '#121212',
       showSpinner: false,

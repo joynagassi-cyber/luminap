@@ -33,6 +33,7 @@ import { assignMemberRole } from "@/lib/orgAdmin";
 import { ORG_SETTING_KEYS, getOrgSetting, setOrgSetting } from "@/lib/orgSettings";
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { writeAudit } from "@/lib/audit";
+import { getCurrentActorId } from "./auth";
 
 /** Rôle canonique retenu pour l'ancien propriétaire rétrogradé. */
 export const DEMOTED_ROLE: Role = "PASTEUR_PRINCIPAL";
@@ -344,7 +345,7 @@ export async function auditOwnershipTransfer(
   await writeAudit({
     orgId: plan.orgId,
     transactionId: null,
-    userId: actor.userId || "local-user",
+    userId: actor.userId || getCurrentActorId(),
     actorRoleAtTime: actor.role ?? null,
     action: "UPDATE",
     entityType: "OwnershipTransfer",

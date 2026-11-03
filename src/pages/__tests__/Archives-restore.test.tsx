@@ -109,6 +109,9 @@ beforeEach(() => {
   docsState.loading = false;
   docsState.ready = true;
   docsState.documents = [];
+  // Acteur des actions lifecycle = identité authentifiée
+  // (`getCurrentActorId()` → profil persisté), plus le factice codé en dur.
+  localStorage.setItem("lumina-user", JSON.stringify({ id: "user-1" }));
 });
 afterEach(() => cleanup());
 
@@ -134,7 +137,7 @@ describe("PR3 — page /archives (corbeille)", () => {
     });
     fireEvent.click(btn);
     await waitFor(() =>
-      expect(restore).toHaveBeenCalledWith("Group", "g1", "", "local-user"),
+      expect(restore).toHaveBeenCalledWith("Group", "g1", "", "user-1"),
     );
   });
 

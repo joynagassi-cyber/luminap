@@ -40,6 +40,7 @@ import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBa
 import EmptyState from "@/components/EmptyState";
 import EventTasks from "@/components/EventTasks";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { getCurrentActorId } from "@/lib/auth";
 
 type Tab = "overview" | "budget" | "transactions" | "tasks";
 
@@ -187,7 +188,7 @@ export default function EventDetail() {
     }
 
     const now = new Date().toISOString();
-    const sessionId = localStorage.getItem("lumina-session") || "local-user";
+    const actorId = getCurrentActorId();
 
     const sourceCaisseId =
       budgetItem.fundedBy === "main" ? "main" : budgetItem.fundedBy;
@@ -205,8 +206,8 @@ export default function EventDetail() {
         org_unit_id: null,
         compensates_for: null,
         comment: `Dépense événement: ${expenseDescription}`,
-        created_by_id: sessionId,
-        approved_by_id: sessionId,
+        created_by_id: actorId,
+        approved_by_id: actorId,
         approved_at: now,
         event_id: event.id,
         source: "CAISSE",

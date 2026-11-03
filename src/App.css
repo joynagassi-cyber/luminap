@@ -341,9 +341,7 @@ textarea:focus-visible,
  * Pas de transformation CSS (pas de filtres de couleur) : le trait
  * reste tel quel dans le PNG, il n'est ni récoloré ni inversé.
  */
-.splash-monochrome-logo,
-.splash-monochrome-illustration,
-.splash-monochrome-logo-small {
+.splash-monochrome-logo {
   display: block;
   /* Redesign 2026-10-19 (fix bug v1.0.2 « logo trop sombre, difficile à
      voir ») : le trait blanc du PNG reste tel quel, on n'applique AUCUN
@@ -353,17 +351,6 @@ textarea:focus-visible,
   filter: none;
   box-shadow: none;
   text-shadow: none;
-}
-/* Spinner : le bloc logo pivotote en entier (le trait lui-même ne
-   bouge pas à l'intérieur — c'est l'ensemble qui tourne, ce qui
-   donne l'impression de chargement). 1 s / linear / infini.
-   Respecte prefers-reduced-motion : dans App.css, la règle globale
-   force animation-duration à 0.01ms pour les utilisateurs qui
-   ont la préférence « réduire les animations » activée — le
-   spinner devient alors statique, ce qui est acceptable (le
-   texte « Chargement en cours… » reste visible). */
-.splash-monochrome-logo.spinner {
-  animation: spin 1s linear infinite;
 }
 
 @keyframes ping {

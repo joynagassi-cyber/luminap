@@ -114,6 +114,9 @@ beforeEach(() => {
   hoisted.canPurge = true;
   hoisted.purgeEntity.mockClear();
   hoisted.purgeAllArchived.mockClear();
+  // Acteur des purges = identité authentifiée (`getCurrentActorId()`
+  // → profil persisté `lumina-user`), aligné sur le mock useCurrentUser.
+  localStorage.setItem("lumina-user", JSON.stringify({ id: "user-1" }));
 });
 afterEach(() => cleanup());
 

@@ -13,6 +13,7 @@
 import { generateId } from "./utils";
 import { formatDate, formatCentsToFCFA } from "./utils";
 import { getOrganizationId } from "./orgContext";
+import { getCurrentActorId } from "./auth";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { executeWrite, updateCotisationPS, updateMemberPS, assertTransactionWritable } from "./dataLayer";
 import { writeAudit, resolveAuditActor } from "./audit";
@@ -229,7 +230,7 @@ export function markCotisationPaid(
       updatedAt: now,
     };
   } else {
-    const sessionId = localStorage.getItem("lumina-session") || "local-user";
+    const actorId = getCurrentActorId();
     newTransaction = {
       id: generateId(),
       orgId: getOrganizationId(),
@@ -255,8 +256,8 @@ export function markCotisationPaid(
       cotisationId,
       createdAt: now,
       updatedAt: now,
-      createdById: sessionId,
-      approvedById: sessionId,
+      createdById: actorId,
+      approvedById: actorId,
       approvedAt: now,
     };
   }

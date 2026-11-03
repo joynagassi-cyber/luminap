@@ -6,6 +6,7 @@
  */
 
 import { getOrganizationId } from "./orgContext";
+import { getCurrentActorId } from "./auth";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { generateId } from "./utils";
 import { executeWrite, assertTransactionWritable } from "./dataLayer";
@@ -33,7 +34,7 @@ export async function createVersement(
 ): Promise<VersementResult> {
   const now = new Date().toISOString();
   const versementId = generateId();
-  const sessionId = localStorage.getItem("lumina-session") || "local-user";
+  const actorId = getCurrentActorId();
   const orgId = getOrganizationId();
   const date = now.split("T")[0];
   const comment =
@@ -58,8 +59,8 @@ export async function createVersement(
         "main",
         params.amount,
         date,
-        sessionId,
-        sessionId,
+        actorId,
+        actorId,
         now,
         now,
       ],
@@ -79,8 +80,8 @@ export async function createVersement(
     status: "APPROVED",
     createdAt: now,
     updatedAt: now,
-    createdById: sessionId,
-    approvedById: sessionId,
+    createdById: actorId,
+    approvedById: actorId,
     approvedAt: now,
     categoryId: DEFAULT_CATEGORY_ID,
     orgUnitId: null,
@@ -105,8 +106,8 @@ export async function createVersement(
     status: "APPROVED",
     createdAt: now,
     updatedAt: now,
-    createdById: sessionId,
-    approvedById: sessionId,
+    createdById: actorId,
+    approvedById: actorId,
     approvedAt: now,
     categoryId: DEFAULT_CATEGORY_ID,
     orgUnitId: null,
@@ -186,7 +187,7 @@ export async function createVersement(
   await writeAudit({
     orgId,
     transactionId: sourceTx.id,
-    userId: sessionId,
+    userId: actorId,
     actorRoleAtTime: null,
     action: "CREATE",
     entityType: "Versement",
@@ -200,8 +201,8 @@ export async function createVersement(
       amountCents: params.amount,
       date,
       status: "APPROVED" as const,
-      createdBy: sessionId,
-      approvedBy: sessionId,
+      createdBy: actorId,
+      approvedBy: actorId,
       approvedAt: now,
       createdAt: now,
       sourceTxId: sourceTx.id,

@@ -104,6 +104,66 @@ function isBrandNewUser(user: SupabaseUser | null | undefined): boolean {
   return Date.now() - created <= NEW_SIGNUP_WINDOW_MS;
 }
 
+// ─── Accès local hors ligne (offline-first) ─────────────────────────────────
+// Toutes les données vivent en local (PowerSync/SQLite) : une coupure réseau
+// ne doit JAMAIS verrouiller l'app sur /auth. supabase-js persiste la session
+// sous `sb-<ref>-auth-token` ; tant qu'elle est là, l'utilisateur ne s'est
+// pas déconnecté (`signOut` vide ce stockage) — on peut donc rouvrir l'app
+// en local, le refresh reprendra au retour du réseau.
+
+/** Session persistée par supabase-js dans localStorage, ou null. */
+export function readStoredSession(): Session | null {
+  try {
+    // Itération via `length`/`key(i)` (API Storage) plutôt que
+    // `Object.keys(localStorage)` : portable (navigateur, WebView, shims).
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.endsWith("-auth-token")) keys.push(k);
+    }
+    for (const key of keys) {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      // Format v2 : l'objet Session directement ; ancien format :
+      // `{ currentSession: … }`. On accepte les deux.
+      const candidate = parsed?.access_token ? parsed : parsed?.currentSession;
+      if (
+        candidate?.access_token &&
+        candidate?.refresh_token &&
+        candidate?.user?.id
+      ) {
+        return candidate as Session;
+      }
+    }
+  } catch {
+    /* stockage indisponible / token malformé — pas de repli */
+  }
+  return null;
+}
+
+/** Le navigateur/WebView signale-t-il une absence de réseau ? */
+function isBrowserOffline(): boolean {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+/**
+ * L'erreur ressemble-t-elle à un échec RÉSEAU (et non à un rejet auth
+ * définitif du serveur) ? Un rejet type « Invalid Refresh Token » n'est
+ * jamais classé réseau : en ligne, il doit continuer d'invalider.
+ */
+export function isOfflineLikeError(err: unknown): boolean {
+  if (isBrowserOffline()) return true;
+  const e = err as { name?: string; message?: string; status?: number } | null;
+  if (!e) return false;
+  if (e.name === "AuthRetryableFetchError") return true;
+  const msg = String(e.message ?? "");
+  if (/invalid refresh token|refresh token not found/i.test(msg)) return false;
+  return /failed to fetch|network|fetch|timeout|timed out|connexion|connection|load failed/i.test(
+    msg,
+  );
+}
+
 // Auth service class
 class AuthService {
   private state: AuthState = {
@@ -152,8 +212,17 @@ class AuthService {
     }
   }
 
-  // Validate current session and refresh if needed
+  // Validate current session and refresh if needed.
+  //
+  // HORS LIGNE : on ne tente même pas le refresh, et un échec RÉSEAU ne
+  // déconnecte JAMAIS. Avant ce garde-fou, `refreshSession` échouait sans
+  // connexion → `handleSessionInvalidated()` → `signOut()` : après une
+  // période sans réseau (token expiré), l'utilisateur était verrouillé sur
+  // /auth, sans pouvoir se reconnecter (pas de réseau) — le mode offline
+  // était de fait inaccessible. Seul un rejet auth explicite du serveur
+  // (ex. refresh token révoqué, en ligne) invalide la session.
   private async validateCurrentSession(): Promise<void> {
+    if (isBrowserOffline()) return;
     try {
       const {
         data: { session },
@@ -162,7 +231,7 @@ class AuthService {
         const { error } = await supabase.auth.refreshSession({
           refresh_token: session.refresh_token,
         });
-        if (error) {
+        if (error && !isOfflineLikeError(error)) {
           this.handleSessionInvalidated();
         }
       }
@@ -188,19 +257,26 @@ class AuthService {
     this.notifyListeners();
   }
 
-  // Get current session with validation
+  // Get current session with validation.
+  //
+  // Repli offline-first : quand le SDK ne rend pas de session (token
+  // expiré + refresh impossible sans réseau), on retombe sur la session
+  // PERSISTÉE (`sb-…-auth-token`) si elle existe encore. RouteGuard et
+  // Splash s'appuient sur cette méthode pour décider dashboard vs /auth :
+  // sans ce repli, un démarrage hors ligne avec un token expiré renvoyait
+  // vers l'écran de connexion, inutilisable sans réseau. Un sign-out
+  // explicite vide le stockage → ce repli ne ressuscite aucune session ;
+  // un refresh token réellement révoqué sera invalidé au retour en ligne
+  // (`validateCurrentSession` / événement SIGNED_OUT).
   async getSession(): Promise<Session | null> {
     try {
       const {
         data: { session },
-        error,
       } = await supabase.auth.getSession();
-      if (error) {
-        return null;
-      }
-      return session;
+      if (session) return session;
+      return readStoredSession();
     } catch (err) {
-      return null;
+      return readStoredSession();
     }
   }
 
@@ -1149,6 +1225,18 @@ class AuthService {
           user: session.user,
           isLoading: false,
         });
+      } else if (
+        event !== "SIGNED_OUT" &&
+        isBrowserOffline() &&
+        readStoredSession()
+      ) {
+        // Hors ligne, supabase-js peut émettre une session `null` après un
+        // refresh raté (réseau) alors que l'utilisateur ne s'est pas
+        // déconnecté. Si la session persistée est toujours là, on conserve
+        // l'état courant : l'accès local (offline-first) prime, la vérité
+        // serveur sera réconciliée au retour du réseau. Un SIGNED_OUT
+        // explicite purge toujours l'état.
+        this.setState({ isLoading: false });
       } else {
         this.setState({
           session: null,
@@ -1255,4 +1343,42 @@ export const authService = new AuthService();
 // Export for React hooks
 export function useAuth() {
   return authService;
+}
+
+/**
+ * Identifiant RÉEL de l'acteur courant pour les écritures synchronisées
+ * (`created_by_id`, `audit_entries.user_id`, `uploaded_by`…).
+ *
+ * Remplace les replis factices historiques — `"local-user"` et l'UUID de
+ * session aléatoire (`lumina-session`) — qui violaient les colonnes
+ * `uuid` + FK côté PostgreSQL : à l'upload, l'opération était rejetée
+ * (22P02/23503) et jetée en silence (perte de données, B-02/B-03), ou
+ * sauvée de justesse par la bornière du connecteur qui coercée l'acteur
+ * à `null` (audit sans auteur).
+ *
+ * Chaîne : état auth en mémoire → session persistée (token) → profil
+ * persisté (`lumina-user`). Rend `""` si l'acteur est inconnu : les
+ * bornières d'upload coerceront en `NULL` plutôt que d'inscrire un
+ * faux auteur.
+ */
+export function getCurrentActorId(): string {
+  try {
+    const state = authService.getState();
+    // Profil d'abord : c'est l'ordre historique de
+    // `resolveCurrentUserId` (organization-context délègue ici) — en
+    // production profile.id === user.id (PK du profil = uid auth).
+    if (state.profile?.id) return state.profile.id;
+    if (state.user?.id) return state.user.id;
+  } catch {
+    /* service pas prêt — replis stockage ci-dessous */
+  }
+  const stored = readStoredSession();
+  if (stored?.user?.id) return stored.user.id;
+  try {
+    const raw = localStorage.getItem("lumina-user");
+    if (raw) return (JSON.parse(raw) as { id?: string }).id ?? "";
+  } catch {
+    /* stockage indisponible */
+  }
+  return "";
 }

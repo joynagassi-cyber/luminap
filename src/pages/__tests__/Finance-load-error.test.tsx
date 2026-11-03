@@ -32,6 +32,8 @@ vi.mock("@/lib/dataLayer", () => ({
   useCategories: () => ({ data: [] }),
   useAccounts: () => ({ data: [] }),
   useCaisses: () => ({ data: [] }),
+  // Révision d'org figée : le chargement initial suffit pour ces tests.
+  useOrganizationRevision: () => 0,
 }));
 
 vi.mock("@/lib/orgContext", () => ({ getOrganizationId: () => "org-1" }));

@@ -13,6 +13,7 @@ import {
   getCustomFieldValuesByEntityPS,
   deleteCustomFieldValuePS,
 } from "@/lib/dataLayer";
+import { getCurrentActorId } from "./auth";
 
 export const customFieldRepo = {
   async create(
@@ -22,7 +23,7 @@ export const customFieldRepo = {
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "CREATE",
       entityType: "CustomFieldDefinition",

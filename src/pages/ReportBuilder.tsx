@@ -36,6 +36,7 @@ import { escapeCsvRow } from "@/lib/csv";
 import { downloadBlob } from "@/lib/download";
 import type { ReportDefinition, ReportResult } from "@/types";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { getCurrentActorId } from "@/lib/auth";
 
 type PeriodKey = "all" | "month" | "year";
 
@@ -376,7 +377,7 @@ export default function ReportBuilder() {
       metrics,
       filters: buildFilters(),
       sortBy: null,
-      savedBy: "local-user",
+      savedBy: getCurrentActorId(),
       isTemplate: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -418,7 +419,7 @@ export default function ReportBuilder() {
         filters: buildFilters(),
         groupBy,
         sortBy: null,
-        savedBy: "local-user",
+        savedBy: getCurrentActorId(),
         isTemplate: false,
       });
       setSavedReports((prev) => [entry, ...prev]);

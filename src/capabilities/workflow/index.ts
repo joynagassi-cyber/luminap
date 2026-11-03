@@ -13,6 +13,7 @@
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { auditLogRepo } from "@/lib/audit";
 import { getOrganizationId } from "@/lib/orgContext";
+import { getCurrentActorId } from "@/lib/auth";
 
 /**
  * Guard result — standardised across all workflow implementations
@@ -189,7 +190,7 @@ export class WorkflowService {
       await auditLogRepo.write({
         orgId: getOrganizationId(),
         transactionId: null,
-        userId: actorId ?? "local-user",
+        userId: actorId ?? getCurrentActorId(),
         actorRoleAtTime: context?.actorRoleAtTime ?? null,
         action: "STATUS_CHANGE",
         entityType: resource.charAt(0).toUpperCase() + resource.slice(1),

@@ -17,6 +17,8 @@ import {
   deleteTransactionPS,
 } from "@/lib/dataLayer";
 import { isPeriodLockedError } from "@/lib/periodLock";
+import { getCurrentActorId } from "@/lib/auth";
+import { reportError } from "@/lib/observability/errorReporter";
 import type { Transaction } from "@/types";
 
 export interface TransactionState {
@@ -124,14 +126,28 @@ export async function persistAddTransaction(newTx: Transaction): Promise<void> {
       source_caisse_id: newTx.sourceCaisseId,
       versement_id: newTx.versementId,
       reversal_of_id: newTx.reversalOfId,
-      cotisation_id: null,
+      // B-13 : ne plus forcer `null` — le lien cotisation porté par la
+      // transaction doit être persisté (il ne l'était jamais).
+      cotisation_id: newTx.cotisationId ?? null,
     });
   } catch (error) {
     // PR13 — un rejet de gel de période est une DÉCISION métier : il remonte
     // (ne pas l'avaler comme une panne transitoire, sinon la période close
     // serait silencieusement modifiable).
     if (isPeriodLockedError(error)) throw error;
-    // Persist failure is non-fatal; offline queue will retry
+    // B-05 — ne plus AVALER les autres échecs : l'INSERT est LOCAL
+    // (PowerSync/SQLite). S'il échoue, rien n'est « en file » qui
+    // réessaierait plus tard — l'ancien commentaire (« offline queue
+    // will retry ») était faux, et l'appelant enchaînait audit +
+    // affichage optimiste pour une écriture jamais persistée,
+    // fantôme jusqu'au prochain redémarrage. On signale et on jette :
+    // le store n'ajoutera pas la ligne, l'écran affichera l'erreur.
+    reportError(error, {
+      type: "database",
+      source: "persist-add-transaction",
+      context: { txId: newTx.id, type: newTx.type, status: newTx.status },
+    });
+    throw error;
   }
 }
 
@@ -147,7 +163,9 @@ export async function auditAddTransaction(
   await writeAudit({
     orgId: getOrganizationId(),
     transactionId: id,
-    userId: tx.createdById || "local-user",
+    // Acteur réel uniquement — jamais le factice « local-user » (qui
+    // faisait rejeter l'entrée d'audit à l'upload, colonne uuid).
+    userId: tx.createdById || getCurrentActorId(),
     actorRoleAtTime: role,
     action: "CREATE",
     entityType: "Transaction",

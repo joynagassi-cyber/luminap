@@ -9,6 +9,7 @@ import {
 
 import { Session, SupabaseClient, createClient } from "@supabase/supabase-js";
 import { AppSchema } from "./schema";
+import { recordRejectedSyncOp } from "./syncRejectedOps";
 import { coerceJsonbColumns } from "@/lib/jsonb";
 import { reportError } from "@/lib/observability/errorReporter";
 
@@ -207,35 +208,40 @@ function coerceUuidKeys(
 }
 
 /**
- * `transactions.created_by_id` / `approved_by_id` et
- * `documents.uploaded_by` sont des `uuid` (FK → auth.users / user id) en
- * PostgreSQL, mais les flux offline peuvent y écrire des identifiants de
- * session texte ("local-user", UUID de session locale…). Bornière d'upload :
- * toute valeur qui n'est pas un UUID valide est coercée à `null` (colonnes
- * nullable) — sinon chaque upload échouerait avec « invalid input syntax for
- * type uuid » et boucherait la file d'upload.
+ * Colonnes « acteur » de type `uuid` NULLABLE (FK → auth.users), par table.
+ * Les flux offline peuvent y porter des valeurs non-UUID héritées (lignes
+ * créées par d'anciennes versions avec "local-user" ou un UUID de session
+ * local) : la bornière les coercée à `null` à l'upload — la ligne est
+ * sauvée, seul l'auteur inconnu est perdu — au lieu d'un rejet 22P02/23503
+ * qui jetterait l'opération entière.
+ *
+ * Les colonnes uuid NOT NULL (`org_memberships.user_id`,
+ * `org_admins.admin_profile_id`, `tag_assignments.user_id`…) sont
+ * volontairement ABSENTES : les coercer en `null` ne ferait que convertir
+ * l'erreur en 23502. Leurs rejets restent donc visibles (journal
+ * `syncRejectedOps` + notification) et doivent être corrigés à la source.
+ * Les nouvelles écritures utilisent `getCurrentActorId()` (id réel) ; cette
+ * bornière ne sert plus qu'aux lignes héritées déjà en file.
  */
-function sanitizeTransactionsOpData(
-  opData: Record<string, unknown>,
-): Record<string, unknown> {
-  return coerceUuidKeys(opData, ["created_by_id", "approved_by_id"]);
-}
+const UUID_ACTOR_KEYS: Record<string, string[]> = {
+  transactions: ["created_by_id", "approved_by_id"],
+  documents: ["uploaded_by"],
+  transaction_attachments: ["uploaded_by"],
+  audit_entries: ["user_id"],
+  grants: ["granted_by"],
+  org_admins: ["granted_by"],
+  organizations: ["suspended_by", "archived_by"],
+  tag_assignments: ["assigned_by"],
+  invitation_claims: ["resulting_user_id"],
+  invitations: ["target_role_uuid"],
+};
 
-function sanitizeDocumentsOpData(
+function sanitizeUuidActorColumns(
+  table: string,
   opData: Record<string, unknown>,
 ): Record<string, unknown> {
-  return coerceUuidKeys(opData, ["uploaded_by"]);
-}
-
-/**
- * `transaction_attachments.uploaded_by` est un `uuid` (FK → auth.users) : même
- * bornière que `documents.uploaded_by` (les identifiants de session offline
- * texte, ex. "local-user", sont coercés à `null`).
- */
-function sanitizeTransactionAttachmentsOpData(
-  opData: Record<string, unknown>,
-): Record<string, unknown> {
-  return coerceUuidKeys(opData, ["uploaded_by"]);
+  const keys = UUID_ACTOR_KEYS[table];
+  return keys ? coerceUuidKeys(opData, keys) : opData;
 }
 
 export type SupabaseConnectorListener = {
@@ -512,28 +518,33 @@ export class SupabaseConnector
         // (drift historique client vs schéma real, cf. caisses.status)
         // pour que l'upsert n'échoue pas sur « column not in schema
         // cache » et ne bloque pas toute la transaction d'upload.
+        // Les 3 tables historiques gardaient leur propre branche (sanitize
+        // seul, sans coercition jsonb) ; toutes les autres passent par
+        // `coerceJsonbColumns` PUIS la bornière acteur générique
+        // (`sanitizeUuidActorColumns`, identité pour les tables non
+        // listées) — qui couvre désormais aussi `audit_entries.user_id`
+        // et les colonnes acteur des tables multi-org.
         const opData =
-          op.table === "transactions"
+          op.table === "transactions" ||
+          op.table === "documents" ||
+          op.table === "transaction_attachments"
             ? filterOpDataToSchema(
-                "transactions",
-                sanitizeTransactionsOpData(op.opData as Record<string, unknown>),
+                op.table,
+                sanitizeUuidActorColumns(
+                  op.table,
+                  op.opData as Record<string, unknown>,
+                ),
               )
-            : op.table === "documents"
-              ? filterOpDataToSchema(
-                  "documents",
-                  sanitizeDocumentsOpData(op.opData as Record<string, unknown>),
-                )
-              : op.table === "transaction_attachments"
-                ? filterOpDataToSchema(
-                    "transaction_attachments",
-                    sanitizeTransactionAttachmentsOpData(
-                      op.opData as Record<string, unknown>,
-                    ),
-                  )
-                : filterOpDataToSchema(
+            : filterOpDataToSchema(
+                op.table,
+                sanitizeUuidActorColumns(
+                  op.table,
+                  coerceJsonbColumns(
                     op.table,
-                    coerceJsonbColumns(op.table, op.opData as Record<string, unknown>),
-                  );
+                    op.opData as Record<string, unknown>,
+                  ),
+                ),
+              );
 
         // Backfill des valeurs par défaut NOT NULL : si une colonne
         // NOT NULL du schéma Postgres est absente de l'opData (PowerSync
@@ -601,6 +612,24 @@ export class SupabaseConnector
             skippedOps++;
             lastFatal = { table: op.table, op: String(op.op), code, msg: errMsg };
             logOpOutcome(op, false, code, errMsg, op.opData?.org_id);
+            // B-02 : l'op est jetée (obligatoire pour ne pas boucher la
+            // file) mais JAMAIS en silence — journal local persistant
+            // (notifié à l'utilisateur par SyncStatusNotifier) + remontée
+            // d'erreur. Avant, cette branche ne laissait qu'un log DEV :
+            // la donnée « synchronisée » localement divergeait du serveur
+            // sans que personne ne le sache.
+            recordRejectedSyncOp({
+              table: op.table,
+              op: String(op.op),
+              id: op.id ?? null,
+              code: code ?? null,
+              message: errMsg,
+            });
+            reportError(result.error, {
+              type: "sync",
+              source: "powersync-fatal",
+              context: { table: op.table, op: String(op.op), code },
+            });
             if (DEV_LOG) {
               const missingCols = code?.startsWith("23502")
                 ? Object.entries(opData)
@@ -687,7 +716,16 @@ export class SupabaseConnector
           };
         }
         // Erreur de synchronisation NON récupérable (op jetée, donnée
-        // potentiellement perdue) → remontée automatique.
+        // potentiellement perdue) → remontée automatique + journal local
+        // des rejets (B-02), notifié à l'utilisateur par
+        // SyncStatusNotifier.
+        recordRejectedSyncOp({
+          table: lastOp?.table ?? "unknown",
+          op: String(lastOp?.op ?? "unknown"),
+          id: lastOp?.id ?? null,
+          code: ex?.code ?? null,
+          message: String(ex?.message ?? ex),
+        });
         reportError(ex, {
           type: "sync",
           source: "powersync-fatal",

@@ -96,9 +96,14 @@ import FormFill from "@/pages/FormFill";
 describe("FormFill — submittedBy réel (T2 Forms v2)", () => {
   beforeEach(() => {
     createMock.mockClear();
+    // L'acteur des écritures vient de l'identité authentifiée
+    // (`getCurrentActorId()` : état auth → token → profil persisté
+    // `lumina-user`), plus du hook d'affichage useCurrentUser (dont le
+    // repli factice « local-user » polluait submitted_by).
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "user-42" }));
   });
 
-  it("utilise l'id de useCurrentUser comme submittedBy (plus de « local-user »)", async () => {
+  it("utilise l'id de l'acteur authentifié comme submittedBy (plus de « local-user »)", async () => {
     const { default: navigateMock } = await vi.importActual<any>("react-router-dom");
     void navigateMock;
 

@@ -25,6 +25,20 @@ const ps = vi.hoisted(() => ({
 
 vi.mock("@/lib/powersync", () => ({
   getPowerSyncDatabase: () => ({
+    // Lecture d'existence (org_memberships) : le miroir insère le
+    // membership seulement s'il est absent (id UUID réel désormais —
+    // l'ancien format `om-<org>-<user>` violait la PK uuid serveur).
+    getOptional: async (sql: string, params: any[] = []) => {
+      if (/FROM org_memberships/i.test(sql)) {
+        const [user_id, org_id] = params;
+        return ps.org_memberships.some(
+          (r) => r.user_id === user_id && r.org_id === org_id,
+        )
+          ? 1
+          : undefined;
+      }
+      return undefined;
+    },
     execute: async (sql: string, params: any[] = []) => {
       if (/ON CONFLICT|INSERT OR REPLACE/i.test(sql)) {
         throw new Error("cannot UPSERT a view");
