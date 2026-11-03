@@ -9,8 +9,17 @@
          merger n'échoue pas. -->
     <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova,io.ionic.libs.ionfilesystemlib" />
 
+    <!-- C-07a — AUCUNE sauvegarde : la base SQLite locale (transactions,
+         caisses, membres) et les Preferences/localStorage (jetons de session
+         non chiffrés) ne doivent jamais partir vers Google Drive / adb backup /
+         un transfert d'appareil. Défense en profondeur : allowBackup=false ET
+         des règles d'exclusion explicites pour API 23-30 et API 31+.
+         Vérification : `adb backup -f /tmp/l.apk -apk com.lumina.mfejc` puis
+         `tar tf /tmp/l.apk` ne doit contenir aucune base ni préférence. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -78,13 +87,23 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
-    <!-- FCM (Firebase Cloud Messaging) — required by OneSignal for in-app
-         push delivery on modern Android. -->
+    <!-- Notifications : permission d'EXÉCUTION depuis Android 13 (API 33).
+          Déclarée ici, mais demandée UNIQUEMENT par
+         `src/lib/permissions/permissionService.ts` (via
+         `@capacitor/push-notifications`), après un écran d'explication —
+         jamais au démarrage à froid. Avant Android 13 elle est accordée
+         silencieusement. Voir docs/lumina-ionic-capacitor-permissions.md §1.2. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Self-updater : permet à l'app de demander l'installation d'APK
-         (sources inconnues) via PackageInstaller. -->
+         (sources inconnues) via PackageInstaller.
+         P-03/C-08 : `USE_FULL_SCREEN_INTENT` a été RETIRÉE (aucun usage :
+         Lumina n'est ni une sonnerie ni une alarme ; permission restreinte
+         sur Android 14+, motif de refus Play).
+         Distribution : `REQUEST_INSTALL_PACKAGES` reste JUSTIFIÉE tant que
+         la distribution se fait par APK direct (décision §1.5 non tranchée).
+         Si passage au Play Store : retirer cette ligne, `ApkUpdaterPlugin`
+         et `src/updater/`. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
 </manifest>

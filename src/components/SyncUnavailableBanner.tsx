@@ -48,7 +48,8 @@ export function SyncUnavailableBanner() {
         position: "fixed",
         left: 0,
         right: 0,
-        bottom: "calc(var(--nav-height) + env(safe-area-inset-bottom, 0px))",
+        // C-09 : inset bas fourni par la WebView native (pas d'env()).
+        bottom: "var(--nav-height)",
         zIndex: "var(--z-toast)",
         display: "flex",
         alignItems: "center",

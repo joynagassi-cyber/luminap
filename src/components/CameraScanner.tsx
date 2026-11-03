@@ -71,18 +71,16 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       
       if (isNativePlatform()) {
         // Native platform: use Capacitor Camera.
-        // Permission just-in-time (jamais demandée au boot) — API v6 :
-        // requestPermissions({ permissions: [...] }) renvoie par clé.
-        const perms = await Camera.requestPermissions({
-          permissions: ['camera'],
-        });
-        if (perms.camera === 'denied') {
-          const msg = "Accès à la caméra refusé";
-          setError(msg);
-          onError?.(msg);
-          return;
-        }
-
+        //
+        // PAS de `Camera.requestPermissions({ permissions: ['camera'] })` :
+        //  - `AndroidManifest.xml` ne déclare PAS `android.permission.CAMERA` ;
+        //  - le plugin ouvre l'application caméra du SYSTÈME, qui gère sa
+        //    propre autorisation (son README : « requires no permissions »,
+        //    sauf `saveToGallery`) ;
+        //  - demander une permission non déclarée peut renvoyer `denied` et
+        //    bloquer le scan sur certains appareils (P-02 de
+        //    docs/lumina-ionic-capacitor-permissions.md §1.3).
+        // Lumina n'a donc AUCUNE permission caméra à demander.
         const image = await Camera.getPhoto({
           quality: 90,
           allowEditing: false,
@@ -96,6 +94,14 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         await startWebCamera();
       }
     } catch (err: any) {
+      // Annulation par l'utilisateur : ce n'est pas une erreur. Afficher
+      // « User cancelled photos app » sur l'écran de preuve laissait croire à
+      // une panne de l'appareil photo.
+      const raw = String(err?.message ?? err ?? "");
+      if (/cancel/i.test(raw)) {
+        setError(null);
+        return;
+      }
       const msg = err?.message || 'Erreur lors du scan';
       setError(msg);
       onError?.(msg);

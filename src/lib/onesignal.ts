@@ -122,323 +122,35 @@ class OneSignalService {
     return null;
   }
 
+  /**
+   * P-01 — le pont « Capacitor » construit à la main est SUPPRIMÉ.
+   *
+   * Ce qu'il faisait : appeler `capacitor.nativeCallback(...)` et
+   * `capacitor.plugin.callbackFromNative(...)` pour parler à un plugin
+   * « OneSignalPush » qui n'existe pas. Ces deux APIs n'existent pas sur le
+   * pont Capacitor moderne (`registerPlugin` depuis Capacitor 3, aucune
+   * méthode `nativeCallback` sur l'objet `Capacitor`, pas d'objet
+   * `Capacitor.Plugins`). Conséquences mesurées par lecture :
+   *   - `initialize()` ne levait jamais (l'appel était synchrone) → le service
+   *     se croyait prêt ;
+   *   - `requestPermission()` attrapait TOUTES les exceptions et renvoyait
+   *     `false` → le seul chemin de demande de permission de l'application ne
+   *     pouvait jamais ouvrir la fenêtre Android, en silence.
+   *
+   * La permission de notifications passe désormais par
+   * `src/lib/nativePermissions` (`@capacitor/push-notifications`). Le push
+   * cloud reste servi par `src/lib/cloudPush.ts` (edge function). Le seul
+   * plugin OneSignal encore supporté ici est le plugin CORDOVA
+   * (`window.plugins.OneSignal`, cf. `getPlugin`) — s'il est un jour réinstallé,
+   * il fonctionnera sans ce pont.
+   */
   private createCapacitorPlugin(): OneSignalPlugin | null {
-    const win = window as OneSignalWindow;
-    const capacitor = (win as any).Capacitor;
-
-    if (!capacitor) {
-      return null;
-    }
-
-    // Create a proxy that uses Capacitor's exec
-    const exec = (
-      success: any,
-      error: any,
-      service: string,
-      action: string,
-      args: any[],
-    ) => {
-      capacitor.plugin.callbackFromNative(
-        service,
-        true,
-        args[0] || 0,
-        args[1] || null,
-        args[2] || null,
-      );
-    };
-
-    return {
-      initialize: (appId: string) => {
-        capacitor.nativeCallback("OneSignalPush", "init", { appId });
-      },
-      login: (playerId: string) => {
-        capacitor.nativeCallback("OneSignalPush", "login", { playerId });
-      },
-      logout: () => {
-        capacitor.nativeCallback("OneSignalPush", "logout", {});
-      },
-      setTag: (key: string, value: string) => {
-        capacitor.nativeCallback("OneSignalPush", "addTags", {
-          tags: { [key]: value },
-        });
-      },
-      addTags: (tags: Record<string, string>) => {
-        capacitor.nativeCallback("OneSignalPush", "addTags", { tags });
-      },
-      removeTag: (key: string) => {
-        capacitor.nativeCallback("OneSignalPush", "removeTags", {
-          tags: [key],
-        });
-      },
-      setEmail: (email: string) => {
-        capacitor.nativeCallback("OneSignalPush", "addEmail", { email });
-      },
-      removeEmail: () => {
-        capacitor.nativeCallback("OneSignalPush", "removeEmail", {});
-      },
-      getOnesignalId: () => {
-        return new Promise<string | null>((resolve) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "getOnesignalId",
-            {},
-            resolve,
-          );
-        });
-      },
-      getExternalId: () => {
-        return new Promise<string | null>((resolve) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "getExternalId",
-            {},
-            resolve,
-          );
-        });
-      },
-      trackEvent: (eventName: string, metrics?: Record<string, number>) => {
-        const args = metrics ? [eventName, metrics] : [eventName];
-        capacitor.nativeCallback("OneSignalPush", "trackEvent", args, () => {});
-      },
-      Notifications: {
-        requestPermission: (foreground?: boolean) => {
-          return new Promise<boolean>((resolve) => {
-            capacitor.nativeCallback(
-              "OneSignalPush",
-              "requestPermission",
-              { foreground },
-              (result: any) => {
-                resolve(result?.granted || false);
-              },
-            );
-          });
-        },
-        addEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.addListener("OneSignalPush", event, callback);
-        },
-        removeEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.removeListener("OneSignalPush", event, callback);
-        },
-        clearAll: () => {
-          capacitor.nativeCallback("OneSignalPush", "clearAll", {}, () => {});
-        },
-        removeNotification: (notificationId: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeNotification",
-            { notificationId },
-            () => {},
-          );
-        },
-      },
-      InAppMessages: {
-        addEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.addListener("OneSignalPush", event, callback);
-        },
-        removeEventListener: (event: string, callback: (data: any) => void) => {
-          capacitor.removeListener("OneSignalPush", event, callback);
-        },
-        promptAdditionalPermissions: () => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "promptAdditionalPermissions",
-            {},
-            () => {},
-          );
-        },
-      },
-      User: {
-        addAlias: (alias: string, name: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addAliases",
-            { aliases: { [alias]: name } },
-            () => {},
-          );
-        },
-        addAliases: (aliases: Record<string, string>) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addAliases",
-            { aliases },
-            () => {},
-          );
-        },
-        removeAlias: (alias: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeAliases",
-            { aliases: [alias] },
-            () => {},
-          );
-        },
-        removeAliases: (aliases: string[]) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeAliases",
-            { aliases },
-            () => {},
-          );
-        },
-        addEmail: (email: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addEmail",
-            { email },
-            () => {},
-          );
-        },
-        removeEmail: (email: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeEmail",
-            { email },
-            () => {},
-          );
-        },
-        addSms: (smsNumber: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addSms",
-            { smsNumber },
-            () => {},
-          );
-        },
-        removeSms: (smsNumber: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeSms",
-            { smsNumber },
-            () => {},
-          );
-        },
-        addTag: (key: string, value: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addTags",
-            { tags: { [key]: value } },
-            () => {},
-          );
-        },
-        addTags: (tags: Record<string, string>) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addTags",
-            { tags },
-            () => {},
-          );
-        },
-        removeTag: (key: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeTags",
-            { tags: [key] },
-            () => {},
-          );
-        },
-        removeTags: (keys: string[]) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "removeTags",
-            { tags: keys },
-            () => {},
-          );
-        },
-        getTags: () => {
-          return new Promise<Record<string, string>>((resolve) => {
-            capacitor.nativeCallback("OneSignalPush", "getTags", {}, resolve);
-          });
-        },
-        addOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addOutcome",
-            { outcomeName },
-            () => {},
-          );
-        },
-        addUniqueOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addUniqueOutcome",
-            { outcomeName },
-            () => {},
-          );
-        },
-        addOutcomeWithValue: (outcomeName: string, value: number) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addOutcomeWithValue",
-            { outcomeName, value },
-            () => {},
-          );
-        },
-      },
-      Debug: {
-        setLogLevel: (logLevel: LogLevel) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "setLogLevel",
-            { logLevel },
-            () => {},
-          );
-        },
-      },
-      Location: {
-        requestPermission: () => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "requestLocationPermission",
-            {},
-            () => {},
-          );
-        },
-        setShared: (shared: boolean) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "setLocationShared",
-            { shared },
-            () => {},
-          );
-        },
-        isShared: () => {
-          return new Promise<boolean>((resolve) => {
-            capacitor.nativeCallback(
-              "OneSignalPush",
-              "isLocationShared",
-              {},
-              resolve,
-            );
-          });
-        },
-      },
-      Session: {
-        addOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addOutcome",
-            { outcomeName },
-            () => {},
-          );
-        },
-        addUniqueOutcome: (outcomeName: string) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addUniqueOutcome",
-            { outcomeName },
-            () => {},
-          );
-        },
-        addOutcomeWithValue: (outcomeName: string, value: number) => {
-          capacitor.nativeCallback(
-            "OneSignalPush",
-            "addOutcomeWithValue",
-            { outcomeName, value },
-            () => {},
-          );
-        },
-      },
-    };
+    if (typeof window === "undefined") return null;
+    const win = window as unknown as OneSignalWindow;
+    if (win.plugins?.OneSignal) return win.plugins.OneSignal;
+    if (win.OneSignal) return win.OneSignal;
+    // Aucun SDK OneSignal chargé : no-op explicite (plus de faux pont).
+    return null;
   }
 
   /**

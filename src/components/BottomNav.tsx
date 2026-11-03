@@ -180,7 +180,8 @@ export default function BottomNav() {
           onClick={fabAction.action}
           style={{
             position: "fixed",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+            // C-09 : inset bas fourni par la WebView native (pas d'env()).
+            bottom: "80px",
             right: 20,
             zIndex: "var(--z-nav)",
             width: 56,
@@ -225,11 +226,15 @@ export default function BottomNav() {
           background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--border)",
-          // Bug P1-3 : la barre doit se terminer AU-DESSUS de la
-          // navigation système Android (edge-to-edge) — le padding bas
-          //absorbe l'inset système au lieu d'un fixe 8px que les
-          // boutons ◀ ● ■ recouvraient.
-          padding: "4px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)",
+          // C-09 — UNE SEULE source pour l'inset BAS : `MainActivity
+          // .applySystemBarInsetsToWebView()` applique déjà les insets des
+          // barres système en PADDING RÉEL de la WebView (`env(safe-area-
+          // inset-*)` n'est alors plus le mécanisme de référence). Ajouter
+          // ici `env(safe-area-inset-bottom)` par-dessus produisait une
+          // DOUBLE compensation (~48 px de vide au-dessus de la barre
+          // système sur un appareil gestuel). Le haut reste géré en CSS
+          // (`--ion-safe-area-top`), le bas par le natif — jamais les deux.
+          padding: "4px 8px 8px",
         }}
       >
         <div

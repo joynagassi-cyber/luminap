@@ -25,6 +25,8 @@ vi.mock("lucide-react", () => {
     "ArrowLeft", "CheckCircle", "Calendar",
     "ArrowUpRight", "ArrowDownRight", "User",
     "AlertCircle", "Wallet", "RefreshCw",
+    // PermissionPrimer (demande de notifications après la 1re transaction)
+    "Bell", "BellOff",
   ];
   const mod: Record<string, unknown> = {};
   for (const n of names) mod[n] = makeIcon(n);

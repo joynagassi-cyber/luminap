@@ -42,7 +42,7 @@ vi.mock("lucide-react", () => {
     return C;
   };
   const mod: Record<string, unknown> = {};
-  for (const n of ["ArrowLeft", "Wallet", "Calendar", "Camera", "ImagePlus", "X"]) {
+  for (const n of ["ArrowLeft", "Wallet", "Calendar", "Camera", "ImagePlus", "X", "Bell", "BellOff"]) {
     mod[n] = makeIcon(n);
   }
   mod.default = { ...mod };

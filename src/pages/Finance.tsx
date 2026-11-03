@@ -388,7 +388,8 @@ export default function Finance() {
                 Ouvert, il propose Entrée / Sortie EN TOUTES LETTRES. */}
             <div
               className="fixed right-5 flex flex-col items-end gap-3"
-              style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
+              // C-09 : inset bas fourni par la WebView native (pas d'env()).
+              style={{ bottom: "96px" }}
             >
               {fabOpen && (
                 <>

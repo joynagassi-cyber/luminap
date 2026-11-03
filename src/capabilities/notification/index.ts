@@ -13,6 +13,7 @@ import { getPowerSyncDatabase } from "@/lib/powersync";
 import { getOrganizationId } from "@/lib/orgContext";
 import { getOneSignalService, initOneSignal } from "@/lib/onesignal";
 import { LocalNotificationAdapter } from "@/adapters/native";
+import { LOCAL_NOTIFICATION_CHANNEL_ID } from "./channels";
 import type { Role } from "@/types";
 
 export interface NotificationSendData {
@@ -24,7 +25,7 @@ export interface NotificationSendData {
 }
 
 /** Android notification channel used for locally scheduled notifications. */
-export const LOCAL_NOTIFICATION_CHANNEL_ID = "lumina-default";
+export { LOCAL_NOTIFICATION_CHANNEL_ID } from "./channels";
 
 /**
  * Notification capability — OneSignal adapter

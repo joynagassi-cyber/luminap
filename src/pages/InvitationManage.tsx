@@ -447,7 +447,8 @@ export default function InvitationManage() {
           <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: "var(--z-float)", backgroundColor: "var(--scrim)" }}>
           <div
             className="w-full max-w-lg rounded-t-2xl p-6 space-y-4"
-            style={{ backgroundColor: "var(--card)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)" }}
+            // C-09 : inset bas fourni par la WebView native (pas d'env()).
+            style={{ backgroundColor: "var(--card)", paddingBottom: "24px" }}
             role="dialog"
             aria-label="Rejeter la demande"
           >

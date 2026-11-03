@@ -91,6 +91,32 @@ public class ApkUpdaterPlugin extends Plugin {
         }
     }
 
+    /**
+     * Ouvre l'écran « Réglages de l'application » dans Android.
+     *
+     * Utilisé par `PermissionService.openAppSettings()` (voir
+     * docs/lumina-ionic-capacitor-permissions.md §1.4) : après un refus
+     * définitif, Android ne réaffiche plus la fenêtre de permission, et c'est
+     * le SEUL moyen de la réactiver. Aucune permission n'est nécessaire pour
+     * cette action ; elle vit ici plutôt que dans un nouveau plugin pour ne
+     * pas ajouter de dépendance (le plugin est déjà enregistré dans
+     * MainActivity.onCreate).
+     */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        try {
+            Intent intent = new Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:" + getContext().getPackageName())
+            );
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Impossible d'ouvrir les réglages de l'application", e);
+        }
+    }
+
     @PluginMethod
     public void download(PluginCall call) {
         String url = call.getString("url");

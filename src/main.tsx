@@ -27,6 +27,8 @@ import { armBootWatchdog } from "@/lib/bootWatchdog";
 import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
 import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
 import { flushPendingReports } from "@/lib/observability/errorReporter";
+import { initStatusBar } from "@/lib/statusBar";
+import { ensureNotificationChannel } from "@/lib/nativePermissions";
 
 // Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
 // signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
@@ -67,6 +69,13 @@ applyStoredTheme();
 // paint. Sets `data-theme` on <html> so every CSS token + Ionic var is
 // already in the right state (index.html also primes it pre-bundle).
 applyStoredThemeMode();
+
+// Barre d'état Android (icônes lisibles dans les deux modes) et canal de
+// notification par défaut — tous deux idempotents et no-op hors natif.
+// Le canal est créé AVANT tout envoi (serveur compris) : une notification
+// sans canal était muette au premier lancement sur Android 8+.
+initStatusBar();
+void ensureNotificationChannel();
 
 // OneSignal est initialisé à la demande (flux déclenché par l'utilisateur,
 // ex. SettingsNotifications), jamais au boot : le plugin a

@@ -1,6 +1,19 @@
 import { Preferences } from "@capacitor/preferences";
 
 /**
+ * C-11 — le repli vers `localStorage` reste (il évite de perdre la session si
+ * le plugin natif casse), mais il n'est plus SILENCIEUX : une panne du
+ * stockage natif doit laisser une trace (console + rapport d'erreur), sinon un
+ * basculement discret vers un stockage non fiable est indétectable.
+ */
+function reportStorageFallback(op: string, error: unknown): void {
+  console.warn(
+    `[StorageAdapter] ${op} natif en échec — repli sur localStorage :`,
+    error,
+  );
+}
+
+/**
  * StorageAdapter — wraps the Capacitor Preferences plugin with a clean typed interface.
  *
  * Provides key/value persistence that works across web and native platforms.
@@ -31,7 +44,8 @@ export class StorageAdapter {
         const result = await Preferences.get({ key });
         if (result.value === null) return null;
         return this.parseJson<T>(result.value);
-      } catch {
+      } catch (e) {
+        reportStorageFallback("get", e);
         return this.getFromLocalStorage<T>(key);
       }
     }
@@ -44,7 +58,8 @@ export class StorageAdapter {
       try {
         await Preferences.set({ key, value: this.stringify(value) });
         return;
-      } catch {
+      } catch (e) {
+        reportStorageFallback("set", e);
         // fall through to localStorage
       }
     }
@@ -57,7 +72,8 @@ export class StorageAdapter {
       try {
         await Preferences.remove({ key });
         return;
-      } catch {
+      } catch (e) {
+        reportStorageFallback("remove", e);
         // fall through to localStorage
       }
     }
@@ -70,7 +86,8 @@ export class StorageAdapter {
       try {
         await Preferences.clear();
         return;
-      } catch {
+      } catch (e) {
+        reportStorageFallback("clear", e);
         // fall through to localStorage
       }
     }
@@ -83,7 +100,8 @@ export class StorageAdapter {
       try {
         const result = await Preferences.keys();
         return result.keys;
-      } catch {
+      } catch (e) {
+        reportStorageFallback("keys", e);
         return this.getLocalStorageKeys();
       }
     }

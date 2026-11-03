@@ -138,6 +138,32 @@ export function IonCheckbox({ checked, onIonChange, ...rest }: IonInputProps & {
   );
 }
 
+/**
+ * IonModal → <div role="dialog"> monté SEULEMENT si `isOpen`.
+ *
+ * Comportement non négociable : un modal Ionic fermé ne rend pas son contenu.
+ * Un stub qui monterait toujours les enfants ferait apparaître des textes
+ * d'explication (« Autoriser les notifications ») en permanence dans les
+ * tests de pages — et masquerait une régression réelle où le modal resterait
+ * ouvert.
+ */
+export function IonModal({
+  isOpen,
+  children,
+  ...rest
+}: {
+  isOpen?: boolean;
+  children?: ReactNode;
+  [key: string]: unknown;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div role="dialog" data-testid="ion-modal" {...passthrough(rest)}>
+      {children}
+    </div>
+  );
+}
+
 /** Enveloppe générique : conserve les enfants, rend un <div> avec data-testid. */
 function wrapper(tag: string) {
   return function IonWrapper({ children, ...rest }: { children?: ReactNode; [key: string]: unknown }) {
@@ -188,6 +214,7 @@ export function createIonicMock() {
     IonSelectOption,
     IonButton,
     IonCheckbox,
+    IonModal,
     IonBackButton: ({ children, ...rest }: { children?: ReactNode; [key: string]: unknown }) => (
       <button type="button" data-testid="back-button" {...passthrough(rest)}>
         {children ?? "back"}

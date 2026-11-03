@@ -65,6 +65,7 @@ vi.mock("@ionic/react", () => {
       children,
     );
   return {
+    IonModal: ({ isOpen, children }: any) => (isOpen ? React.createElement("div", null, children) : null),
     IonPage: P("div"),
     IonHeader: P("div"),
     IonContent: P("div"),

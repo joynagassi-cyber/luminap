@@ -26,6 +26,9 @@ import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
 import { periodLockMessage } from "@/lib/periodLock";
+import { useNotificationPermission } from "@/hooks/useNotificationPermission";
+import PermissionPrimer from "@/components/PermissionPrimer";
+import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { parseAmountToCents } from "@/lib/amountInput";
 import {
   IonPage,
@@ -97,6 +100,9 @@ export default function TransactionNew() {
   const submitLockRef = useRef(false);
   const keyboardHeight = useKeyboardAvoidance();
   const isOnline = useOnlineStatus();
+  // Demande de notifications : l'explication ne s'ouvre qu'APRÈS la première
+  // transaction enregistrée sur cet appareil (jamais au démarrage à froid).
+  const notifPermission = useNotificationPermission();
 
   const validateAmount = (val: string): string => {
     if (!val.trim()) return "";
@@ -222,6 +228,7 @@ export default function TransactionNew() {
       // PR13 — période comptable close : message FR explicite, l'utilisateur
       // corrige la date ou demande la réouverture ; pas d'écran muet.
       setSubmitting(false);
+      hapticError();
       setError(
         periodLockMessage(
           e,
@@ -254,6 +261,13 @@ export default function TransactionNew() {
     }
 
     setSubmitting(false);
+    // Retour tactile : l'enregistrement est irréversible, la main doit le sentir.
+    hapticSuccess();
+
+    // Première transaction de l'appareil : c'est ICI que la valeur des
+    // notifications est évidente (alerte d'approbation, rappels). Le hook ne
+    // fait rien si la question a déjà été posée ou si elle est reportée.
+    void notifPermission.markTransactionSaved();
 
     // Notify the treasurers that a transaction is pending approval
     if (isExpense && status === "PENDING") {
@@ -621,6 +635,17 @@ export default function TransactionNew() {
           </div>
           <BottomNav />
       </IonContent>
+      {/* Explication AVANT la fenêtre système Android (une seule demande par
+          appareil, déclenchée par la première transaction enregistrée). */}
+      <PermissionPrimer
+        isOpen={notifPermission.primerOpen}
+        status={notifPermission.status}
+        message="Recevez une alerte quand une dépense attend votre visa, et des rappels pour les rapports à remettre. Aucune notification publicitaire."
+        pending={notifPermission.pending}
+        onConfirm={() => void notifPermission.confirm()}
+        onDismiss={() => void notifPermission.dismiss()}
+        onOpenSettings={() => void notifPermission.openSettings()}
+      />
     </IonPage>
   );
 }

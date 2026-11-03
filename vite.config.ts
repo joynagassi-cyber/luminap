@@ -53,6 +53,20 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
+    // Hôtes autorisés : en plus du localhost de développement, l'aperçu
+    // hébergé (proxy *.e2b.app) doit pouvoir charger l'app. Sans cette liste,
+    // Vite 8 répond « Blocked request. This host is not allowed » (403) et
+    // l'aperçu reste blanc. `E2B_PREVIEW_HOST` permet d'ajouter un hôte
+    // ponctuel sans modifier ce fichier.
+    allowedHosts: [
+      "localhost",
+      "127.0.0.1",
+      ...(process.env.E2B_PREVIEW_HOST ? [process.env.E2B_PREVIEW_HOST] : []),
+      // Aperçus hébergés du bac à sable (https://<port>-<sandbox>.e2b.app).
+      // Vite 8 n'accepte QUE des chaînes ici (pas d'expression régulière) :
+      // un préfixe « . » autorise le domaine ET tous ses sous-domaines.
+      ".e2b.app",
+    ],
   },
   plugins: isCapacitorBuild
     ? [
