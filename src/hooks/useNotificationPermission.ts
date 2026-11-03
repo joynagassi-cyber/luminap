@@ -95,6 +95,13 @@ export function useNotificationPermission(
         setPrimerOpen(false);
         return;
       }
+      // `unavailable` (web, plugin absent, permission sans objet) : il n'y a
+      // aucune fenêtre système à expliquer. Ouvrir la feuille ferait croire à
+      // une fonctionnalité existante — et bloquerait l'écran sur le web.
+      if (current === "unavailable") {
+        setPrimerOpen(false);
+        return;
+      }
       // `blocked` : on ouvre quand même, mais l'écran n'affichera que
       // « Ouvrir les réglages » (aucune fenêtre système ne peut apparaître).
       setPrimerOpen(true);
