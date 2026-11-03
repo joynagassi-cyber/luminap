@@ -1364,8 +1364,11 @@ export function useAuth() {
 export function getCurrentActorId(): string {
   try {
     const state = authService.getState();
-    if (state.user?.id) return state.user.id;
+    // Profil d'abord : c'est l'ordre historique de
+    // `resolveCurrentUserId` (organization-context délègue ici) — en
+    // production profile.id === user.id (PK du profil = uid auth).
     if (state.profile?.id) return state.profile.id;
+    if (state.user?.id) return state.user.id;
   } catch {
     /* service pas prêt — replis stockage ci-dessous */
   }

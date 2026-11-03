@@ -69,3 +69,8 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+-- Surface RPC (garde R115) : une fonction de trigger SECURITY DEFINER
+-- redéfinie doit ré-énoncer sa révocation, sinon un rejeu complet des
+-- migrations la ré-exposerait après les balayages de 20261026/20261028.
+REVOKE EXECUTE ON FUNCTION public.notify_transaction_change() FROM PUBLIC;
