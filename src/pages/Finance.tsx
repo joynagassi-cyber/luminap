@@ -64,7 +64,7 @@ export default function Finance() {
   // profil de façon asynchrone) interroge avec `org_id = '__no_org__'`
   // → liste vide DÉFINITIVE alors que les données sont locales — c'est
   // le piège documenté dans `orgContext`/`useOrganizationRevision`,
-  // et l'échec R85 en E2E (transaction créée invisible dans /finance).
+  // auquel tous les hooks de lecture sont abonnés.
   // On recharge donc à chaque révision (org résolue, réplique prête,
   // borne de secours 10 s incluse dans le hook).
   const orgRev = useOrganizationRevision();
@@ -133,10 +133,24 @@ export default function Finance() {
         if (dateRange.to && tx.date > dateRange.to) return false;
         return true;
       })
-      .sort(
-        (a: any, b: any) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
+      .sort((a: any, b: any) => {
+        const byDate =
+          new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (byDate !== 0) return byDate;
+        // À date égale : la plus récemment créée d'abord. Sans ce
+        // départage, le tri (stable) conserve l'ordre de balayage
+        // SQLite, où une ligne saisie à l'instant — insérée APRÈS les
+        // lignes synchronisées — ferme le groupe du jour : dès qu'un
+        // jour compte plus de FINANCE_PAGE_SIZE transactions, elle
+        // sort de la première fenêtre affichée et devient
+        // « introuvable » (spec E2E R85 : 280 transactions datées du
+        // jour dans l'organisation de test). `createdAt` absent ou
+        // illisible (lignes héritées importées) compte pour 0 : pas
+        // de tête de groupe faute d'horodatage.
+        const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return (Number.isNaN(cb) ? 0 : cb) - (Number.isNaN(ca) ? 0 : ca);
+      });
   }, [
     transactions,
     searchTerm,
