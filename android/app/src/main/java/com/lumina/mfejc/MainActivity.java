@@ -3,6 +3,10 @@ package com.lumina.mfejc;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.webkit.WebView;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import com.getcapacitor.BridgeActivity;
 import java.util.ArrayList;
 
@@ -20,8 +24,33 @@ public class MainActivity extends BridgeActivity {
         // OneSignal est configuré côté web via @capacitor/push-notifications
         // (voir src/lib/notifications) — aucun plugin Cordova natif requis.
 
+        applySystemBarInsetsToWebView();
+
         // Handle deep link / OAuth callback
         handleIntent(getIntent());
+    }
+
+    /**
+     * Bug P1-3 — edge-to-edge Android 15 (targetSdk 35) : la WebView est
+     * dessinée SOUS la barre de navigation système (◀ ● ■), qui recouvre
+     * la tab bar de l'app (« Gr●pes »). Le CSS `env(safe-area-inset-*)`
+     * n'est pas renseigné de façon fiable par toutes les WebView système,
+     * donc on applique ici l'inset BAS (et latéral) des barres système en
+     * padding réel de la WebView : le contenu web ne passe plus jamais
+     * sous la navigation système, en mode 3 boutons comme en gestuelle.
+     * Le haut (barre de statut) reste géré côté web (IonToolbar /
+     * --ion-safe-area-top) — on ne le double pas ici.
+     */
+    private void applySystemBarInsetsToWebView() {
+        if (getBridge() == null) return;
+        WebView webView = getBridge().getWebView();
+        if (webView == null) return;
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            view.setPadding(bars.left, 0, bars.right, bars.bottom);
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(webView);
     }
 
     @Override

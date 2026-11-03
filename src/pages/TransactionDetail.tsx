@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useNavigate, useParams } from "react-router-dom";
@@ -112,11 +112,25 @@ export default function TransactionDetail() {
   // réglage n'a pas été lu → aucune contrainte par accident.
   const makerChecker = useMakerChecker();
 
+  // Délai de grâce « introuvable » : juste après une création, on navigue
+  // ici avec l'id client, mais la requête surveillée (`useTransactions`)
+  // peut d'abord servir le cache/repli SANS la ligne fraîchement insérée —
+  // la réplique étant « prête », l'ancienne garde affichait aussitôt
+  // « Transaction introuvable », puis le reçu quand la ligne arrivait
+  // (bug P0-1). On reste donc sur le squelette quelques instants avant de
+  // conclure à l'absence.
+  const [notFoundGraceExpired, setNotFoundGraceExpired] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setNotFoundGraceExpired(true), 2500);
+    return () => clearTimeout(t);
+  }, []);
+
   const tx = transactions.find((t: any) => t.id === id);
 
   // R52.h — « Transaction introuvable » n'est exact qu'une fois la réplique
-  // prête (même garde qu'`EventDetail`).
-  if (!tx && !isPowerSyncReadyNow()) {
+  // prête (même garde qu'`EventDetail`), ET le délai de grâce ci-dessus
+  // écoulé.
+  if (!tx && (!isPowerSyncReadyNow() || !notFoundGraceExpired)) {
     return (
       <IonPage>
         <IonContent fullscreen className="bg-canvas">
@@ -326,7 +340,7 @@ export default function TransactionDetail() {
               <p
                 className={`text-2xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
               >
-                {isIncome ? "+" : "-"}
+                {isIncome ? "+" : "−"}
                 {formatCurrencyCompact(tx.amount)}
               </p>
               <p className="text-text-tertiary text-sm mt-2">
@@ -428,7 +442,11 @@ export default function TransactionDetail() {
 
             {/* Actions */}
             <div className="space-y-2 mb-6">
-              {tx.status === "PENDING" && (
+              {/* DRAFT inclus : brouillons hérités (anciennes entrées) et
+                  imports CSV naissent en DRAFT — sans bouton ici, ils
+                  n'avaient AUCUN chemin vers APPROVED et restaient
+                  invisibles des bilans (bug P0-1). */}
+              {(tx.status === "PENDING" || tx.status === "DRAFT") && (
                 <>
                   {canApproveMulti.allowed && (
                     <>

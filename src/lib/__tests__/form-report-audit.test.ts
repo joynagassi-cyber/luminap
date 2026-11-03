@@ -63,6 +63,9 @@ function makeDocStub(): any {
     text: vi.fn(),
     addImage: vi.fn(),
     save: vi.fn(),
+    output: vi.fn(
+      () => new Blob(["%PDF-mock"], { type: "application/pdf" }),
+    ),
     lastAutoTable: { finalY: 0 },
     internal: {
       pageSize: {
@@ -118,6 +121,7 @@ const xlsxMock = vi.hoisted(() => ({
     xlsxMock.sheets.push(name);
   }),
   writeFile: vi.fn(),
+  write: vi.fn(() => new Uint8Array([80, 75])),
   utils: null as unknown,
 }));
 // XLSX.utils.* namespace used by export.ts
@@ -153,7 +157,13 @@ class FakeBlob {
 (URL as any).createObjectURL = vi.fn(() => "blob:mock-url");
 (URL as any).revokeObjectURL = vi.fn();
 (globalThis as any).document = {
-  createElement: () => ({ href: "", download: "", click: vi.fn() }),
+  createElement: () => ({
+    href: "",
+    download: "",
+    click: vi.fn(),
+    remove: vi.fn(),
+  }),
+  body: { appendChild: vi.fn(), removeChild: vi.fn() },
 };
 
 // Module mocks
@@ -317,6 +327,7 @@ function resetExportStubs() {
   xlsxMock.aoa_to_sheet.mockClear();
   xlsxMock.book_append_sheet.mockClear();
   xlsxMock.writeFile.mockClear();
+  xlsxMock.write.mockClear();
   jsPDFClass.mockClear();
   autoTableFn.mockClear();
   autoTableFn.mockImplementation(autoTableStub);
@@ -1417,8 +1428,15 @@ describe("exportExcel", () => {
     );
     expect(sheetNames).toContain("Résumé");
     expect(sheetNames).toContain("Transactions");
-    expect(xlsxMock.writeFile).toHaveBeenCalledTimes(1);
-    expect(xlsxMock.writeFile.mock.calls[0][1]).toMatch(/\.xlsx$/);
+    // Livraison par Blob (downloadBlob gère la WebView native) :
+    // jamais `XLSX.writeFile` (<a download>, muet en Capacitor — P0-2).
+    expect(xlsxMock.write).toHaveBeenCalledTimes(1);
+    expect((xlsxMock.write.mock.calls as any[][])[0][1]).toMatchObject({
+      bookType: "xlsx",
+      type: "array",
+    });
+    expect(xlsxMock.writeFile).not.toHaveBeenCalled();
+    expect((URL as any).createObjectURL).toHaveBeenCalledTimes(1);
     // Summary sheet carries /100 amounts
     const summarySheet = xlsxMock.aoa_to_sheet.mock.calls
       .map((c: any[]) => c[0])
@@ -1478,7 +1496,7 @@ describe("exportExcel", () => {
 
 // ─── export: exportPDF ─────────────────────────────────────────────────────
 describe("exportPDF", () => {
-  it("produces one document with a save() call and a transactions table", () => {
+  it("produces one document delivered as a Blob (never doc.save) with a transactions table", () => {
     const txs = [
       makeTx({ id: "a", date: "2026-01-01", amount: 10000, type: "INCOME" }),
       makeTx({ id: "b", date: "2026-02-01", amount: 2000, type: "EXPENSE" }),
@@ -1487,8 +1505,11 @@ describe("exportPDF", () => {
     // jsPDF constructor called once
     expect(jsPDFClass).toHaveBeenCalledTimes(1);
     const savedDoc = jsPDFClass.mock.results[0].value as any;
-    expect(savedDoc.save).toHaveBeenCalledTimes(1);
-    expect(savedDoc.save.mock.calls[0][0]).toMatch(/\.pdf$/);
+    // Jamais `doc.save()` : il repose sur <a download>, inopérant dans
+    // la WebView Capacitor (P0-2). Le Blob part dans downloadBlob.
+    expect(savedDoc.output).toHaveBeenCalledWith("blob");
+    expect(savedDoc.save).not.toHaveBeenCalled();
+    expect((URL as any).createObjectURL).toHaveBeenCalledTimes(1);
     // The main transactions table has 2 body rows (one per transaction)
     const mainCall = autoTableFn.mock.calls.find(
       (c: any[]) => c[1]?.head?.[0]?.[0] === "Date" && c[1]?.body?.length === 2,

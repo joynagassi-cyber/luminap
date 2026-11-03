@@ -23,6 +23,36 @@ import {
 
 type AuthMode = "login" | "signup";
 
+/**
+ * Garde-fou anti-spinner-infini (bug P1-5) : un appel d'authentification
+ * qui ne répond pas (réseau coupé, service injoignable) laissait le
+ * bouton principal tourner sans fin, sans message. Passé le délai, on
+ * rend la main avec une erreur explicite ; l'appel d'origine peut
+ * toujours aboutir en arrière-plan, l'état d'auth reactive la suite
+ * via l'abonnement existant.
+ */
+async function withAuthTimeout<T extends { error: string | null }>(
+  promise: Promise<T>,
+  ms = 20_000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(
+      () =>
+        resolve({
+          error:
+            "La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.",
+        } as T),
+      ms,
+    );
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -166,7 +196,9 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
 
-    const result = await authService.signInWithEmail(email, password);
+    const result = await withAuthTimeout(
+      authService.signInWithEmail(email, password),
+    );
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -184,11 +216,8 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
 
-    const result = await authService.signUpWithEmail(
-      email,
-      password,
-      firstName,
-      lastName,
+    const result = await withAuthTimeout(
+      authService.signUpWithEmail(email, password, firstName, lastName),
     );
     if (result.error) {
       setError(result.error);
@@ -222,7 +251,7 @@ export default function AuthPage() {
     setError("");
     setLoading(true);
 
-    const result = await authService.signInWithGoogle();
+    const result = await withAuthTimeout(authService.signInWithGoogle());
     if (result.error) {
       setError(result.error);
       setLoading(false);
@@ -380,7 +409,7 @@ export default function AuthPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="jean@example.com"
+                    placeholder="vous@exemple.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{
                       backgroundColor: "var(--surface)",
@@ -438,7 +467,10 @@ export default function AuthPage() {
                 }
               >
                 {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                    {mode === "login" ? "Connexion…" : "Création du compte…"}
+                  </span>
                 ) : mode === "login" ? (
                   "Se connecter"
                 ) : (
@@ -462,7 +494,7 @@ export default function AuthPage() {
                 }
               >
                 {mode === "login"
-                  ? "Pas encore de compte ? Inscrire"
+                  ? "Pas encore de compte ? S'inscrire"
                   : "Déjà un compte ? Se connecter"}
               </button>
             </div>

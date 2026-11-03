@@ -13,6 +13,7 @@
  * (elle n'altère pas `data-screen-state` du contenu).
  */
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CloudOff, RotateCw } from "lucide-react";
 import { markPowerSyncReady, useReplicaUnavailable } from "@/lib/dataLayer";
 import { getPowerSyncConnector, getPowerSyncDatabase } from "@/lib/powersync";
@@ -88,4 +89,21 @@ export function SyncUnavailableBanner() {
       </button>
     </div>
   );
+}
+
+/**
+ * Porte d'affichage pilotée par la route (bug P1-5) : sur les écrans
+ * publics d'authentification, la bannière de synchronisation fixe en bas
+ * recouvrait le lien « S'inscrire » et n'a aucun sens (pas encore de
+ * données à synchroniser). À monter SOUS le routeur (cf. App.tsx) ; le
+ * composant de base reste testable sans routeur.
+ */
+export function SyncUnavailableBannerGate() {
+  const location = useLocation();
+  const hiddenRoutes = ["/auth", "/splash", "/welcome"];
+  const hidden = hiddenRoutes.some(
+    (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
+  );
+  if (hidden) return null;
+  return <SyncUnavailableBanner />;
 }

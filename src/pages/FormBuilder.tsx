@@ -432,7 +432,7 @@ export default function FormBuilder() {
                     className="w-full"
                   />
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
                       aria-label="Description du formulaire"
                       value={formDescription}

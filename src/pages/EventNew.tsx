@@ -250,7 +250,7 @@ export default function EventNew() {
                 <div className="flex-1">
                   {/* M24 — grammaire canonique IonItem + IonLabel + IonInput */}
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">
                       Montant obligatoire (FCFA) *
                     </IonLabel>
                     <IonInput
@@ -286,7 +286,7 @@ export default function EventNew() {
 
           {/* Name — M24 : grammaire canonique IonItem + IonLabel + IonInput */}
           <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">
+            <IonLabel position="stacked" className="text-sm text-text-secondary">
               Nom de l'événement *
             </IonLabel>
             <IonInput
@@ -327,7 +327,7 @@ export default function EventNew() {
 
           {/* Dates — M24 : grammaire canonique IonItem + IonLabel + IonInput */}
           <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">
+            <IonLabel position="stacked" className="text-sm text-text-secondary">
               Date de début *
             </IonLabel>
             <IonInput
@@ -344,7 +344,7 @@ export default function EventNew() {
           </IonItem>
 
           <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">
+            <IonLabel position="stacked" className="text-sm text-text-secondary">
               Date de fin (optionnel)
             </IonLabel>
             <IonInput
@@ -362,7 +362,7 @@ export default function EventNew() {
 
           {/* Status — M24 : grammaire canonique IonItem + IonLabel + IonSelect */}
           <IonItem lines="none" className="mb-5 bg-card rounded-xl">
-            <IonLabel position="floating" className="text-sm text-text-secondary">
+            <IonLabel position="stacked" className="text-sm text-text-secondary">
               Statut
             </IonLabel>
             <IonSelect

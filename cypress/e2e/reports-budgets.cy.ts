@@ -75,7 +75,12 @@ describe('Lumina — Reports & Budgets', () => {
       .filter(':visible')
       .contains(/Somme|Comptage|Moyenne/)
       .should('exist');
-    cy.get('ion-popover').type('{esc}');
+    // Fermeture par Échap : on tape sur `body` (le focus est déjà dans
+    // le popover — le radio coché). `cy.get('ion-popover').type(...)`
+    // résolvait son sujet sur le `<label class="radio-wrapper">` interne
+    // du radio (shadow DOM traversé) : « requires a valid typeable
+    // element » alors que le popover, lui, répond bien à Échap.
+    cy.get('body').type('{esc}');
   });
 
   it('creates a budget and sees it in the list', function () {

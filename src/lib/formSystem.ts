@@ -6,6 +6,7 @@ import { writeAudit } from "./audit";
 import type { FormDefinition, FormFieldDefinition, FormSubmission } from "@/types";
 import { getOrganizationId } from "./orgContext";
 import * as XLSX from "xlsx";
+import { downloadBlob } from "./download";
 import {
   createFormDefinitionPS,
   getFormDefinitionPS,
@@ -515,5 +516,13 @@ export function exportSubmissionsAsXLSX(
   const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Soumissions");
-  XLSX.writeFile(wb, `${filenamePrefix}.xlsx`);
+  // `XLSX.writeFile` télécharge via <a download> : muet en WebView
+  // Capacitor (bug P0-2). On sérialise en Blob et on passe par downloadBlob.
+  const xlsxData = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  void downloadBlob(
+    new Blob([xlsxData], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    `${filenamePrefix}.xlsx`,
+  );
 }

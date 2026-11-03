@@ -157,7 +157,9 @@ export default function TopHeader({ title }: { title?: string }) {
               className="text-xs truncate"
               style={{ color: isCentralAdmin ? "var(--accent-primary)" : "var(--band-org-ink)" }}
             >
-              {inOrgContext ? ctx.label : "Administration centrale"}
+              {/* Nom de l'organisation (jamais l'UUID, bug P1-1) : nom
+                  frais de la liste chargée, sinon label humain du contexte. */}
+              {inOrgContext ? (orgName ?? ctx.label) : "Administration centrale"}
             </span>
             {isCentralAdmin && (
               <button

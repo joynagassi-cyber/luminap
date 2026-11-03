@@ -81,6 +81,38 @@ export function resolveCurrentUserId(): string {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
+/**
+ * Nom d'affichage mémorisé de l'organisation courante (bug P1-1 : le
+ * bandeau affichait l'UUID `org-…` brut à l'utilisateur). Le nom est
+ * appris lors de `enterOrganization` (liste des orgs de l'utilisateur)
+ * et relu de façon synchrone par `currentContext`. À défaut, label
+ * humain neutre — JAMAIS l'id technique.
+ */
+const ORG_LABEL_STORAGE_KEY = "lumina-org-label";
+
+export function rememberOrgLabel(orgId: string, name: string): void {
+  if (!orgId || !name) return;
+  try {
+    localStorage.setItem(
+      ORG_LABEL_STORAGE_KEY,
+      JSON.stringify({ orgId, name }),
+    );
+  } catch {
+    /* stockage indisponible : repli neutre, sans conséquence */
+  }
+}
+
+function rememberedOrgLabel(orgId: string): string | null {
+  try {
+    const raw = localStorage.getItem(ORG_LABEL_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { orgId?: string; name?: string };
+    return parsed.orgId === orgId && parsed.name ? parsed.name : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Read the current context without triggering React. */
 export function currentContext(): OrganizationContext {
   if (_mode === "CENTRAL") {
@@ -92,7 +124,14 @@ export function currentContext(): OrganizationContext {
   if (!hasResolvedOrganization()) {
     return { mode: "ORG", orgId, label: "Votre organisation" };
   }
-  return { mode: "ORG", orgId, label: orgId };
+  // Nom mémorisé de l'organisation, sinon neutre : l'UUID ne doit jamais
+  // atteindre l'écran (bug P1-1). Les écrans qui chargent la liste des
+  // orgs (TopHeader, Dashboard) affichent en priorité le nom frais.
+  return {
+    mode: "ORG",
+    orgId,
+    label: rememberedOrgLabel(orgId) ?? "Votre organisation",
+  };
 }
 
 export function isCentralContext(): boolean {
@@ -115,6 +154,14 @@ export async function enterOrganization(orgId: string): Promise<OrganizationCont
 
   _mode = "ORG";
   setOrganizationId(orgId);
+  // Mémorise le NOM de l'organisation pour l'affichage (jamais l'UUID).
+  try {
+    const orgs = await listUserOrgs(uid);
+    const found = orgs.find((o) => o.orgId === orgId);
+    if (found?.name) rememberOrgLabel(orgId, found.name);
+  } catch {
+    /* best-effort : le label neutre prend le relais */
+  }
   emit();
   return currentContext();
 }

@@ -135,7 +135,7 @@ export default function BudgetDetail() {
               <div className="rounded-xl p-3 text-center" style={{ backgroundColor: "var(--surface)" }}>
                 <p className="text-text-tertiary text-xs">Écart</p>
                 <p className="font-bold text-sm mt-1" style={{ color: over ? "var(--out)" : "var(--in)" }}>
-                  {report.totalVariance >= 0 ? "+" : "-"}{formatCurrencyCompact(Math.abs(report.totalVariance))}
+                  {report.totalVariance >= 0 ? "+" : "−"}{formatCurrencyCompact(Math.abs(report.totalVariance))}
                 </p>
               </div>
             </div>
@@ -179,7 +179,7 @@ export default function BudgetDetail() {
                           <span className="text-text-secondary">
                             Réel {formatCurrencyFull(l.actual)} ·{" "}
                             <span style={{ color: lOver ? "var(--out)" : "var(--in)" }}>
-                              {l.variance >= 0 ? "+" : "-"}{formatCurrencyFull(Math.abs(l.variance))}
+                              {l.variance >= 0 ? "+" : "−"}{formatCurrencyFull(Math.abs(l.variance))}
                             </span>
                           </span>
                         </div>
@@ -197,7 +197,7 @@ export default function BudgetDetail() {
                   <div className="space-y-3">
                     <p className="text-text-primary font-semibold text-sm">Nouvelle ligne</p>
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Catégorie</IonLabel>
+                      <IonLabel position="stacked" className="w-auto text-xs text-text-tertiary">Catégorie</IonLabel>
                       <IonSelect
                         value={cat}
                         onIonChange={(e: IonChangeCustomEvent<string>) => setCat(e.detail.value)}
@@ -213,7 +213,7 @@ export default function BudgetDetail() {
                       </IonSelect>
                     </IonItem>
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="w-auto text-xs text-text-tertiary">Montant prévu (FCFA)</IonLabel>
+                      <IonLabel position="stacked" className="w-auto text-xs text-text-tertiary">Montant prévu (FCFA)</IonLabel>
                       <IonInput
                         type="text"
                         inputMode="decimal"

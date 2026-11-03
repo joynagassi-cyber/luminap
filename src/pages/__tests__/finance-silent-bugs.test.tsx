@@ -165,7 +165,10 @@ describe("A — TransactionNew notifie les trésoriers d'une dépense", () => {
     });
 
     await waitFor(() => expect(h.addTransactionPS).toHaveBeenCalledTimes(1));
-    expect(h.addTransactionPS.mock.calls[0][0]).toMatchObject({ type: "INCOME", status: "DRAFT" });
+    // Une entrée est constatée immédiatement (APPROVED) : en DRAFT, elle
+    // était invisible du dashboard/des bilans sans chemin d'approbation
+    // (bug P0-1).
+    expect(h.addTransactionPS.mock.calls[0][0]).toMatchObject({ type: "INCOME", status: "APPROVED" });
     expect(h.sendNotification).not.toHaveBeenCalled();
   });
 });

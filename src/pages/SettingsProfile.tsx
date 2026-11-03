@@ -22,6 +22,8 @@ import {
 import { useLocalStore } from "@/store/useLocalStore";
 import { authService } from "@/lib/auth";
 import { IonInput } from "@ionic/react";
+import CapabilityBanner from "@/components/CapabilityBanner";
+import { getOrganizationId } from "@/lib/orgContext";
 
 const ROLE_LABEL: Record<string, string> = {
   CENTRAL_ADMIN: "Administration centrale",
@@ -329,6 +331,18 @@ export default function SettingsProfile() {
             <span className="text-text-secondary">{accounts?.length ?? 0}</span>
           </div>
         </div>
+      </div>
+
+      {/* Mon rôle et permissions — déplacé ici depuis les pages de
+          fonctionnalité (Finance, Groupes…) où la carte « Vous pouvez »
+          repoussait le contenu utile hors du premier écran (bug P1-2).
+          Sur ces pages, les permissions masquent/désactivent les actions
+          au lieu d'être listées. */}
+      <div className="mb-6">
+        <p className="text-text-primary font-semibold text-sm mb-3">
+          Mon rôle et permissions
+        </p>
+        <CapabilityBanner orgId={getOrganizationId()} />
       </div>
 
       {/* Déconnexion */}

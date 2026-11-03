@@ -261,7 +261,7 @@ export default function TransactionEdit() {
               </div>
 
               <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                 <IonInput
                   type="text"
                   inputMode="decimal"
@@ -272,7 +272,7 @@ export default function TransactionEdit() {
               </IonItem>
 
               <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Description</IonLabel>
                 <IonInput
                   type="text"
                   value={description}
@@ -282,7 +282,7 @@ export default function TransactionEdit() {
               </IonItem>
 
               <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Date</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Date</IonLabel>
                 <IonInput
                   type="date"
                   value={date}
@@ -326,7 +326,7 @@ export default function TransactionEdit() {
 
               {source === "PERSONNE" && (
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">Nom de la personne</IonLabel>
                   <IonInput
                     type="text"
                     value={personName}
@@ -355,7 +355,7 @@ export default function TransactionEdit() {
               </div>
 
               <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Commentaire (optionnel)</IonLabel>
                 <IonTextarea
                   value={comment}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setComment(e.detail.value ?? "")}

@@ -30,6 +30,9 @@ vi.mock("@/lib/dataLayer", () => ({
     org: { id: "org-1", name: "Org", type: "Église" },
   }),
   useOnlineStatus: () => true,
+  // Requis par useMyCapabilities (CapabilityBanner montée dans la section
+  // « Mon rôle et permissions » du profil — correctif P1-2).
+  subscribePowerSyncReady: () => () => {},
   useNotifications: () => ({ data: [] }),
   useAccounts: () => ({ data: [] }),
   useAppConfig: () => ({

@@ -235,7 +235,7 @@ export default function CustomFields() {
                     </IonSelect>
                   </div>
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Label *</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Label *</IonLabel>
                     <IonInput
                       type="text"
                       value={label}
@@ -244,7 +244,7 @@ export default function CustomFields() {
                     />
                   </IonItem>
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Clé *</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Clé *</IonLabel>
                     <IonInput
                       type="text"
                       value={key}
@@ -286,7 +286,7 @@ export default function CustomFields() {
                   </div>
                   {type === "select" && (
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="text-sm text-text-secondary">Options (une par ligne)</IonLabel>
+                      <IonLabel position="stacked" className="text-sm text-text-secondary">Options (une par ligne)</IonLabel>
                       <IonTextarea
                         value={options}
                         onIonInput={(e: IonChangeCustomEvent<string>) => setOptions(e.detail.value ?? "")}

@@ -153,6 +153,15 @@ it('navigates Settings, Balance, History, Events, and Transaction edit', functio
     // l'aria-label de l'ion-input.
     cy.ensureAuth();
     cy.visit('/transaction/new');
+    // SORTIE (dépense), pas le défaut Entrée : depuis le correctif P0-1
+    // une entrée est constatée APPROVED dès la saisie, donc IMMUABLE —
+    // TransactionEdit redirige vers le détail (« approved transactions
+    // cannot be edited », correction par contre-transaction uniquement,
+    // cf. TransactionDetail « Contre-transagir »). Une dépense naît
+    // PENDING et reste éditable : c'est le type qui couvre le parcours
+    // create → edit vérifié ci-dessous (et que le nettoyage `after()`
+    // peut supprimer — jamais une APPROVED).
+    clickInPage('Sortie');
     // Pattern éprouvé par finance-deep.cy.ts : montant + description
     // suffisent — Catégorie / Source / Caisse ont des valeurs par défaut
     // valides. (Manipuler les ion-select écrase ces défauts avec le 1er

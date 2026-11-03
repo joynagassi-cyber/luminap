@@ -262,7 +262,7 @@ export default function OrgChildren({
 
             <div className="space-y-3 mb-4">
               <IonItem lines="none" className="bg-surface rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">
+                <IonLabel position="stacked" className="text-sm text-text-secondary">
                   Nom de l'annexe
                 </IonLabel>
                 <IonInput
@@ -276,7 +276,7 @@ export default function OrgChildren({
               </IonItem>
 
               <IonItem lines="none" className="bg-surface rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">
+                <IonLabel position="stacked" className="text-sm text-text-secondary">
                   Type d'organisation
                 </IonLabel>
                 <IonSelect

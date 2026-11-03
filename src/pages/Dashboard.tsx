@@ -45,6 +45,7 @@ import {
   ArrowDownRight,
   Calendar,
   TrendingUp,
+  TrendingDown,
   Sparkles,
   Home,
   PlusCircle,
@@ -85,8 +86,11 @@ function HeroCard({
   netResult,
   totalIncome,
   totalExpense,
+  previousNetResult,
+  previousMonthLabel,
   trend,
   trendLabels,
+  trendHasData,
   online,
   lastSyncAt,
   syncing,
@@ -100,8 +104,13 @@ function HeroCard({
   netResult: number;
   totalIncome: number;
   totalExpense: number;
+  /** Net approuvé du mois précédent ; null si ce mois n'a aucune donnée (delta masqué). */
+  previousNetResult: number | null;
+  previousMonthLabel: string;
   trend: number[];
   trendLabels: string[];
+  /** False = aucune transaction approuvée sur 6 mois → état vide explicite, pas de fausse courbe. */
+  trendHasData: boolean;
   online: boolean;
   lastSyncAt: Date | null;
   syncing: boolean;
@@ -109,7 +118,19 @@ function HeroCard({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const netColor =
-    netResult >= 0 ? "var(--in)" : "var(--out)";
+    netResult > 0 ? "var(--in)" : netResult < 0 ? "var(--out)" : "var(--text-primary)";
+  // Sens de tendance pour la sparkline : delta vs mois précédent si
+  // disponible, sinon signe du cumul 6 mois — jamais vert arbitraire.
+  const trendTotal = trend.reduce((acc, v) => acc + v, 0);
+  const trendUp =
+    previousNetResult !== null ? netResult >= previousNetResult : trendTotal >= 0;
+  const trendColor = trendUp ? "var(--in)" : "var(--out)";
+  const deltaPct =
+    previousNetResult !== null && previousNetResult !== 0
+      ? Math.round(
+          ((netResult - previousNetResult) / Math.abs(previousNetResult)) * 100,
+        )
+      : null;
   const now = new Date();
   // PM19 — une erreur d'envoi (uploadError/downloadError) doit être VISIBLE :
   // sinon une saisie en file jamais envoyée restait muette (le pill affichait
@@ -193,32 +214,83 @@ function HeroCard({
         </div>
       </div>
 
-      {/* Ligne 2 : résultat net + sparkline */}
-      <div className="flex items-end justify-between gap-3 mb-4">
-        <div>
-          <p className="text-text-tertiary text-xs mb-1">Résultat net du mois</p>
-          <div className="flex items-baseline gap-1">
-            <span
-              className="text-3xl font-black tabular-nums leading-none"
-              style={{ color: netColor }}
-            >
-              {netResult >= 0 ? "" : "-"}
-              {formatCentsToFCFA(Math.abs(netResult))}
-            </span>
-            <span className="text-text-tertiary text-sm">F</span>
-          </div>
-          <p className="text-text-tertiary text-xs mt-1.5 flex items-center gap-1">
-            <span style={{ color: "var(--in)" }}>
-              Entrées du mois +{formatCentsToFCFA(totalIncome)}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span style={{ color: "var(--out)" }}>
-              Sorties du mois −{formatCentsToFCFA(totalExpense)}
-            </span>
+      {/* Ligne 2 : résultat net + delta vs mois précédent */}
+      <div className="mb-4">
+        <p className="text-text-tertiary text-xs mb-1">Résultat net du mois</p>
+        <span
+          className="text-3xl font-black tabular-nums leading-none whitespace-nowrap"
+          style={{ color: netColor }}
+        >
+          {netResult >= 0 ? "" : "−"}
+          {formatCentsToFCFA(Math.abs(netResult))}
+        </span>
+        {previousNetResult !== null && (
+          <p
+            className="text-xs mt-1.5 flex items-center gap-1"
+            style={{ color: trendUp ? "var(--in)" : "var(--out)" }}
+          >
+            {trendUp ? (
+              <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
+            ) : (
+              <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+            {deltaPct !== null
+              ? `${Math.abs(deltaPct)} % vs ${previousMonthLabel}`
+              : `${netResult >= previousNetResult ? "+" : "−"}${formatCentsToFCFA(
+                  Math.abs(netResult - previousNetResult),
+                )} vs ${previousMonthLabel}`}
           </p>
+        )}
+      </div>
+
+      {/* Ligne 2bis : sous-tuiles Entrées / Sorties (largeurs égales,
+          montants sans retour à la ligne, signe omis à zéro) */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div
+          className="rounded-xl p-3 flex items-center gap-2.5 min-w-0"
+          style={{ backgroundColor: "var(--surface-hover)" }}
+        >
+          <span
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: tint("var(--in)", 12) }}
+            aria-hidden="true"
+          >
+            <ArrowUpRight className="w-4 h-4" style={{ color: "var(--in)" }} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-text-tertiary text-xs">Entrées du mois</span>
+            <span
+              className="block font-semibold text-base whitespace-nowrap"
+              style={{ color: "var(--in)" }}
+            >
+              {totalIncome > 0
+                ? `+${formatCentsToFCFA(totalIncome)}`
+                : formatCentsToFCFA(0)}
+            </span>
+          </span>
         </div>
-        <div className="w-28 flex-shrink-0" aria-hidden="true">
-          <TrendChart values={trend} labels={trendLabels} height={72} />
+        <div
+          className="rounded-xl p-3 flex items-center gap-2.5 min-w-0"
+          style={{ backgroundColor: "var(--surface-hover)" }}
+        >
+          <span
+            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: tint("var(--out)", 12) }}
+            aria-hidden="true"
+          >
+            <ArrowDownRight className="w-4 h-4" style={{ color: "var(--out)" }} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-text-tertiary text-xs">Sorties du mois</span>
+            <span
+              className="block font-semibold text-base whitespace-nowrap"
+              style={{ color: "var(--out)" }}
+            >
+              {totalExpense > 0
+                ? `−${formatCentsToFCFA(totalExpense)}`
+                : formatCentsToFCFA(0)}
+            </span>
+          </span>
         </div>
       </div>
 
@@ -226,15 +298,32 @@ function HeroCard({
       <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface-hover)" }}>
         <div className="flex items-center justify-between mb-2">
           <span className="text-text-tertiary text-xs">Tendance (6 mois)</span>
-          <TrendingUp className="w-3.5 h-3.5" style={{ color: "var(--in)" }} />
+          {trendHasData &&
+            (trendUp ? (
+              <TrendingUp className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
+            ) : (
+              <TrendingDown className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
+            ))}
         </div>
-        <TrendChart
-          values={trend}
-          labels={trendLabels}
-          height={96}
-          color="var(--in)"
-          withTooltip
-        />
+        {trendHasData ? (
+          <TrendChart
+            values={trend}
+            labels={trendLabels}
+            height={96}
+            color={trendColor}
+            withTooltip
+            formatValue={(v) =>
+              `${v < 0 ? "−" : ""}${formatCentsToFCFA(Math.abs(v))}`
+            }
+          />
+        ) : (
+          <div
+            className="flex items-center justify-center text-text-tertiary text-xs"
+            style={{ height: 96 }}
+          >
+            Pas encore assez de données
+          </div>
+        )}
       </div>
     </button>
   );
@@ -425,7 +514,7 @@ function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: 
                       color: t.amountCents >= 0 ? "var(--in)" : "var(--out)",
                     }}
                   >
-                    {t.amountCents >= 0 ? "+" : "-"}
+                    {t.amountCents >= 0 ? "+" : "−"}
                     {formatCentsToFCFA(Math.abs(t.amountCents))}
                   </span>
                 )}
@@ -568,19 +657,23 @@ function CaisseCard({
       t.status === "PENDING",
   ).length;
 
-  // Sparkline 6M (revenus) : 6 buckets de 30j rétrograde.
-  const buckets: number[] = [];
+  // Sparkline 6M : NET mensuel (entrées - sorties approuvées), mois ET
+  // année comparés — l'ancienne version ne sommait que les revenus (une
+  // caisse en dépenses paraissait plate) et confondait les années.
+  const sparkValues: number[] = [];
+  let sparkHasData = false;
   for (let i = 5; i >= 0; i -= 1) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const monthLabel = d.toLocaleDateString("fr-FR", { month: "short" });
-    const inc = approvedTxs
-      .filter((t) => t.type === "INCOME" && new Date(t.date).getMonth() === d.getMonth())
-      .reduce((s, t) => s + t.amount, 0);
-    buckets.push(inc);
-    if (i === 0) buckets.push(0); // padding pour le dernier point
+    const nowD = new Date();
+    const d = new Date(nowD.getFullYear(), nowD.getMonth() - i, 1);
+    const monthTxs = approvedTxs.filter((t) => {
+      const td = new Date(t.date);
+      return td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear();
+    });
+    if (monthTxs.length > 0) sparkHasData = true;
+    sparkValues.push(
+      monthTxs.reduce((s, t) => s + (t.type === "INCOME" ? t.amount : -t.amount), 0),
+    );
   }
-  const sparkValues = buckets.slice(0, 6);
 
   return (
     <button
@@ -615,10 +708,9 @@ function CaisseCard({
               color: balance >= 0 ? "var(--in)" : "var(--out)",
             }}
           >
-            {balance >= 0 ? "" : "-"}
+            {balance >= 0 ? "" : "−"}
             {formatCentsToFCFA(Math.abs(balance))}
           </p>
-          <p className="text-text-tertiary text-xs">F</p>
           {pendingCount > 0 && (
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-block mt-0.5"
@@ -633,11 +725,17 @@ function CaisseCard({
         </div>
       </div>
       <div className="h-10" aria-hidden="true">
-        <TrendChart
-          values={sparkValues}
-          height={40}
-          color={balance >= 0 ? "var(--in)" : "var(--out)"}
-        />
+        {sparkHasData ? (
+          <TrendChart
+            values={sparkValues}
+            height={40}
+            color={balance >= 0 ? "var(--in)" : "var(--out)"}
+          />
+        ) : (
+          <p className="text-text-tertiary text-[11px] flex items-center h-full">
+            Pas encore assez de données
+          </p>
+        )}
       </div>
     </button>
   );
@@ -736,28 +834,69 @@ export default function Dashboard() {
     .reduce((s, t) => s + t.amount, 0);
   const netResult = totalIncome - totalExpense;
 
-  // Sparkline 6M : 6 buckets de 30 jours sur les transactions principales.
-  const { trend, trendLabels } = useMemo(() => {
+  // Sparkline 6M : NET mensuel approuvé (entrées - sorties). L'ancienne
+  // version ne sommait que les revenus : un mois de dépenses affichait
+  // une ligne plate verte (bug P2-3). `trendHasData` pilote l'état vide.
+  const { trend, trendLabels, trendHasData } = useMemo(() => {
     const labels: string[] = [];
     const values: number[] = [];
+    let hasData = false;
     const now = new Date();
     for (let i = 5; i >= 0; i -= 1) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mLabel = d.toLocaleDateString("fr-FR", { month: "short" });
       const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1).toISOString().slice(0, 10);
       const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0).toISOString().slice(0, 10);
-      const inc = mainTxs
-        .filter((t) => t.type === "INCOME" && t.status === "APPROVED" && t.date >= mStart && t.date <= mEnd)
-        .reduce((s, t) => s + t.amount, 0);
+      const monthTxs = mainTxs.filter(
+        (t) => t.status === "APPROVED" && t.date >= mStart && t.date <= mEnd,
+      );
+      if (monthTxs.length > 0) hasData = true;
       labels.push(mLabel);
-      values.push(inc);
+      values.push(
+        monthTxs.reduce((s, t) => s + (t.type === "INCOME" ? t.amount : -t.amount), 0),
+      );
     }
-    return { trend: values, trendLabels: labels };
+    return { trend: values, trendLabels: labels, trendHasData: hasData };
   }, [mainTxs]);
 
+  // Delta vs mois précédent (spéc. dashboard §5.3) : seulement si le mois
+  // N-1 a des données approuvées, sinon masqué (null).
+  const { previousNetResult, previousMonthLabel } = useMemo(() => {
+    const now = new Date();
+    const pStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const pEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+    const label = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString(
+      "fr-FR",
+      { month: "long" },
+    );
+    const prevTxs = mainTxs.filter(
+      (t) => t.status === "APPROVED" && t.date >= pStart && t.date <= pEnd,
+    );
+    if (prevTxs.length === 0) {
+      return { previousNetResult: null as number | null, previousMonthLabel: label };
+    }
+    return {
+      previousNetResult: prevTxs.reduce(
+        (s, t) => s + (t.type === "INCOME" ? t.amount : -t.amount),
+        0,
+      ) as number | null,
+      previousMonthLabel: label,
+    };
+  }, [mainTxs]);
+
+  // « Derniers mouvements » : tout ce qui vient d'être saisi doit y figurer,
+  // y compris un brouillon hérité/importé (DRAFT) — sinon l'utilisateur
+  // croit sa saisie perdue (bug P0-1). Seul REJECTED est écarté. Les TOTAUX
+  // ci-dessus restent, eux, sur les seules transactions APPROVED (règle
+  // comptable) ; le badge de statut de la ligne signale DRAFT/PENDING.
   const recentTransactions = mainTxs
-    .filter((t) => t.status === "APPROVED" || t.status === "PENDING")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .filter((t) => t.status !== "REJECTED")
+    .sort(
+      (a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime() ||
+        new Date((b as any).created_at ?? b.date).getTime() -
+          new Date((a as any).created_at ?? a.date).getTime(),
+    )
     .slice(0, 5);
 
   const upcomingEvents = events
@@ -769,10 +908,15 @@ export default function Dashboard() {
     )
     .slice(0, 3);
 
-  const userName =
-    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim() || "Utilisateur";
-  const userInitials =
-    ((user?.firstName?.[0] || "U") + (user?.lastName?.[0] || "")).toUpperCase();
+  // Salutation sur le prénom/nom d'affichage — jamais un email ou un
+  // identifiant technique qui aurait pu se glisser dans ces champs (P2-2).
+  const nameParts = [user?.firstName, user?.lastName]
+    .map((part) => (part ?? "").trim())
+    .filter((part) => part.length > 0 && !part.includes("@"));
+  const userName = nameParts.join(" ") || "Utilisateur";
+  const userInitials = (
+    (nameParts[0]?.[0] || "U") + (nameParts[1]?.[0] || "")
+  ).toUpperCase();
 
   const todos = useUnifiedTodos(
     transactions as any[],
@@ -819,8 +963,11 @@ export default function Dashboard() {
           netResult={netResult}
           totalIncome={totalIncome}
           totalExpense={totalExpense}
+          previousNetResult={previousNetResult}
+          previousMonthLabel={previousMonthLabel}
           trend={trend}
           trendLabels={trendLabels}
+          trendHasData={trendHasData}
           online={online}
           lastSyncAt={lastSyncAt}
           syncing={syncing}

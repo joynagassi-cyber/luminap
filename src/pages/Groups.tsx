@@ -12,8 +12,6 @@ import TopHeader from "@/components/TopHeader";
 import CircleAction from "@/components/CircleAction";
 import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonSelect, IonSelectOption, IonItem, IonLabel, IonInput, IonTextarea } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
-import CapabilityBanner from "@/components/CapabilityBanner";
-import { getOrganizationId } from "@/lib/orgContext";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 const COLOR_PALETTE = [
@@ -158,7 +156,6 @@ export default function Groups() {
         <div className="min-h-dvh">
           <TopHeader title="Groupes" />
           <div className="px-5 pt-safe-calc pb-safe-calc max-w-lg mx-auto">
-            <CapabilityBanner orgId={getOrganizationId()} />
             {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div>
@@ -215,7 +212,7 @@ export default function Groups() {
                 </h3>
                 <div className="space-y-3">
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
                     <IonInput
                       type="text"
                       value={createName}
@@ -235,7 +232,7 @@ export default function Groups() {
                     ))}
                   </IonSelect>
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                     <IonTextarea
                       value={createDesc}
                       onIonInput={(e: IonChangeCustomEvent<string>) => setCreateDesc(e.detail.value ?? "")}
@@ -379,7 +376,7 @@ export default function Groups() {
                   </h3>
                   <div className="space-y-3">
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
+                      <IonLabel position="stacked" className="text-sm text-text-secondary">Nom du groupe *</IonLabel>
                       <IonInput
                         type="text"
                         value={editName}
@@ -387,7 +384,7 @@ export default function Groups() {
                       />
                     </IonItem>
                     <IonItem lines="none" className="bg-card rounded-xl">
-                      <IonLabel position="floating" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
+                      <IonLabel position="stacked" className="text-sm text-text-secondary">Description (optionnel)</IonLabel>
                       <IonTextarea
                         value={editDesc}
                         onIonInput={(e: IonChangeCustomEvent<string>) => setEditDesc(e.detail.value ?? "")}

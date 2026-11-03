@@ -260,7 +260,7 @@ export default function HistoryPage() {
                       totalIncome - totalExpense >= 0 ? "var(--in)" : "var(--out)",
                   }}
                 >
-                  {totalIncome - totalExpense >= 0 ? "+" : "-"}
+                  {totalIncome - totalExpense >= 0 ? "+" : "−"}
                   {formatCentsToFCFA(Math.abs(totalIncome - totalExpense))}
                 </p>
               </div>
@@ -334,6 +334,32 @@ export default function HistoryPage() {
               </button>
             </div>
             <div className="space-y-2 mb-6">
+              {filteredTransactions.length === 0 && (
+                <div
+                  className="rounded-xl p-6 flex flex-col items-center gap-3 text-center"
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <Wallet
+                    className="w-8 h-8"
+                    style={{ color: "var(--text-tertiary)" }}
+                    aria-hidden="true"
+                  />
+                  <p className="text-text-secondary text-sm">
+                    Aucune transaction sur cette période
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/transaction/new?type=INCOME")}
+                    className="px-4 py-2 rounded-full text-xs font-semibold text-on-accent active:scale-95 transition-transform"
+                    style={{ backgroundColor: "var(--accent-primary)" }}
+                  >
+                    Ajouter une entrée
+                  </button>
+                </div>
+              )}
               {filteredTransactions.slice(0, 5).map((tx: any) => (
                 <button
                   key={tx.id}
@@ -379,7 +405,7 @@ export default function HistoryPage() {
                       color: tx.type === "INCOME" ? "var(--in)" : "var(--out)",
                     }}
                   >
-                    {tx.type === "INCOME" ? "+" : "-"}
+                    {tx.type === "INCOME" ? "+" : "−"}
                     {formatCentsToFCFA(tx.amount)}
                   </span>
                 </button>

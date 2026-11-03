@@ -119,3 +119,137 @@ ion-content ion-header {
 ion-content::part(scroll) {
   scroll-padding-top: 7rem;
 }
+
+/* ── Formulaires (bug P0-3) ────────────────────────────────────────────────
+ * Pattern unique : label AU-DESSUS du champ (`position="stacked"` /
+ * composant FormField). Le label flottant se superposait à la valeur et
+ * au placeholder sur appareil. Ici : libellé 13 px secondaire, champ en
+ * 16 px (évite aussi le zoom auto iOS), placeholder atténué bien distinct
+ * de la valeur. */
+ion-item.item-label-stacked > ion-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+ion-item.form-field {
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+}
+
+ion-item.item-label-stacked ion-input,
+ion-item.item-label-stacked ion-select,
+ion-item.item-label-stacked ion-textarea {
+  font-size: 16px;
+}
+
+ion-input,
+ion-textarea {
+  --color: var(--text-primary);
+  --placeholder-color: var(--text-tertiary);
+  --placeholder-opacity: 0.85;
+}
+
+ion-select {
+  --placeholder-color: var(--text-tertiary);
+  --placeholder-opacity: 0.85;
+  color: var(--text-primary);
+}
+
+ion-select::part(text) {
+  color: var(--text-primary);
+}
+
+ion-select::part(placeholder) {
+  color: var(--text-tertiary);
+  opacity: 0.85;
+}
+
+ion-select::part(icon) {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
+
+/* ── Overlays des sélecteurs (bug P0-4) ────────────────────────────────────
+ * Avant : aucun token pour popover/alert/action-sheet — les listes
+ * d'options héritaient de fonds quasi blancs (thème clair) ou quasi noirs
+ * (thème sombre) avec un texte indistinct. On force les surfaces et le
+ * texte du thème courant (les variables --surface/--text-* basculent
+ * déjà clair/sombre via [data-theme]) pour un contraste ≥ 4.5:1 dans les
+ * deux thèmes, option sélectionnée visiblement mise en avant. */
+:root {
+  --surface-overlay: var(--surface);
+  --option-selected-bg: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+ion-popover {
+  --background: var(--surface-overlay);
+  --color: var(--text-primary);
+  --box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+ion-popover ion-list {
+  background: var(--surface-overlay);
+}
+
+ion-popover ion-item {
+  --background: var(--surface-overlay);
+  --color: var(--text-primary);
+  --border-color: var(--border);
+  font-size: 15px;
+}
+
+ion-popover ion-item.item-radio-checked {
+  --background: var(--option-selected-bg);
+  --color: var(--text-primary);
+  font-weight: 600;
+}
+
+ion-popover ion-radio {
+  --color: var(--text-tertiary);
+  --color-checked: var(--accent-primary);
+}
+
+ion-alert {
+  --background: var(--surface-overlay);
+  --color: var(--text-primary);
+}
+
+ion-alert .alert-title,
+ion-alert .alert-radio-label,
+ion-alert .alert-checkbox-label,
+ion-alert .alert-message {
+  color: var(--text-primary);
+}
+
+ion-alert .alert-button {
+  color: var(--accent-primary);
+}
+
+ion-alert .alert-radio-icon {
+  border-color: var(--text-tertiary);
+}
+
+ion-alert [aria-checked="true"] .alert-radio-label {
+  font-weight: 600;
+}
+
+ion-action-sheet {
+  --background: var(--surface-overlay);
+  --color: var(--text-primary);
+  --button-color: var(--text-primary);
+  --button-background-selected: var(--option-selected-bg);
+  --button-color-selected: var(--text-primary);
+}
+
+ion-action-sheet .action-sheet-title {
+  color: var(--text-secondary);
+}
+
+ion-datetime {
+  --background: var(--surface-overlay);
+  --color: var(--text-primary);
+}

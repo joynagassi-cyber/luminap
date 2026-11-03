@@ -44,13 +44,18 @@ describe('Lumina — écriture hors ligne (R85)', () => {
   // `org-e2e` : id figé disparu depuis R161 — cf. `cy.orgActiveId()`).
   let activeOrgId = '';
 
-  before(function () {
-    this.timeout(120_000);
-    cy.loginOrgAccount();
-  });
-
   it('une transaction créée hors ligne est capturée dans la file d’upload locale', function () {
     this.timeout(240_000);
+
+    // Auth via `cy.ensureAuth()` (cy.session) EN DÉBUT DE TEST, pas via
+    // `before(cy.loginOrgAccount)` : avec `testIsolation`, un retry
+    // Cypress efface le localStorage (donc le token) SANS relancer les
+    // hooks `before` — les tentatives 2-3 partaient déconnectées et
+    // échouaient sur /auth, masquant l'erreur de la 1re tentative
+    // (même famille que le piège documenté dans `ensureAuth`,
+    // cypress/support/e2e.ts). `cy.session()` restaure le token à
+    // chaque tentative : un échec réel devient lisible, au bon endroit.
+    cy.ensureAuth();
 
     const label = 'R85 offline ' + Date.now();
 

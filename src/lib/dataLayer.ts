@@ -36,6 +36,7 @@ import { isFeatureEnabled } from "./featureFlags";
 import { assertApprovable } from "./makerChecker";
 import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 import type { ExistingOrgCandidate } from "./orgCreationGuard";
+import { downloadBlob } from "./download";
 
 
 // ============================================================
@@ -3253,14 +3254,12 @@ export function exportCausesData(): void {
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
     type: "application/json",
   });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `lumina-export-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // `downloadBlob` gère web + WebView native (<a download> muet en
+  // Capacitor, bug P0-2).
+  void downloadBlob(
+    blob,
+    `lumina-export-${new Date().toISOString().slice(0, 10)}.json`,
+  );
 }
 
 /**

@@ -187,7 +187,7 @@ export default function EventEdit() {
                 className="bg-card rounded-xl"
                 style={fieldErrors.name ? { border: "1px solid var(--out)" } : undefined}
               >
-                <IonLabel position="floating" className="text-sm text-text-secondary">Nom de l'événement *</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Nom de l'événement *</IonLabel>
                 <IonInput
                   type="text"
                   value={name}
@@ -199,7 +199,7 @@ export default function EventEdit() {
               </IonItem>
 
               <IonItem lines="none" className="bg-card rounded-xl">
-                <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Description</IonLabel>
                 <IonTextarea
                   value={description}
                   onIonInput={(e: IonChangeCustomEvent<string>) => setDescription(e.detail.value ?? "")}
@@ -212,7 +212,7 @@ export default function EventEdit() {
                 className="bg-card rounded-xl"
                 style={fieldErrors.startDate ? { border: "1px solid var(--out)" } : undefined}
               >
-                <IonLabel position="floating" className="text-sm text-text-secondary">Date de début *</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Date de début *</IonLabel>
                 <IonInput
                   type="date"
                   value={startDate}
@@ -228,7 +228,7 @@ export default function EventEdit() {
                 className="bg-card rounded-xl"
                 style={fieldErrors.endDate ? { border: "1px solid var(--out)" } : undefined}
               >
-                <IonLabel position="floating" className="text-sm text-text-secondary">Date de fin</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Date de fin</IonLabel>
                 <IonInput
                   type="date"
                   value={endDate}
@@ -260,7 +260,7 @@ export default function EventEdit() {
                 className="bg-card rounded-xl"
                 style={fieldErrors.budget ? { border: "1px solid var(--out)" } : undefined}
               >
-                <IonLabel position="floating" className="text-sm text-text-secondary">Budget (FCFA)</IonLabel>
+                <IonLabel position="stacked" className="text-sm text-text-secondary">Budget (FCFA)</IonLabel>
                 <IonInput
                   type="text"
                   inputMode="decimal"

@@ -327,7 +327,7 @@ export default function GroupDetail() {
                 className="text-2xl font-black"
                 style={{ color: balance >= 0 ? "var(--in)" : "var(--out)" }}
               >
-                {balance >= 0 ? "" : "-"}
+                {balance >= 0 ? "" : "−"}
                 {formatCurrencyCompact(Math.abs(balance))}
                 <span className="text-text-tertiary text-base font-medium ml-1">
                   FCFA
@@ -881,7 +881,7 @@ export default function GroupDetail() {
               <div className="space-y-3">
                 {/* M24 — grammaire canonique : IonItem + IonLabel + IonSelect */}
                 <IonItem lines="none" className="bg-card rounded-xl">
-                  <IonLabel position="floating" className="text-sm text-text-secondary">
+                  <IonLabel position="stacked" className="text-sm text-text-secondary">
                     Membre
                   </IonLabel>
                   <IonSelect

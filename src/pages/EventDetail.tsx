@@ -662,7 +662,7 @@ export default function EventDetail() {
                             color: tx.type === "INCOME" ? "var(--in)" : "var(--out)",
                           }}
                         >
-                          {tx.type === "INCOME" ? "+" : "-"}
+                          {tx.type === "INCOME" ? "+" : "−"}
                           {formatCurrencyCompact(tx.amount)}
                         </span>
                       </div>
@@ -857,7 +857,7 @@ export default function EventDetail() {
                           color: tx.type === "INCOME" ? "var(--in)" : "var(--out)",
                         }}
                       >
-                        {tx.type === "INCOME" ? "+" : "-"}
+                        {tx.type === "INCOME" ? "+" : "−"}
                         {formatCurrencyCompact(tx.amount)}
                       </span>
                     </div>
@@ -931,7 +931,7 @@ export default function EventDetail() {
 
                 <div className="space-y-4">
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Poste budgétaire</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Poste budgétaire</IonLabel>
                     <IonSelect
                       value={selectedBudgetItemId || ""}
                       onIonChange={(e: IonChangeCustomEvent<string>) => setSelectedBudgetItemId(e.detail.value)}
@@ -951,7 +951,7 @@ export default function EventDetail() {
                   </IonItem>
 
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Montant (FCFA)</IonLabel>
                     <IonInput
                       type="text"
                       inputMode="decimal"
@@ -980,7 +980,7 @@ export default function EventDetail() {
                   </IonItem>
 
                   <IonItem lines="none" className="bg-card rounded-xl">
-                    <IonLabel position="floating" className="text-sm text-text-secondary">Description</IonLabel>
+                    <IonLabel position="stacked" className="text-sm text-text-secondary">Description</IonLabel>
                     <IonInput
                       type="text"
                       value={expenseDescription}
