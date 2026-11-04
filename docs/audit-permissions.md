@@ -76,10 +76,11 @@ Sans question car sans ambiguïté : retrait de `USE_FULL_SCREEN_INTENT`
 (inutilisée), verrouillage d'`allowBackup` (P0, données financières), jamais
 de `READ/WRITE_EXTERNAL_STORAGE`, aucune demande de permission au démarrage à froid.
 
-## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3 et l'arbitrage A4)
+## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3, l'arbitrage A4 et A5)
 
-Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A4
-(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3 ; 4.13 valide l'arbitrage A4) :
+Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A5
+(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3 ; 4.13 valide l'arbitrage
+A4 ; 4.14→4.16 valident A5) :
 
 - [ ] **4.1** `adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"`
       → permissions déclarées = matrice §1.2 ; `POST_NOTIFICATIONS` : `granted=false` avant la demande, `true` après accord. Résultat : …
@@ -109,6 +110,16 @@ Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la 
       → aucune donnée de A (église, transactions) ne doit apparaître ; revenir au
       compte A → sa saisie en attente est toujours là (arbitrage de l'étude C-07c
       §6 : la réplique n'est pas purgée au changement de compte). Résultat : …
+- [ ] **4.14** (A5) Mode Material sur Android : parcourir Dashboard, Historique,
+      Nouvelle transaction, Membres, Réglages → contrôles au rendu Android attendu
+      (boutons, champs, sélecteurs, interrupteurs), ondulation au toucher,
+      transitions fluides, rien de cassé ni de tronqué. Résultat : …
+- [ ] **4.15** (A5) Fraîcheur au retour : depuis Historique, créer une transaction,
+      revenir en arrière → la liste affiche la nouvelle transaction sans relancer
+      l'application ni recharger la page. Résultat : …
+- [ ] **4.16** (A5) Palette : rester appuyé sur un bouton primaire (accent) → la
+      teinte d'appui suit l'accent du thème, sans flash bleu ; refaire après un
+      changement de thème (un clair, un sombre). Résultat : …
 
 ## 5. Porte de sortie A1 (cette PR)
 

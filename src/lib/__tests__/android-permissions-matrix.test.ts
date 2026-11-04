@@ -268,3 +268,32 @@ describe("A4 — stockage : repli journalisé et copies de jetons bornées", () 
     expect(offenders).toEqual([]);
   });
 });
+
+/**
+ * A5 — Fondations Ionic : mode par plateforme, palette complète, règle
+ * « Ionic d'abord » inscrite. La fraîcheur des pages à données est prouvée
+ * séparément (`data-hooks-freshness.test.ts` : hooks réactifs PowerSync,
+ * pas de copie figée au montage).
+ */
+describe("A5 — fondations Ionic (mode, palette, règle)", () => {
+  it("aucun mode Ionic forcé — le défaut plateforme s'applique (Material sur Android)", () => {
+    const app = read("src/App.tsx");
+    expect(app).not.toContain('mode: "ios"');
+    expect(app).not.toContain('mode: "md"');
+  });
+
+  it("la palette définit contrast/shade/tint des couleurs chromatiques (pas de défaut bleu)", () => {
+    const css = read("src/ionic/theme.css");
+    for (const color of ["primary", "success", "warning", "danger"]) {
+      expect(css).toContain(`--ion-color-${color}-contrast`);
+      expect(css).toContain(`--ion-color-${color}-shade`);
+      expect(css).toContain(`--ion-color-${color}-tint`);
+    }
+    expect(css).toContain("--ion-color-primary-contrast: var(--on-accent)");
+  });
+
+  it("la règle « Ionic d'abord » est inscrite (exceptions + gabarit de PR)", () => {
+    expect(read("docs/ui-exceptions.md")).toContain("Ionic d'abord");
+    expect(read(".github/pull_request_template.md")).toContain("Ionic d'abord");
+  });
+});
