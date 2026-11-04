@@ -1374,3 +1374,17 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Gates : vitest 206 fichiers / 2157 passés ; tsc 0 ; eslint 0 erreur.
 - Hors périmètre laissé : `--data-danger` non défini (repli en dur) dans
   UpdateDialog.tsx + SettingsAbout.tsx (pré-existant).
+
+## Merge PR #409 + flake `archives-*` (2026-11-04)
+- **Fusionner une PR** : si `main` a avancé, résoudre les conflits puis
+  `PUT /repos/:o/:r/pulls/:n/merge` (`merge_method: merge`). `main` accepte la
+  fusion même avec un check rouge (pas de required status strict).
+- **PIÈGE pnpm** : `corepack` seul = pnpm 12.x (mauvais lockfile v9). Utiliser
+  `corepack pnpm@11.27.1 install --lockfile-only` (version de la CI).
+- **FLAKE PRÉEXISTANT `main`** (≠ nos régressions) : `cypress-run` rouge sur
+  `archives-purge.cy.ts` + `archives-restore.cy.ts` (migration A6 `IonAlert`,
+  #410/#412) : `Expected to find content: 'Supprimer définitivement ?'/'Vider la
+  corbeille ?' but never did`, `button[aria-label="Archiver"] never found`.
+  Déterministe (rerun inutile). **Toujours comparer un rouge Cypress au `main`
+  courant** (`GET /commits/<main-sha>/check-runs`) avant de conclure à une
+  régression de la PR.
