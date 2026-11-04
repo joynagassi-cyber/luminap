@@ -1,7 +1,7 @@
 import { Info, Database, ShieldCheck, Sparkles, RefreshCw, Check } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
-import { toast } from "@/components/ui/use-toast";
+import { showInfo } from "@/utils/toast";
 import { useUpdater } from "@/updater/useUpdater";
 
 /**
@@ -22,7 +22,7 @@ export default function SettingsAbout() {
     const info = await check(true);
     if (!info) {
       // « Vous êtes à jour » (ou aucune mise à jour trouvée)
-      toast({ title: "Vous êtes à jour" });
+      showInfo("Vous êtes à jour");
     }
   };
 

@@ -37,7 +37,7 @@
  * garde A3 correspondante.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
@@ -295,5 +295,79 @@ describe("A5 — fondations Ionic (mode, palette, règle)", () => {
   it("la règle « Ionic d'abord » est inscrite (exceptions + gabarit de PR)", () => {
     expect(read("docs/ui-exceptions.md")).toContain("Ionic d'abord");
     expect(read(".github/pull_request_template.md")).toContain("Ionic d'abord");
+  });
+});
+
+/**
+ * A6 — Retours et feuilles Ionic : un seul moteur de toast (IonToast),
+ * confirmations par IonAlert, sélecteurs canoniques (IonSelect) et date
+ * par IonDatetime. Gardes = fils-pièges contre le retour d'un équivalent
+ * maison ou d'un dialogue navigateur.
+ */
+describe("A6 — retours et feuilles Ionic (toasts, alertes, date)", () => {
+  const scanFor = (needle: string): string[] => {
+    const offenders: string[] = [];
+    const walk = (rel: string): void => {
+      for (const entry of readdirSync(join(process.cwd(), rel), {
+        withFileTypes: true,
+      })) {
+        const child = `${rel}/${entry.name}`;
+        if (entry.isDirectory()) {
+          if (entry.name !== "__tests__") walk(child);
+        } else if (
+          /\.(ts|tsx)$/.test(entry.name) &&
+          !entry.name.includes(".test.") &&
+          read(child).includes(needle)
+        ) {
+          offenders.push(child);
+        }
+      }
+    };
+    walk("src/pages");
+    walk("src/components");
+    return offenders;
+  };
+
+  it("les toasts passent par IonToast — plus ni sonner ni Radix", () => {
+    const facade = read("src/utils/toast.ts");
+    expect(facade).toContain("toastController");
+    expect(facade).not.toContain("sonner");
+    const app = read("src/App.tsx");
+    expect(app).not.toContain("components/ui/sonner");
+    expect(app).not.toContain("components/ui/toaster");
+    expect(existsSync(join(process.cwd(), "src/hooks/use-toast.ts"))).toBe(false);
+  });
+
+  it("les confirmations passent par IonAlert — ConfirmModal adossé, zéro window.confirm", () => {
+    // Architecture retenue à l'intégration A6 (livrée par #404) : le
+    // composant ConfirmModal délègue à IonAlert (rôle « destructive »
+    // pour le danger), et la récupération locale de Health aussi. Ne
+    // doit subsister AUCUN appel au dialogue navigateur — l'aiguille
+    // vise l'appel (« window.confirm( »), pas les mentions en
+    // commentaire qui documentent la migration.
+    expect(read("src/components/ConfirmModal.tsx")).toContain("IonAlert");
+    expect(scanFor("window.confirm(")).toEqual([]);
+  });
+
+  it("le DatePicker repose sur IonDatetime et il ne reste aucun sélecteur HTML natif", () => {
+    expect(read("src/components/DatePicker.tsx")).toContain("IonDatetime");
+    expect(scanFor("<select")).toEqual([]);
+  });
+
+  it("les contrôleurs Ionic se chargent à la demande — aucun import statique du baril", () => {
+    // Le baril `@ionic/core` en import statique tire tout le graphe des
+    // composants Ionic dans les preloads du premier rendu (39 requêtes
+    // mesurées contre un budget de 28 — perf-budget.test.ts, échec CI
+    // initial de la PR A6). La façade toast passe par le chargeur
+    // dynamique mémoïsé ; un retour à l'import statique doit échouer
+    // ICI, pas seulement au budget de build.
+    for (const facade of ["src/utils/toast.ts"]) {
+      const src = read(facade);
+      expect(src).toContain("loadIonicCore");
+      expect(src).not.toContain('from "@ionic/core"');
+    }
+    const loader = read("src/utils/load-ionic-core.ts");
+    expect(loader).toContain('import("@ionic/core")');
+    expect(loader).not.toContain('from "@ionic/core"');
   });
 });

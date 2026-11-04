@@ -34,6 +34,13 @@ const hoisted = vi.hoisted(() => ({
   showError: vi.fn(),
 }));
 
+// A6 — le sélecteur de rôle est un IonSelect : le mock Ionic partagé le
+// rend comme un <select> combobox (options et onIonChange conservés).
+vi.mock("@ionic/react", async () => {
+  const { createIonicMock } = await import("@/test/ionic-mock");
+  return createIonicMock();
+});
+
 vi.mock("@/lib/dataLayer", () => ({
   useCurrentUser: () => ({
     id: "user-1",

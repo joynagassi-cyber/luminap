@@ -10,7 +10,7 @@
  *    routeur. Aucun élément fixe à l'écran.
  *  - Épisode d'échec (réplique indisponible OU erreur d'upload/download)
  *    → UN toast d'avertissement par épisode (réarmé au retour à la
- *    normale ; `id` sonner stable = pas d'empilement).
+ *    normale ; le garde-fou par épisode évite tout empilement).
  *  - Opérations REJETÉES définitivement par le serveur (journal
  *    `syncRejectedOps`, B-02) → UN toast d'erreur par lot non encore
  *    notifié (filigrane horodaté persisté : pas de re-notification des
@@ -20,7 +20,7 @@
  */
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { toast } from "sonner";
+import { showError, showWarning } from "@/utils/toast";
 import { useReplicaUnavailable } from "@/lib/dataLayer";
 import { usePowerSyncIndicator } from "@/lib/hooks/usePowerSyncIndicator";
 import {
@@ -69,9 +69,9 @@ export function SyncStatusNotifier() {
     }
     if (hiddenRef.current || episodeNotifiedRef.current) return;
     episodeNotifiedRef.current = true;
-    toast.warning(
+    showWarning(
       "Synchronisation non effectuée. Vos données restent conservées sur cet appareil et seront envoyées dès que possible.",
-      { id: "sync-not-done", duration: 8000 },
+      { durationMs: 8000 },
     );
   }, [failing, location.pathname]);
 
@@ -83,9 +83,9 @@ export function SyncStatusNotifier() {
       const unseen = getRejectedSyncOps().filter((o) => o.at > watermark);
       if (unseen.length === 0) return;
       saveRejectedWatermark(unseen[unseen.length - 1].at);
-      toast.error(
+      showError(
         "Certaines modifications ont été rejetées par le serveur et n'ont pas été synchronisées.",
-        { id: "sync-rejected", duration: 10000 },
+        { durationMs: 10000 },
       );
     };
     checkRejected();

@@ -30,7 +30,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { getCurrentActorId } from "@/lib/auth";
 import { downloadBlob } from "@/lib/download";
 import { captureClientError } from "@/lib/clientErrors";
-import { toast } from "@/components/ui/use-toast";
+import { showError, showSuccess } from "@/utils/toast";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { security } from "@/capabilities/security";
 import {
@@ -94,10 +94,8 @@ export default function CsvImportPanel() {
         message: "Import CSV : lecture du fichier échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Lecture impossible",
-        description: "Le fichier n'a pas pu être lu. Réessayez.",
-        variant: "destructive",
+      showError("Le fichier n'a pas pu être lu. Réessayez.", {
+        header: "Lecture impossible",
       });
     } finally {
       setLoading(false);
@@ -116,16 +114,15 @@ export default function CsvImportPanel() {
           message: "Import CSV : écritures partielles",
           route: "/settings/gestion",
         });
-        toast({
-          title: "Import partiel",
-          description: `${summary.imported} brouillon(s) importé(s), ${summary.errors.length} ligne(s) en erreur d'écriture.`,
-          variant: "destructive",
-        });
+        showError(
+          `${summary.imported} brouillon(s) importé(s), ${summary.errors.length} ligne(s) en erreur d'écriture.`,
+          { header: "Import partiel" },
+        );
       } else {
-        toast({
-          title: "Import terminé",
-          description: `${summary.imported} brouillon(s) importé(s), ${summary.skipped} ligne(s) ignorée(s).`,
-        });
+        showSuccess(
+          `${summary.imported} brouillon(s) importé(s), ${summary.skipped} ligne(s) ignorée(s).`,
+          { header: "Import terminé" },
+        );
       }
       reset();
     } catch (err) {
@@ -133,10 +130,8 @@ export default function CsvImportPanel() {
         message: "Import CSV : écriture échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Import interrompu",
-        description: "Une erreur est survenue pendant l'écriture. Réessayez.",
-        variant: "destructive",
+      showError("Une erreur est survenue pendant l'écriture. Réessayez.", {
+        header: "Import interrompu",
       });
     } finally {
       setImporting(false);

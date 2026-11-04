@@ -106,6 +106,11 @@ export default function ConfirmModal({
       ]}
       // La confirmation par saisie n'a pas d'équivalent IonAlert : le champ est
       // fourni via `inputs`, le bouton reste désactivé tant que le texte diffère.
+      // ⚠️ Jamais `undefined` ici : @ionic/react (attachProps) poserait
+      // `node.inputs = undefined`, et le core IonAlert jette alors dans son
+      // watcher (`inputs.find`) comme dans render() (`this.inputs.length`),
+      // tous deux sans garde — l'alerte ne se présente JAMAIS (hôte vide).
+      // `[]` est le défaut du core : sûr dans tous les cas.
       inputs={
         requiredText
           ? [
@@ -118,7 +123,7 @@ export default function ConfirmModal({
                 disabled: confirmDisabled,
               },
             ]
-          : undefined
+          : []
       }
       // La validation par saisie passe par le champ contrôlé ci-dessous :
       // `inputs` ne sert qu'à annoncer l'attendu, le bouton reste désactivé

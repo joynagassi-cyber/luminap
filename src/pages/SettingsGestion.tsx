@@ -43,7 +43,7 @@ import {
 import { restoreBackupRows } from "@/lib/backupRestore";
 import { captureClientError } from "@/lib/clientErrors";
 import { recordUsage } from "@/lib/usageStats";
-import { toast } from "@/components/ui/use-toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 interface ActionItem {
   label: string;
@@ -196,20 +196,18 @@ export default function SettingsGestion() {
       // L'entrée d'audit RESTORE est écrite par `restoreBackupRows` (le writer),
       // pour qu'aucun appelant ne puisse restaurer sans laisser de trace.
       recordUsage("action:import-backup");
-      toast({
-        title: "Sauvegarde restaurée",
-        description: `${result.created} création(s), ${result.updated} mise(s) à jour.`,
-      });
+      showSuccess(
+        `${result.created} création(s), ${result.updated} mise(s) à jour.`,
+        { header: "Sauvegarde restaurée" },
+      );
       resetImport();
     } catch (err) {
       captureClientError(err, {
         message: "Restauration de la sauvegarde échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Échec de la restauration",
-        description: "Aucune donnée n'a pu être restaurée. Réessayez.",
-        variant: "destructive",
+      showError("Aucune donnée n'a pu être restaurée. Réessayez.", {
+        header: "Échec de la restauration",
       });
     } finally {
       setImporting(false);
@@ -222,20 +220,22 @@ export default function SettingsGestion() {
     const ok = await setOrgSetting(ORG_SETTING_KEYS.makerCheckerEnabled, next);
     setSavingMakerChecker(false);
     if (!ok) {
-      toast({
-        title: "Réglage non enregistré",
-        description:
-          "L'approbation en deux étapes n'a pas pu être modifiée. Réessayez.",
-        variant: "destructive",
-      });
+      showError(
+        "L'approbation en deux étapes n'a pas pu être modifiée. Réessayez.",
+        { header: "Réglage non enregistré" },
+      );
       return;
     }
-    toast({
-      title: next ? "Approbation en deux étapes activée" : "Approbation en deux étapes désactivée",
-      description: next
+    showSuccess(
+      next
         ? "L'auteur d'une transaction ne pourra plus l'approuver lui-même."
         : "Le créateur d'une transaction peut de nouveau l'approuver.",
-    });
+      {
+        header: next
+          ? "Approbation en deux étapes activée"
+          : "Approbation en deux étapes désactivée",
+      },
+    );
   };
 
   const handleExport = async (kind: "json" | "csv") => {
@@ -258,19 +258,17 @@ export default function SettingsGestion() {
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         downloadBlob(blob, backupFilename("csv", exportedAt));
       }
-      toast({
-        title: "Sauvegarde téléchargée",
-        description: `${backup.total} élément(s) exporté(s) au format ${kind.toUpperCase()}.`,
-      });
+      showSuccess(
+        `${backup.total} élément(s) exporté(s) au format ${kind.toUpperCase()}.`,
+        { header: "Sauvegarde téléchargée" },
+      );
     } catch (err) {
       captureClientError(err, {
         message: "Sauvegarde des données échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Échec de la sauvegarde",
-        description: "L'export n'a pas pu être généré. Réessayez.",
-        variant: "destructive",
+      showError("L'export n'a pas pu être généré. Réessayez.", {
+        header: "Échec de la sauvegarde",
       });
     } finally {
       setBusy(null);

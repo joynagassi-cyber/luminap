@@ -31,7 +31,8 @@ const addTransaction = vi.fn<(input: Record<string, unknown>) => Promise<void>>(
 );
 const downloadBlob = vi.fn();
 const captureClientError = vi.fn();
-const toast = vi.fn();
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
 
 vi.mock("@/lib/dataLayer", () => ({
   useCurrentUser: () => ({ id: "u-1", role: "ADMIN", org: { id: "org-1" } }),
@@ -56,8 +57,9 @@ vi.mock("@/lib/clientErrors", () => ({
   captureClientError: (...args: unknown[]) => captureClientError(...args),
 }));
 
-vi.mock("@/components/ui/use-toast", () => ({
-  toast: (...args: unknown[]) => toast(...args),
+vi.mock("@/utils/toast", () => ({
+  showSuccess: (...args: unknown[]) => toastSuccess(...args),
+  showError: (...args: unknown[]) => toastError(...args),
 }));
 
 import CsvImportPanel from "@/components/CsvImportPanel";
@@ -83,7 +85,8 @@ beforeEach(() => {
   addTransaction.mockClear();
   downloadBlob.mockClear();
   captureClientError.mockClear();
-  toast.mockClear();
+  toastSuccess.mockClear();
+  toastError.mockClear();
 });
 
 afterEach(cleanup);
@@ -144,8 +147,9 @@ describe("CsvImportPanel — aperçu sécurisé", () => {
         (c) => (c[0] as { description: string }).description === "Invalide",
       ),
     ).toBe(false);
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Import terminé" }),
+    expect(toastSuccess).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ header: "Import terminé" }),
     );
   });
 
@@ -159,13 +163,12 @@ describe("CsvImportPanel — aperçu sécurisé", () => {
     );
     fireEvent.click(screen.getByTestId("csv-import-confirm"));
 
-    await waitFor(() => expect(toast).toHaveBeenCalled());
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
     // L'erreur d'écriture remonte via le résumé puis un toast d'échec.
-    expect(
-      toast.mock.calls.some(
-        (c) => (c[0] as { variant?: string }).variant === "destructive",
-      ),
-    ).toBe(true);
+    expect(toastError).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ header: "Import partiel" }),
+    );
   });
 
   it("télécharge le modèle CSV (avec BOM) via `downloadBlob`", () => {

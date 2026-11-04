@@ -1,22 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { IonButton } from "@ionic/react";
-
-const MONTHS_FR = [
-  "Janvier",
-  "Février",
-  "Mars",
-  "Avril",
-  "Mai",
-  "Juin",
-  "Juillet",
-  "Août",
-  "Septembre",
-  "Octobre",
-  "Novembre",
-  "Décembre",
-];
-const DAYS_FR = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+import { useState } from "react";
+import { IonButton, IonContent, IonDatetime, IonModal } from "@ionic/react";
 
 interface Props {
   value: string;
@@ -25,60 +8,42 @@ interface Props {
   id?: string;
 }
 
+/**
+ * Date du jour au format local `aaaa-mm-jj`. Jamais via `toISOString()` :
+ * en UTC+1, minuit local tombe la veille en UTC (jour décalé).
+ */
+function todayLocal(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
+ * Sélecteur de date (A6) — `IonDatetime` en feuille modale.
+ *
+ * Remplace le calendrier maison (grille mensuelle réimplémentée) par le
+ * composant Ionic : locale fr-FR, semaine commençant le lundi, boutons
+ * Annuler/Valider natifs. L'API est inchangée (`value`/`onChange` au
+ * format `aaaa-mm-jj`), les consommateurs n'ont pas bougé.
+ *
+ * La réécriture corrige au passage un décalage d'un jour de l'ancienne
+ * implémentation en fuseau UTC+ (la date choisie était convertie par
+ * `toISOString()`) : les conversions sont locales des deux côtés.
+ */
 export default function DatePicker({ value, onChange, label, id }: Props) {
   const [open, setOpen] = useState(false);
-  const [viewDate, setViewDate] = useState(() => {
-    if (value) return new Date(value + "T00:00:00");
-    return new Date();
-  });
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  const year = viewDate.getFullYear();
-  const month = viewDate.getMonth();
-
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
-  // Monday-based start: Mon=0 … Sun=6
-  const startOffset = (firstDay.getDay() + 6) % 7;
-
-  const prevMonth = () => setViewDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setViewDate(new Date(year, month + 1, 1));
-
-  const selectDay = (day: number) => {
-    const d = new Date(year, month, day);
-    onChange(d.toISOString().split("T")[0]);
-    setOpen(false);
-  };
-
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= lastDay.getDate(); d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
+  // IonDatetime attend une ISO complète ; minuit LOCAL (sans suffixe Z)
+  // pour qu'il affiche exactement le jour stocké.
+  const isoValue = `${value || todayLocal()}T00:00:00`;
 
   return (
-    <div ref={containerRef} className="relative">
+    <div>
       <label className="text-text-tertiary text-xs mb-1.5 block">{label}</label>
       <IonButton
         expand="block"
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(true)}
         id={id}
         className="w-full px-4 py-3 rounded-xl text-text-primary text-sm text-left flex items-center justify-between !min-height:auto"
         style={{
@@ -99,78 +64,32 @@ export default function DatePicker({ value, onChange, label, id }: Props) {
         <span className="text-text-tertiary text-xs">📅</span>
       </IonButton>
 
-      {open && (
-        <div
-          className="absolute z-overlay top-full left-0 mt-2 rounded-2xl overflow-hidden shadow-pop"
-          style={{
-            backgroundColor: "var(--card)",
-            border: "1px solid var(--border)",
-            minWidth: 280,
-          }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3">
-            <IonButton
-              onClick={prevMonth}
-              aria-label="Mois précédent"
-              className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
-              style={{ backgroundColor: "var(--surface-hover)" }}
-            >
-              <ChevronLeft className="w-4 h-4 text-text-primary" />
-            </IonButton>
-            <span className="text-text-primary font-semibold text-sm">
-              {MONTHS_FR[month]} {year}
-            </span>
-            <IonButton
-              onClick={nextMonth}
-              aria-label="Mois suivant"
-              className="!w-11 !h-11 !rounded-full !p-0 !min-height:auto"
-              style={{ backgroundColor: "var(--surface-hover)" }}
-            >
-              <ChevronRight className="w-4 h-4 text-text-primary" />
-            </IonButton>
-          </div>
-
-          {/* Day labels */}
-          <div className="grid grid-cols-7 px-3 mb-1">
-            {DAYS_FR.map((d) => (
-              <div
-                key={d}
-                className="text-center text-text-tertiary text-xs py-2 font-medium"
-              >
-                {d}
-              </div>
-            ))}
-          </div>
-
-          {/* Grid */}
-          <div className="grid grid-cols-7 px-3 pb-3 gap-1">
-            {cells.map((day, i) => {
-              if (day === null) return <div key={`e${i}`} />;
-              const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-              const isToday = dateStr === todayStr;
-              const isSelected = dateStr === value;
-              return (
-                <button
-                  key={dateStr}
-                  type="button"
-                  onClick={() => selectDay(day)}
-                  className="min-h-11 rounded-full text-sm font-medium transition-all flex items-center justify-center"
-                  style={
-                    isSelected
-                      ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
-                      : isToday
-                        ? { backgroundColor: "var(--surface-hover)", color: "var(--accent-primary)" }
-                        : { backgroundColor: "transparent", color: "var(--text-primary)" }
-                  }
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <IonModal
+        isOpen={open}
+        onDidDismiss={() => setOpen(false)}
+        breakpoints={[0, 0.6]}
+        initialBreakpoint={0.6}
+      >
+        <IonContent>
+          <IonDatetime
+            presentation="date"
+            locale="fr-FR"
+            firstDayOfWeek={1}
+            showDefaultButtons
+            cancelText="Annuler"
+            doneText="Valider"
+            value={isoValue}
+            onIonChange={(e) => {
+              const next = e.detail.value;
+              if (typeof next === "string" && next.length >= 10) {
+                onChange(next.slice(0, 10));
+              }
+              setOpen(false);
+            }}
+            onIonCancel={() => setOpen(false)}
+          />
+        </IonContent>
+      </IonModal>
     </div>
   );
 }
