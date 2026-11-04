@@ -98,7 +98,12 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     // spec attendrait 4 minutes puis echouerait avec un message obscur
     // (« `__psSupabaseClient` does not exist ») alors que l'app est saine.
     // On echoue donc tout de suite, avec la cause et la marche a suivre.
-    cy.window().then(async (win) => {
+    // `{ timeout }` sur le `.then()` lui-même : sans lui, Cypress borne
+    // le callback à `defaultCommandTimeout` (8 s) — le timeout posé sur
+    // `cy.window()` ne s'y propage pas. Ce bloc fait de vrais appels
+    // réseau (session + profil REST) : sous charge CI, 8 s ne suffisent
+    // pas toujours (même piège que le flush à l'étape 1b).
+    cy.window().then({ timeout: 60_000 }, async (win) => {
       const w = win as unknown as Record<string, unknown>;
       if (!w.__psSupabaseClient) {
         throw new Error(
@@ -188,7 +193,15 @@ describe('Lumina — Cross-tenant isolation (2 orgs)', () => {
     // l'app est saine — l'écriture n'a simplement pas encore été poussée.
     // `__psFlushCrudUpload` (helper DEV) pousse la file via le client
     // Supabase du connector, exactement le chemin de production.
-    cy.window({ timeout: 60_000 }).then(async (win: any) => {
+    // Le `{ timeout: 120_000 }` doit être sur le `.then()` : celui de
+    // `cy.window()` ne s'y propage pas et Cypress retombe sur
+    // `defaultCommandTimeout` (8 s) — échec mesuré sur main
+    // (run 41850075695 : « `cy.then()` timed out after waiting
+    // `8000ms` » sur les 3 tentatives, alors que performance-batch et
+    // persistence, qui portent le timeout au bon endroit, passaient).
+    // La boucle ci-dessous est dimensionnée à 20 × (flush + 500 ms) :
+    // 120 s aligné sur persistence.cy.ts.
+    cy.window({ timeout: 60_000 }).then({ timeout: 120_000 }, async (win: any) => {
       expect(
         win.__psFlushCrudUpload,
         'helper DEV __psFlushCrudUpload exposé',
