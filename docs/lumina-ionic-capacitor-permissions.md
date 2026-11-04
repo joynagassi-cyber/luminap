@@ -255,3 +255,23 @@ mutation (retirer le gestionnaire fait échouer le test) avant d'être conservé
 
 **Non prouvé ici** : le rendu visuel de ces composants sur appareil Android
 réel. Aucun émulateur dans cet environnement.
+
+## 14. A8 — arbitrage IonTabs
+
+Évaluation menée le 4 nov. 2026 : recommandation **no-go** (conserver la
+`BottomNav` maison), en attente de validation. Analyse complète — état
+actuel, options, critères d'une éventuelle preuve de concept :
+`docs/a8-iontabs-arbitrage.md`.
+
+Faits saillants : la barre a déjà été construite sur `IonTabBar` puis
+réécrite en HTML natif (enfants React non rendus en light DOM sous
+React 19) ; les onglets sont configurables par l'utilisateur (1 à 4
+features épinglées + menu latéral, FAB contextuel), modèle que les piles
+par onglet d'`IonTabs` n'absorbent pas ; le routeur est déjà Ionic (pile
+unique, 76 routes), et aucun défaut utilisateur ne motive la migration.
+
+Le même lot corrige au passage le timeout de harnais vu sur main après
+#415 : les `.then()` réseau de `cross-tenant.cy.ts` et `forms-v2.cy.ts`
+portent désormais leur `timeout` explicite (un `.then()` sans option est
+borné à 8 s — le budget posé sur `cy.window()` ne s'y propage pas ; échec
+mesuré run `41850075695`).
