@@ -2,11 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Lumina vise minSdk 21 (téléphones simples / anciens). Le AAR
-         OneSignal et le framework Cordova résiduel déclarent minSdk 22, et
-         le AAR ionfilesystem (dépendance d'@capacitor/filesystem, exports
-         P0-2) déclare minSdk 23 : force l'override pour que le manifest
-         merger n'échoue pas. -->
+    <!-- Capacitor 8 impose minSdk 24 (Android 7.0). Le AAR OneSignal (4.x) et
+         le framework Cordova résiduel peuvent déclarer un minSdk inférieur :
+         l'override reste nécessaire pour que le manifest merger n'échoue pas.
+         (@capacitor-community/sqlite — stockage SQLite natif de PowerSync —
+         exige l'API 24, satisfaite par le nouveau minSdk.) -->
     <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova,io.ionic.libs.ionfilesystemlib" />
 
     <!-- allowBackup="false" (A1 / C-07a) : la base SQLite locale

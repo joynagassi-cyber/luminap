@@ -548,17 +548,19 @@ describe("persistCreateMember / persistUpdateMember", () => {
     });
   });
 
-  it("swallows dataLayer failures (offline queue retries)", async () => {
+  it("propage les échecs de dataLayer (l'écriture LOCALE ne se rejoue pas)", async () => {
     vi.mocked(dataLayerMock.addMemberPS).mockRejectedValueOnce(
       new Error("offline"),
     );
     vi.mocked(dataLayerMock.updateMemberPS).mockRejectedValueOnce(
       new Error("offline"),
     );
-    await expect(persistCreateMember(makeMember())).resolves.toBeUndefined();
+    // L'INSERT est local : un échec n'est PAS rattrapé par une file de reprise,
+    // il doit remonter pour que l'appelant n'enregistre pas l'entité fantôme.
+    await expect(persistCreateMember(makeMember())).rejects.toThrow("offline");
     await expect(
       persistUpdateMember("m-1", { status: "ARCHIVED" }),
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow("offline");
   });
 });
 
@@ -625,11 +627,11 @@ describe("persistAddEvent", () => {
     });
   });
 
-  it("does not throw when addEventPS fails", async () => {
+  it("propage l'échec de addEventPS (écriture locale, pas de file de reprise)", async () => {
     vi.mocked(dataLayerMock.addEventPS).mockRejectedValueOnce(
       new Error("offline"),
     );
-    await expect(persistAddEvent(makeEvent())).resolves.toBeUndefined();
+    await expect(persistAddEvent(makeEvent())).rejects.toThrow("offline");
   });
 });
 

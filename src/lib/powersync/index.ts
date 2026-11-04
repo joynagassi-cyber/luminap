@@ -1,4 +1,13 @@
-import { PowerSyncDatabase } from "@powersync/web";
+// PowerSyncDatabase vient de `@powersync/capacitor` : ce SDK détecte la
+// plateforme à l'exécution et bascule sur SQLite NATIF (via
+// `@capacitor-community/sqlite`) sur Android/iOS, tout en retombant sur le
+// SDK Web (WA-SQLite) sur navigateur. C'est la correction de la cause racine
+// du hors-ligne cassé sur l'APK : `@powersync/web` seul s'appuie sur IndexedDB
+// / OPFS dans la WebView Android, un stockage que l'OS peut effacer à tout
+// moment (données locales non durables → app vide, pas de synchronisation).
+// Les primitives de schéma (`Schema`, `Table`, `column`) restent importées de
+// `@powersync/web` (le SDK Capacitor étend le SDK Web).
+import { PowerSyncDatabase } from "@powersync/capacitor";
 import { AppSchema } from "./schema";
 import { SupabaseConnector } from "./SupabaseConnector";
 import { supabase } from "@/lib/auth";
@@ -386,12 +395,52 @@ async function subscribeOrgStreams(): Promise<void> {
   }
 }
 
+/**
+ * Options de la base PowerSync — extraites pour être testables sans booter
+ * l'app entière (cf. `powersync-database-options.test.ts`).
+ *
+ * Sous Cypress (`isCypress`), on désactive DEUX choses indissociables :
+ *   - `useWebWorker: false` : le worker WASM dédié de `@powersync/web` se
+ *     bloque dans le contexte Electron headless (après ~5 allers-retours
+ *     comlink, `db.execute` ne résout plus jamais, échec `DataCloneError`).
+ *     On exécute donc SQLite sur le thread principal pendant les tests.
+ *   - `enableMultiTabs: false` : RÉGRESSION `@powersync/web` 2.6.0. Quand le
+ *     worker est désactivé, l'adaptateur WASQLite ouvre sa connexion EN
+ *     PROCESSUS (`source = null` dans `DatabaseClient`), or la sync
+ *     multi-onglets (activée par défaut dès que `SharedWorker` existe)
+ *     sélectionne `SharedWebStreamingSyncImplementation`, qui appelle
+ *     `db.shareConnection()` → lève « shareConnection() is only available for
+ *     connections based by workers ». La promesse rejetée faisait échouer le
+ *     boot de ~11 specs Cypress. Le multi-onglets n'a de sens qu'en
+ *     production (vrais onglets).
+ *
+ * `window.Cypress` n'existe que sous test → aucun impact production/build.
+ */
+export function buildDatabaseOptions(
+  bootPlan: Pick<DatabaseBootPlan, "filename" | "encryptionKey">,
+  isCypress: boolean,
+) {
+  return {
+    dbFilename: bootPlan.filename,
+    encryptionKey: bootPlan.encryptionKey,
+    debugMode: import.meta.env.DEV, // Activer le debug en développement
+    useWebWorker: !isCypress,
+    ...(isCypress ? { enableMultiTabs: false } : {}),
+  };
+}
+
 export async function initPowerSync(): Promise<void> {
   // Idempotent: a second call is a no-op so repeated boots / HMR do not
   // create a second database handle.
   if (_db) {
     return;
   }
+
+  // Détection E2E unique (Cypress n'injecte `window.Cypress` que sous test).
+  // Sert à désactiver le worker SQLite ET le multi-onglets, dont la
+  // combinaison est invalide en @powersync/web 2.6.0 (cf. plus bas).
+  const isCypress =
+    typeof window !== "undefined" && Boolean((window as any).Cypress);
 
   // Créer le connector
   _connector = new SupabaseConnector();
@@ -486,19 +535,7 @@ export async function initPowerSync(): Promise<void> {
   // Créer la base de données
   const db = new PowerSyncDatabase({
     schema: AppSchema,
-    database: {
-      dbFilename: bootPlan.filename,
-      encryptionKey: bootPlan.encryptionKey,
-      debugMode: import.meta.env.DEV, // Activer le debug en développement
-      // E2E : le worker WASM dédié de `@powersync/web` se bloque dans le
-      // contexte Electron headless de Cypress — après ~5 allers-retours
-      // comlink, le 6e appel `db.execute` ne résout plus jamais (l'échec
-      // remonte en `DataCloneError` non clonable). On exécute donc SQLite
-      // sur le thread principal pendant les tests : c'est l'option prévue
-      // par PowerSync pour les environnements de test. `window.Cypress`
-      // n'existe que sous Cypress → aucun impact production/build.
-      useWebWorker: !(typeof window !== "undefined" && (window as any).Cypress),
-    },
+    database: buildDatabaseOptions(bootPlan, isCypress),
   });
   _db = db;
   // Le handle existe : les composants montés avant la fin du démarrage

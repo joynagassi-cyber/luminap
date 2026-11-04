@@ -38,10 +38,10 @@ if (typeof globalThis.localStorage === "undefined") {
 const psStore = vi.hoisted(() => {
   const calls: { sql: string; params: any[] }[] = [];
   const db: Record<string, any> = {};
-  let fail: string | null = null;
+  let fail: { message: string; match?: string } | null = null;
   function executeMock(sql: string, params: any[] = []) {
-    if (fail) {
-      const msg = fail;
+    if (fail && (!fail.match || sql.includes(fail.match))) {
+      const msg = fail.message;
       fail = null;
       return Promise.reject(new Error(msg));
     }
@@ -95,7 +95,7 @@ const psStore = vi.hoisted(() => {
     calls,
     db,
     execute: executeMock,
-    failNext(message: string) { fail = message; },
+    failNext(message: string, match?: string) { fail = { message, match }; },
     reset() {
       this.calls.length = 0;
       for (const key of Object.keys(this.db)) delete this.db[key];
@@ -371,20 +371,17 @@ describe("createVersement", () => {
     });
   });
 
-  it("survives a persist failure (non-fatal, offline queue retries)", async () => {
-    // Inject a failure on the first PS write (INSERT versements); the
-    // per-statement try/catch in createVersement swallows it.
-    psStore.failNext("powersync down");
-    const result = await createVersement({
-      sourceCaisseId: "caisse-1",
-      amount: 1000,
-    });
-
-    // No exception escaped; both txs returned, linked by the versementId
-    expect(result.sourceTx.type).toBe("EXPENSE");
-    expect(result.targetTx.type).toBe("INCOME");
-    expect(result.sourceTx.versementId).toBe(result.versementId);
-    expect(result.sourceTx.versementId).toBe(result.targetTx.versementId);
+  it("propage un échec de persistance (écriture locale, pas de file de reprise)", async () => {
+    // Inject a failure on the first PS write (INSERT versements). L'écriture
+    // est LOCALE : rien ne la rejouera, donc l'échec doit REMONTER (sinon on
+    // annoncerait un versement jamais persisté).
+    psStore.failNext("powersync down", "INSERT INTO versements");
+    await expect(
+      createVersement({
+        sourceCaisseId: "caisse-1",
+        amount: 1000,
+      }),
+    ).rejects.toThrow("powersync down");
   });
 });
 

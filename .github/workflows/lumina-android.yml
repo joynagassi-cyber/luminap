@@ -72,60 +72,11 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x android/gradlew
 
-      - name: Patch Cordova Sub-project (fix bcprov-jdk18on-1.79.jar)
-        # MÊME logique que le step "Patch Cordova Sub-project" de
-        # release.yml (job prepare). Le sous-projet
-        # `:capacitor-cordova-android-plugins` est GÉNÉRÉ par `cap sync`
-        # (fichier gitignored, donc recréé à chaque run CI) et son
-        # `build.gradle` déclare `classpath AGP 8.13.0` qui tire
-        # transitivement `bcprov-jdk18on-1.79.jar` (via
-        # `com.android.tools.build:builder:8.13.0` →
-        # `org.bouncycastle:bcprov-jdk18on:1.79`, confirmé dans
-        # `~/.gradle/caches/modules-2/metadata` local) — ce JAR échoue
-        # à se relier par le classloader de compilation Gradle sur les
-        # runners GitHub → erreur "Failed to create Jar file ...
-        # bcprov-jdk18on-1.79.jar".
-        #
-        # Fix : on retire le bloc `buildscript { ... }` du sous-projet
-        # (il hérite de l'AGP 8.2.1 de la racine, `android/build.gradle`
-        # ligne 10, qui ne tire PAS bcprov 1.79). Fiable car fait APRÈS
-        # `cap sync` (le fichier est récréé ici), en Python (plus
-        # robuste que sed pour un bloc multi-lignes).
-        run: |
-          # 2026-10-19 (état final, revert de l'over-patching 3-scopes
-          # — cf. run 39185310876 qui a prouvé que le cache Gradle
-          # n'était PAS le problème, et le commit 2686e4b qui a
-          # nettoyé `android/build.gradle`). Le vrai fix tient en 3
-          # briques simples, déjà en place :
-          #   1. piquage OneSignal à 4.9.7 (android/app/build.gradle,
-          #      commit 4f0c16d) — retire la transitive
-          #      `bcprov-jdk18on:1.79` portée par le range 5.x/6.x.
-          #   2. downgrade `@capacitor/preferences` 8.0.1 → 6.0.4
-          #      (package.json, commit 3382a02) — retire le
-          #      `buildscript AGP 8.13.0` de ce plugin spécifiquement.
-          #   3. ce step — retire le `classpath AGP 8.13.0` restant
-          #      dans les AUTRES plugins Capacitor (grep + sed
-          #      idempotent, s'exécute APRÈS `pnpm install` qui a
-          #      re-généré ces fichiers).
-          echo "Fix bcprov : retrait du classpath AGP 8.13.0 de TOUS les build.gradle plugins Capacitor"
-          if grep -Rlq "com.android.tools.build:gradle:8.13.0" node_modules/.pnpm 2>/dev/null; then
-            grep -Rl "com.android.tools.build:gradle:8.13.0" node_modules/.pnpm 2>/dev/null | \
-              xargs -r sed -i "/com.android.tools.build:gradle:8.13.0/d"
-          else
-            echo "Aucun AGP 8.13.0 résiduel — rien à faire (déjà propre)"
-          fi
-          # P35 (2026-10-29) : plus de patch `namespace` storage ni de
-          # forçage SDK ici. Tous les `@capacitor/*` sont alignés sur 7.x
-          # (AGP 8.7.2, namespace déclaré partout) et `@capacitor/storage`
-          # (déprécié, sans namespace) a été retiré. `android/variables.gradle`
-          # porte déjà compileSdk/targetSdk 35 — le `sed` qui forçait 34 est
-          # supprimé car il casserait la compilation Capacitor 7.
+      # Capacitor 8 : plus de contournement bcprov. Tous les `@capacitor/*`
+      # sont en 8.x et partagent l'AGP 8.13.0 de `android/build.gradle`
+      # (l'AGP 8.13.0 n'est plus un artefact fautif à retirer).
 
       - name: Build debug APK
-        # Pas de --no-daemon (le classloader "single-use" du flag
-        # échoue à relier le JAR bcprov 1.79 — bug documenté en
-        # mémoire gradle-jdk17-bcprov-infra-fail, confirmé 2026-10-18
-        # en local : build SANS --no-daemon = OK, AVEC = échec).
         working-directory: android
         run: ./gradlew assembleDebug
 
