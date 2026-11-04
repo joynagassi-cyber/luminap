@@ -4,8 +4,8 @@
  * Import DYNAMIQUE délibéré : le baril `@ionic/core` en import statique
  * tire tout le graphe des composants Ionic dans les preloads du premier
  * rendu (39 requêtes mesurées contre un budget de 28 —
- * perf-budget.test.ts). Les contrôleurs impératifs (toast, alert) ne
- * sont nécessaires qu'au premier retour utilisateur : le chunk se charge
+ * perf-budget.test.ts). Le contrôleur impératif (toast) n'est
+ * nécessaire qu'au premier retour utilisateur : le chunk se charge
  * alors à la demande.
  *
  * La promesse est mémoïsée — deux appels simultanés partagent le même

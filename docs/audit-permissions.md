@@ -76,11 +76,11 @@ Sans question car sans ambiguïté : retrait de `USE_FULL_SCREEN_INTENT`
 (inutilisée), verrouillage d'`allowBackup` (P0, données financières), jamais
 de `READ/WRITE_EXTERNAL_STORAGE`, aucune demande de permission au démarrage à froid.
 
-## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3, l'arbitrage A4 et A5)
+## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3, l'arbitrage A4, A5 et A6)
 
-Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A5
+Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A6
 (les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3 ; 4.13 valide l'arbitrage
-A4 ; 4.14→4.16 valident A5) :
+A4 ; 4.14→4.16 valident A5 ; 4.17→4.19 valident A6) :
 
 - [ ] **4.1** `adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"`
       → permissions déclarées = matrice §1.2 ; `POST_NOTIFICATIONS` : `granted=false` avant la demande, `true` après accord. Résultat : …
@@ -120,6 +120,18 @@ A4 ; 4.14→4.16 valident A5) :
 - [ ] **4.16** (A5) Palette : rester appuyé sur un bouton primaire (accent) → la
       teinte d'appui suit l'accent du thème, sans flash bleu ; refaire après un
       changement de thème (un clair, un sombre). Résultat : …
+- [ ] **4.17** (A6) Toasts natifs : enregistrer une transaction (toast vert de
+      succès en bas d'écran) puis provoquer une erreur (import CSV invalide →
+      toast rouge « Lecture impossible ») : messages lisibles, disparition
+      automatique, pas d'empilement parasite. Résultat : …
+- [ ] **4.18** (A6) Confirmation destructive : Archives → « Supprimer
+      définitivement » un élément → alerte au style Android, bouton de
+      confirmation en rouge ; « Annuler » ou tap à l'extérieur ne suppriment
+      rien ; confirmer supprime effectivement. Résultat : …
+- [ ] **4.19** (A6) Date d'événement : Nouvel événement → ouvrir le sélecteur de
+      date (feuille calendrier en français, semaine commençant le lundi),
+      choisir un jour, « Valider » → la date affichée puis enregistrée est
+      exactement celle choisie (aucun décalage d'un jour). Résultat : …
 
 ## 5. Porte de sortie A1 (cette PR)
 

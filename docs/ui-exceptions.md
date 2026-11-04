@@ -41,6 +41,19 @@ Exception connue et assumée : `CentralAdmin` charge les détails d'une
 organisation à la sélection (console d'administration — donnée
 volontairement ponctuelle).
 
+### Retours et confirmations (A6)
+
+- **Toasts** : la façade `@/utils/toast`
+  (`showSuccess/showError/showWarning/showInfo`) adossée au `IonToast`
+  d'Ionic. Aucune librairie de toast tierce (sonner et Radix retirés).
+- **Confirmations** : `ConfirmModal`
+  (`src/components/ConfirmModal.tsx`), adossé à `IonAlert` — jamais de
+  `window.confirm`. Le danger passe par le rôle `destructive` d'Ionic
+  (bouton de confirmation en rouge, style natif de la plateforme).
+- **Sélecteurs et dates** : `IonSelect` (popover) est le patron
+  canonique — il ne reste aucun sélecteur HTML natif dans l'app. Les
+  dates passent par `DatePicker` (IonDatetime en feuille, fr-FR).
+
 ### Permissions et erreurs (rappel, phases A2/A4)
 
 Aucune demande de permission hors `PermissionService`, jamais au démarrage
@@ -52,12 +65,16 @@ statuts typés et `reportError`.
 | Composant maison | Équivalent Ionic | Motif / migration |
 |---|---|---|
 | `BottomNav` (barre d'onglets) | `IonTabs` / `IonTabBar` | Évaluation go/no-go prévue en **A8** (compatibilité routeur à prouver) |
-| Toasts maison (`@/utils/toast`) | `useIonToast` | Migration **A6** |
-| Confirmations maison | `IonAlert` / `useIonAlert` | Migration **A6** |
-| `DatePicker` (design system) | `IonDatetime` (en modale/feuille) | Migration **A6** |
-| Sélecteurs (lisibilité F-02) | `IonModal` en feuille + liste | Migration **A6** (les `IonSelect` actuels restent) |
 | Listes : recherche, actions par ligne, filtres, interrupteurs | `IonSearchbar`, `IonItemSliding`, `IonRefresher`, `IonSegment`, `IonToggle`, `IonSkeletonText` | Migration **A7** |
 | Boutons bruts `<button>` existants (~390 dans pages et composants) | `IonButton` | Héritage antérieur à la règle — pas de réécriture en masse ; tout **nouveau** contrôle suit la règle, et les écrans migrés en A6/A7 résorbent leur part |
+
+**Résorbées en A6** : toasts (sonner + Radix → façade IonToast),
+confirmations (`ConfirmModal` réécrit sur IonAlert et `window.confirm`
+éliminé — livré par la PR #404, intégré par la présente), `DatePicker`
+(grille maison → IonDatetime), sélecteurs (le
+dernier élément natif d'OrgRoles → IonSelect ; le patron « feuille de
+sélection » de l'audit visait un `SelectField` maison qui n'existe pas —
+les 44+ `IonSelect` en popover sont le canon, F-02 clos sur preuves).
 
 ## Enregistrer une exception
 
