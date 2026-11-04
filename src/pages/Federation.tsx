@@ -416,9 +416,8 @@ export default function Federation() {
               <Plus className="w-4 h-4" /> Créer une organisation
             </button>
 
-            {/* Converti en IonSelect (popover) : l'ancien commentaire justifiait
-                un <select> natif (picker IonSelect illisible sous React 19) ;
-                le popover Ionic rend bien les options. */}
+            {/* Sélecteur IonSelect (popover) — aucun sélecteur HTML natif
+                dans l'app (garde A6). */}
             {showCreate && (
               <div
                 className="rounded-xl p-4 mb-4 space-y-4"

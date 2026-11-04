@@ -16,7 +16,7 @@
  * serveur re-vérifie de toute façon via RLS (`is_org_admin`).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { IonPage, IonContent } from "@ionic/react";
+import { IonPage, IonContent, IonSelect, IonSelectOption } from "@ionic/react";
 import { Shield, UserCog, Save } from "lucide-react";
 
 import BottomNav from "@/components/BottomNav";
@@ -252,31 +252,24 @@ export default function OrgRoles() {
                           {memberPhone(member) || "Pas de téléphone"}
                         </p>
                       </div>
-                      <label className="sr-only" htmlFor={`role-${member.id}`}>
-                        Rôle de {memberName(member)}
-                      </label>
-                      <select
-                        id={`role-${member.id}`}
+                      <IonSelect
+                        aria-label={`Rôle de ${memberName(member)}`}
+                        interface="popover"
+                        fill="outline"
                         value={roleByMember[member.id] ?? DEFAULT_ROLE}
-                        onChange={(e) =>
+                        onIonChange={(e) =>
                           setRoleByMember((prev) => ({
                             ...prev,
-                            [member.id]: e.target.value as Role,
+                            [member.id]: e.detail.value as Role,
                           }))
                         }
-                        className="rounded-lg px-3 py-2 text-sm"
-                        style={{
-                          backgroundColor: "var(--card)",
-                          color: "var(--text-primary)",
-                          border: "1px solid var(--border)",
-                        }}
                       >
                         {ROLES.map((role) => (
-                          <option key={role} value={role}>
+                          <IonSelectOption key={role} value={role}>
                             {ROLE_LABELS[role]}
-                          </option>
+                          </IonSelectOption>
                         ))}
-                      </select>
+                      </IonSelect>
                       <button
                         type="button"
                         onClick={() => selectMember(member.id)}
