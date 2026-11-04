@@ -18,7 +18,6 @@ import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import {
   Users,
-  Search,
   Archive,
   RefreshCw,
   ArrowLeft,
