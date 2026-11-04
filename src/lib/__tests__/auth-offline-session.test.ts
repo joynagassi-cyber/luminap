@@ -298,3 +298,39 @@ describe("resumeSession — retour au premier plan sans déconnexion", () => {
     expect(authService.getState().session).toBeNull();
   });
 });
+
+describe("onAuthStateChange — pas de déconnexion sur session nulle spurieuse", () => {
+  it("session nulle EN LIGNE + session persistée → état conservé", () => {
+    (authService as any).state.session = { ...STORED_SESSION };
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    const unsub = authService.subscribe(() => {});
+    // Callback enregistré par `subscribe` (mock supabase).
+    const cb = (sb.onAuthStateChange as any).mock.calls[0][0] as (
+      e: string,
+      s: unknown,
+    ) => void;
+    // Événement non-SIGNED_OUT avec session nulle (refresh raté alors que le
+    // navigateur se croit en ligne) : on ne doit PAS vider l'état.
+    cb("TOKEN_REFRESHED", null);
+
+    expect(authService.getState().session).not.toBeNull();
+    unsub();
+  });
+
+  it("SIGNED_OUT explicite → état purgé", () => {
+    (authService as any).state.session = { ...STORED_SESSION };
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+
+    const unsub = authService.subscribe(() => {});
+    const cb = (sb.onAuthStateChange as any).mock.calls[0][0] as (
+      e: string,
+      s: unknown,
+    ) => void;
+    cb("SIGNED_OUT", null);
+
+    expect(authService.getState().session).toBeNull();
+    unsub();
+  });
+});

@@ -1314,15 +1314,15 @@ class AuthService {
         });
       } else if (
         event !== "SIGNED_OUT" &&
-        isBrowserOffline() &&
+        // Une session persistée encore présente prouve que l'utilisateur ne
+        // s'est PAS déconnecté (un signOut explicite vide ce stockage). On
+        // conserve donc l'état courant quel que soit `navigator.onLine` : un
+        // refresh qui échoue alors que le navigateur se croit EN LIGNE (réseau
+        // captif, serveur lent/5xx, réponse perdue) émet une session `null` et
+        // déconnectait l'utilisateur à tort. La vérité serveur se réconcilie
+        // au retour du réseau ; un vrai SIGNED_OUT purge toujours l'état.
         readStoredSession()
       ) {
-        // Hors ligne, supabase-js peut émettre une session `null` après un
-        // refresh raté (réseau) alors que l'utilisateur ne s'est pas
-        // déconnecté. Si la session persistée est toujours là, on conserve
-        // l'état courant : l'accès local (offline-first) prime, la vérité
-        // serveur sera réconciliée au retour du réseau. Un SIGNED_OUT
-        // explicite purge toujours l'état.
         this.setState({ isLoading: false });
       } else {
         this.setState({
