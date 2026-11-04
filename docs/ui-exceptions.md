@@ -64,7 +64,7 @@ statuts typés et `reportError`.
 
 | Composant maison | Équivalent Ionic | Motif / migration |
 |---|---|---|
-| `BottomNav` (barre d'onglets) | `IonTabs` / `IonTabBar` | Évaluation go/no-go prévue en **A8** (compatibilité routeur à prouver) |
+| `BottomNav` (barre d'onglets) | `IonTabs` / `IonTabBar` | **No-go décidé en A8** (4 nov. 2026) : routeur react-router, risque React 19 déjà payé sur cette barre, budget perf — voir `docs/a8-iontabs-decision.md` |
 | Listes : recherche, actions par ligne, filtres, interrupteurs | `IonSearchbar`, `IonItemSliding`, `IonRefresher`, `IonSegment`, `IonToggle`, `IonSkeletonText` | Migration **A7** |
 | Boutons bruts `<button>` existants (~390 dans pages et composants) | `IonButton` | Héritage antérieur à la règle — pas de réécriture en masse ; tout **nouveau** contrôle suit la règle, et les écrans migrés en A6/A7 résorbent leur part |
 
