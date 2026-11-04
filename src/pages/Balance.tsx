@@ -21,6 +21,9 @@ import {
   IonContent,
   IonTitle,
   IonToolbar,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
 } from "@ionic/react";
 
 export default function Balance() {
@@ -115,40 +118,25 @@ export default function Balance() {
               Bilan financier
             </h1>
 
-            {/* Period toggle */}
-            <div
-              className="flex rounded-xl p-1 mb-5"
-              style={{ backgroundColor: "var(--surface)" }}
-              role="group"
+            {/* A7 — IonSegment : le sélecteur Mois/Année est un contrôle
+                segmenté natif (glissement + clavier + annonce lecteur d'écran
+                gérés par Ionic), au lieu de deux boutons maison. */}
+            <IonSegment
+              value={period}
+              onIonChange={(e) => {
+                const value = e.detail.value;
+                if (value === "mois" || value === "annee") setPeriod(value);
+              }}
+              className="mb-5"
               aria-label="Période"
             >
-              <button
-                onClick={() => setPeriod("mois")}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={
-                  period === "mois"
-                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
-                    : { color: "var(--text-secondary)" }
-                }
-                aria-pressed={period === "mois"}
-                aria-label="Mois"
-              >
-                Mois
-              </button>
-              <button
-                onClick={() => setPeriod("annee")}
-                className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
-                style={
-                  period === "annee"
-                    ? { backgroundColor: "var(--accent-primary)", color: "var(--on-accent)" }
-                    : { color: "var(--text-secondary)" }
-                }
-                aria-pressed={period === "annee"}
-                aria-label="Année"
-              >
-                Année
-              </button>
-            </div>
+              <IonSegmentButton value="mois">
+                <IonLabel>Mois</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="annee">
+                <IonLabel>Année</IonLabel>
+              </IonSegmentButton>
+            </IonSegment>
 
             {/* Caisse selector */}
             <div className="-mx-5 px-5 mb-5">

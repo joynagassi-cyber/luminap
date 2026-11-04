@@ -52,6 +52,24 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
   const clickInPage = (label: string | RegExp) =>
     cy.contains(BTNS, label, { timeout: 30_000 }).first().click({ force: true });
 
+  /**
+   * A7 — le sélecteur de période de /balance est un `IonSegment`.
+   * `IonSegmentButton` est en SHADOW DOM : `BTNS` (light DOM) ne peut plus
+   * matcher. On cible l'hôte et on vérifie son état `aria-selected`, que le
+   * composant Ionic met à jour (`segment-button.js` : `checked ? 'true'`).
+   */
+  const clickPeriod = (label: string) =>
+    cy
+      .contains('ion-segment-button', label, { includeShadowDom: true, timeout: 30_000 })
+      .click({ force: true });
+
+  const periodSelected = (label: string) =>
+    cy
+      .contains('ion-segment-button', label, { includeShadowDom: true })
+      .should(($el) => {
+        expect($el[0].getAttribute('aria-selected')).to.equal('true');
+      });
+
   /** Bouton « Ouvrir le menu » de la page ACTIVE. */
   const openMenu = () =>
     cy
@@ -90,9 +108,10 @@ it('navigates Settings, Balance, History, Events, and Transaction edit', functio
     // Ces boutons sont dans la page ACTIVE mais Cypress les juge non
     // visibles (`checkVisibility()`) à cause des pages Ionic empilées :
     // `force` — les assertions d'état qui suivent restent strictes.
-    clickInPage('Année');
-    clickInPage('Mois');
-    cy.contains(BTNS, 'Mois', { timeout: 30_000 }).should('exist');
+    clickPeriod('Année');
+    periodSelected('Année');
+    clickPeriod('Mois');
+    periodSelected('Mois');
 
     // Summary stat cards
     // « Entrées » / « Sorties » sont des libellés de cartes de statistiques
