@@ -377,6 +377,12 @@ export async function initPowerSync(): Promise<void> {
     return;
   }
 
+  // Détection E2E unique (Cypress n'injecte `window.Cypress` que sous test).
+  // Sert à désactiver le worker SQLite ET le multi-onglets, dont la
+  // combinaison est invalide en @powersync/web 2.6.0 (cf. plus bas).
+  const isCypress =
+    typeof window !== "undefined" && Boolean((window as any).Cypress);
+
   // Créer le connector
   _connector = new SupabaseConnector();
 
@@ -411,7 +417,17 @@ export async function initPowerSync(): Promise<void> {
       // sur le thread principal pendant les tests : c'est l'option prévue
       // par PowerSync pour les environnements de test. `window.Cypress`
       // n'existe que sous Cypress → aucun impact production/build.
-      useWebWorker: !(typeof window !== "undefined" && (window as any).Cypress),
+      useWebWorker: !isCypress,
+      // E2E (régression @powersync/web 2.6.0) : quand `useWebWorker` est
+      // désactivé, l'adaptateur ouvre sa connexion EN PROCESSUS (`source =
+      // null`), or la sync multi-onglets (activée par défaut dès que
+      // `SharedWorker` existe) appelle `db.shareConnection()`, qui lève
+      // alors « shareConnection() is only available for connections based
+      // by workers » — une promesse rejetée qui faisait échouer le boot de
+      // ~11 specs Cypress. Le multi-onglets n'a de sens qu'en production
+      // (vrais onglets) ; on le désactive uniquement sous Cypress, où le
+      // worker est déjà désactivé. Aucun impact production.
+      ...(isCypress ? { enableMultiTabs: false } : {}),
     },
   });
 
