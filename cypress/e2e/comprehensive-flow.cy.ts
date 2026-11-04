@@ -63,12 +63,13 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
       .contains('ion-segment-button', label, { includeShadowDom: true, timeout: 30_000 })
       .click({ force: true });
 
+  // L'état sélectionné vit sur l'HÔTE, sous forme de classe
+  // (`segment-button-checked`, segment-button.js:131). `aria-selected` n'est
+  // posé que sur le <button> interne, donc dans le shadow root.
   const periodSelected = (label: string) =>
     cy
       .contains('ion-segment-button', label, { includeShadowDom: true })
-      .should(($el) => {
-        expect($el[0].getAttribute('aria-selected')).to.equal('true');
-      });
+      .should('have.class', 'segment-button-checked');
 
   /** Bouton « Ouvrir le menu » de la page ACTIVE. */
   const openMenu = () =>

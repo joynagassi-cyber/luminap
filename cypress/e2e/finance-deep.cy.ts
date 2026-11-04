@@ -60,6 +60,11 @@ describe('Lumina — Finance deep flow', () => {
     // sont en SHADOW DOM : `cy.contains` ne les voit qu'avec l'option.
     cy.contains('ion-segment-button', 'Année', { includeShadowDom: true }).should('exist');
     cy.contains('ion-segment-button', 'Mois', { includeShadowDom: true }).should('exist');
+    // « Mois » est la période par défaut : l'hôte porte la classe d'état.
+    cy.contains('ion-segment-button', 'Mois', { includeShadowDom: true }).should(
+      'have.class',
+      'segment-button-checked',
+    );
   });
 
   it('navigates to the first transaction detail and edit pages', function () {
