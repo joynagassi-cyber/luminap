@@ -386,6 +386,12 @@ export async function persistReverseTransaction(
   } catch (error) {
     // PR13 — rejet de gel de période : décision métier, à propager.
     if (isPeriodLockedError(error)) throw error;
-    // Persist failure is non-fatal; offline queue will retry
+    // L'INSERT est LOCAL : pas de file de reprise derrière — signaler + relancer.
+    reportError(error, {
+      type: "database",
+      source: "persist-reverse-transaction",
+      context: { txId: reversalTx.id },
+    });
+    throw error;
   }
 }

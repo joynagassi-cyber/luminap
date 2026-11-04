@@ -11,36 +11,39 @@ importers:
 
   .:
     dependencies:
+      '@capacitor-community/sqlite':
+        specifier: ^8.1.1
+        version: 8.1.1(@capacitor/core@8.6.0)
       '@capacitor/app':
-        specifier: ^7.1.2
-        version: 7.1.2(@capacitor/core@7.6.9)
+        specifier: ^8.1.2
+        version: 8.1.2(@capacitor/core@8.6.0)
       '@capacitor/browser':
-        specifier: ^7.0.5
-        version: 7.0.5(@capacitor/core@7.6.9)
+        specifier: ^8.0.5
+        version: 8.0.5(@capacitor/core@8.6.0)
       '@capacitor/camera':
-        specifier: ^7.0.5
-        version: 7.0.5(@capacitor/core@7.6.9)
+        specifier: ^8.2.6
+        version: 8.2.6(@capacitor/core@8.6.0)
       '@capacitor/filesystem':
-        specifier: ^7.1.9
-        version: 7.1.9(@capacitor/core@7.6.9)
+        specifier: ^8.1.5
+        version: 8.1.5(@capacitor/core@8.6.0)
       '@capacitor/keyboard':
-        specifier: ^7.0.6
-        version: 7.0.6(@capacitor/core@7.6.9)
+        specifier: ^8.0.6
+        version: 8.0.6(@capacitor/core@8.6.0)
       '@capacitor/local-notifications':
-        specifier: 7.0.7
-        version: 7.0.7(@capacitor/core@7.6.9)
+        specifier: ^8.3.1
+        version: 8.3.1(@capacitor/core@8.6.0)
       '@capacitor/network':
-        specifier: ^7.0.4
-        version: 7.0.4(@capacitor/core@7.6.9)
+        specifier: ^8.0.1
+        version: 8.0.1(@capacitor/core@8.6.0)
       '@capacitor/preferences':
-        specifier: ^7.0.4
-        version: 7.0.4(@capacitor/core@7.6.9)
+        specifier: ^8.0.1
+        version: 8.0.1(@capacitor/core@8.6.0)
       '@capacitor/push-notifications':
-        specifier: ^7.0.7
-        version: 7.0.7(@capacitor/core@7.6.9)
+        specifier: ^8.1.3
+        version: 8.1.3(@capacitor/core@8.6.0)
       '@capacitor/share':
-        specifier: ^7.0.4
-        version: 7.0.4(@capacitor/core@7.6.9)
+        specifier: ^8.0.3
+        version: 8.0.3(@capacitor/core@8.6.0)
       '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
@@ -59,12 +62,15 @@ importers:
       '@playwright/test':
         specifier: ^1.63.0
         version: 1.63.0
+      '@powersync/capacitor':
+        specifier: ^0.10.0
+        version: 0.10.0(@capacitor-community/sqlite@8.1.1(@capacitor/core@8.6.0))(@capacitor/core@8.6.0)(@powersync/common@2.5.0)(@powersync/web@2.6.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.5.0(@powersync/common@2.5.0)))
       '@powersync/react':
-        specifier: ^2.0.1
-        version: 2.0.1(@powersync/common@2.2.0)(react@19.2.8)
+        specifier: ^2.2.0
+        version: 2.2.0(@powersync/common@2.5.0)(react@19.2.8)
       '@powersync/web':
-        specifier: ^2.3.0
-        version: 2.3.0(@powersync/common@2.2.0)(@powersync/shared-internals@1.2.0(@powersync/common@2.2.0))
+        specifier: ^2.6.0
+        version: 2.6.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.5.0(@powersync/common@2.5.0))
       '@radix-ui/react-accordion':
         specifier: ^1.2.0
         version: 1.2.4(@types/react-dom@19.2.3(@types/react@19.2.8))(@types/react@19.2.8)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -208,7 +214,7 @@ importers:
         version: 0.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       nitro:
         specifier: 3.0.260610-beta
-        version: 3.0.260610-beta(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1))(xml2js@0.6.2)
+        version: 3.0.260610-beta(@capacitor/preferences@8.0.1(@capacitor/core@8.6.0))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1))(xml2js@0.6.2)
       pdfjs-dist:
         specifier: 6.3.289
         version: 6.3.289
@@ -265,14 +271,14 @@ importers:
         version: 5.0.15(@types/react@19.2.8)(react@19.2.8)(use-sync-external-store@1.7.0(react@19.2.8))
     devDependencies:
       '@capacitor/android':
-        specifier: ^7.6.9
-        version: 7.6.9(@capacitor/core@7.6.9)
+        specifier: ^8.6.0
+        version: 8.6.0(@capacitor/core@8.6.0)
       '@capacitor/cli':
-        specifier: ^7.6.9
-        version: 7.6.9(supports-color@8.1.1)
+        specifier: ^8.6.0
+        version: 8.6.0(supports-color@8.1.1)
       '@capacitor/core':
-        specifier: ^7.6.9
-        version: 7.6.9
+        specifier: ^8.6.0
+        version: 8.6.0
       '@dyad-sh/react-vite-component-tagger':
         specifier: ^0.9.0
         version: 0.9.0(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1))
@@ -472,68 +478,74 @@ packages:
     resolution: {integrity: sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw==}
     hasBin: true
 
-  '@capacitor/android@7.6.9':
-    resolution: {integrity: sha512-jvfU42aOuj92/KJqRscfDm+5612WzJainFL09xjJgD9oI3OMXN4PBfccn8Ig9i8x7bkVqZv/XNwFshiIRqmggg==}
+  '@capacitor-community/sqlite@8.1.1':
+    resolution: {integrity: sha512-wsqscMOMveDeIvB9WHLm38jkUV2317LmuWvvbhvmOB1REdr8GH6weFZpAiKmLimbpP2CQ2eVs8nmRcrTqbd9ng==}
+    engines: {node: '>=16.0.0'}
     peerDependencies:
-      '@capacitor/core': ^7.6.0
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/app@7.1.2':
-    resolution: {integrity: sha512-d4I/oF/PRu4megL7/IGKYfe5j7yzSON1FRFgq6kH+m5kH6g7V+wyjHRLauCzGNjdRx4S+nWOumINds0qcRBtKg==}
+  '@capacitor/android@8.6.0':
+    resolution: {integrity: sha512-6IJS0TCfV/F/8+324CCwYd3xL6r+TH0W7zzaxYzPz9IV3YWCNvsZDuCCPHUIBC5iASb9od827ddSJ6rz+9Pu1Q==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': ^8.6.0
 
-  '@capacitor/browser@7.0.5':
-    resolution: {integrity: sha512-YF/kC1m1e6c81X/agtAnYItVlqiQ/nXLG+Q3QXNDuiMoRynqa3Guu8ZaV9kWvqQcHoE2w18xz7WGpPOuh+R1fA==}
+  '@capacitor/app@8.1.2':
+    resolution: {integrity: sha512-uKBlsrXH0IdvUn69e/KKYbZ32A06pcrUdG8LWuZ/6y33YMXZXLEEdNSwl+jKS/SrsTWqnePs8EqSWaiQM3mUGA==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/camera@7.0.5':
-    resolution: {integrity: sha512-+53f1xHq8on7O+ULXbgWp00ooWvn3fUkWxTP3p5zHi1nVriCxLbYnY0zTpZQqn52M96vclFKkoABbTVQ3x755w==}
+  '@capacitor/browser@8.0.5':
+    resolution: {integrity: sha512-qqcEjUqs9kG1naF+tsD8rERuZ3wuIfXzvoIJEERHI4RNWwNSUqAHHduaKhkyb+t01VyVPa0ydx0mZ/eOskk2Ug==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/cli@7.6.9':
-    resolution: {integrity: sha512-QBDEf38yBAFTJehbi5FvAmhDWV1I/e7Zr3Z6XX0Bj+9T+/OY5EkGbw5/1e+3oIyyeepq3WtdSkLWHs3VNH2gCA==}
-    engines: {node: '>=20.0.0'}
+  '@capacitor/camera@8.2.6':
+    resolution: {integrity: sha512-jzvrMrEKs5ACw1/HmcgN5XwSlXYF+/xRKzWtBUESQs5ePf3tTfnR8Nk/p+aSEgay8yZEI0aZQ+2/1xDwMCdV2w==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
+  '@capacitor/cli@8.6.0':
+    resolution: {integrity: sha512-TyLo1v6AqK39inlB5Edm7eFc+dyk4r+Du5bbyD+cRm/u/3b+LkNIeyp5wwYp3ToO3rWiLs4T/PabXGADO0Rlxg==}
+    engines: {node: '>=22.0.0'}
     hasBin: true
 
-  '@capacitor/core@7.6.9':
-    resolution: {integrity: sha512-4DOh/xySC9S5ryhUIqpOppasIyi2WiTdF0JuZ/2DEs+vf5eunRzHDdNYBp1snA3faHciTw/3SVGXfR+WkYxsMA==}
+  '@capacitor/core@8.6.0':
+    resolution: {integrity: sha512-9F2zzuGYTJu+wqmQSEmqnFBfGrhC/njjMCfmxbvg9mq8xJT4wNh5pxbMFZxvW/yDhYJWPEBFQxeqzfo1gKrvxg==}
 
-  '@capacitor/filesystem@7.1.9':
-    resolution: {integrity: sha512-HBr3NwENo/Fm7Cmm6Cvps255OIdgQ2VXtSNZK+2Nkw0Y7EMid9y5AS9XfEzGmsC7MXbC6Hx2yXV/hvnuifsSXA==}
+  '@capacitor/filesystem@8.1.5':
+    resolution: {integrity: sha512-m1RkI8L83NJeppEKyRWioK3MDp2vjlA+QfUQcF8/xRlcXNC2HYxqoyYJ+K4M0EcVovy+g+4F24S05+bhK4Vgdg==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/keyboard@7.0.6':
-    resolution: {integrity: sha512-mH9EHo4EnBA9zJAi6domGVB/PdEkcm0h27nJDHG4Y3fd2oKsheCxDRXlYrbgj8hcyQPe0cGWqAfzfwKzkWQoFQ==}
+  '@capacitor/keyboard@8.0.6':
+    resolution: {integrity: sha512-Bbe+9V0qaT6dzEFJEK7BUWR01l2+vZE8FM5ITF/WgKtx+G6eGZ6d5+YiSMRJBAK0VGjdO59v8yiQ10Doa5KyvQ==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/local-notifications@7.0.7':
-    resolution: {integrity: sha512-3qSpa8PpVMONHqBOaJ4RbA/lB5vOdEngtep0myGmP3S56gShPScDCotbw7dwmQy3NCdY4Up9nH3ySrGvUh2jZg==}
+  '@capacitor/local-notifications@8.3.1':
+    resolution: {integrity: sha512-F7zu/+p/mIR958YP4axOkeI5hBKRaXDyYjbNPrAil2wWfd7OxScPSTvP9t85NpQ0eULVRu0/sntoxOg6ck477A==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/network@7.0.4':
-    resolution: {integrity: sha512-fNhN3968AQWMnzasPJ0B8e+nyk7+R6V9PWIBQWSQRHrKndDgWRHpxkjEzJPgnJr3EjnKLjbwO+UYy+EwBlGs3A==}
+  '@capacitor/network@8.0.1':
+    resolution: {integrity: sha512-9xK/FHFmzKGanB6BdoSZOzXk8vF0OFVQSQ4PAsIrzAzLuXHryO317qy8dcHVpgxYeuZq2noI0My9z1DvVDi/9w==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/preferences@7.0.4':
-    resolution: {integrity: sha512-TJhkwaI2RCs/iDC9PjNczZV4h6JM4gUtTuKMeFdy0OwGgFEHf4TrtW2mFMc1TnPDalYQ91p9NT+UKgiJs9/xtg==}
+  '@capacitor/preferences@8.0.1':
+    resolution: {integrity: sha512-T6no3ebi79XJCk91U3Jp/liJUwgBdvHR+s6vhvPkPxSuch7z3zx5Rv1bdWM6sWruNx+pViuEGqZvbfCdyBvcHQ==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/push-notifications@7.0.7':
-    resolution: {integrity: sha512-TgFsPV4uOez0RtFKsWPz3XCrLxc9th+UyAkillUY9vL6ezVKT35te9Sn4vGR0jeU2U0KUNU7Dt6oSCALnSiEKg==}
+  '@capacitor/push-notifications@8.1.3':
+    resolution: {integrity: sha512-UlOCTS3uiw8ZUJ1rkFKJgoqPADipHDNn0lq5mNRwtXALVxQXIeIoRd3iqpzC+962R2LpCRJRkCTjPX2OHK3tBA==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
-  '@capacitor/share@7.0.4':
-    resolution: {integrity: sha512-wNXxmXUcChrtbZ5jQv8scFIbIGKo3rk6B7qpWySxfUhYJP5NANgAqQ9Z69m0k/zYsucdh66SBU7XW1ykd9aUug==}
+  '@capacitor/share@8.0.3':
+    resolution: {integrity: sha512-gnvZBV1NPu2B8vd1UKncR56G15ueHd0aZLqgDov++t3SmTBG9Q0VrAZ1VnHn5stxlmglVaTb4RwopMgbpLzroA==}
     peerDependencies:
-      '@capacitor/core': '>=7.0.0'
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
@@ -1185,8 +1197,8 @@ packages:
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
     engines: {node: '>=18.0.0'}
 
-  '@journeyapps/wa-sqlite@2.0.3':
-    resolution: {integrity: sha512-LEnzLL/+6z9AAOJQ1nZD5/lo5xE6ZWpkH/M6S3RAGiM047jDqKvGjx8SkGkG1bRcFbbGApf3RWlHGfrmButXcg==}
+  '@journeyapps/wa-sqlite@2.0.10':
+    resolution: {integrity: sha512-6Wo5ZijOc4/6M9u+MDsJdW8zDCdrct/p+7LcG7S7CT5YKu42j6lshMfUvgtGYMaZeuH7rpQHULZupPTQFqbS0w==}
 
   '@jridgewell/gen-mapping@0.3.8':
     resolution: {integrity: sha512-imAbBGkb+ebQyxKgzv5Hu2nmROxoDOXHh80evxdoXNOrvAnVx7zimzc1Oo5h9RlfV4vPXaE2iM5pOFbvOCClWA==}
@@ -1464,26 +1476,33 @@ packages:
   '@posthog/types@1.412.4':
     resolution: {integrity: sha512-Q7lV9O9TbLngjOYw1ucm3bS3tn48xb1B4ZQdDy8gv7yfKe99hCTeWYG4xZ36nJM80VxpTF9TriiJt5hngDOkBg==}
 
-  '@powersync/common@2.2.0':
-    resolution: {integrity: sha512-TLQE0De9TAniQIyvfkPiim5MHi/nDely7ZT7iSBHY+xtDt5pwelqwmq0IcWSqZnkTagimGXp7p1z5htWwt0Wbw==}
-
-  '@powersync/react@2.0.1':
-    resolution: {integrity: sha512-t2604rFnQlK5LfXUJBD3NCzFozpHSbYwN02CtTiVH8GcFU0SkxM1Mij2103AnqmsAf9o0BOR3vuT07R2UBKJvg==}
+  '@powersync/capacitor@0.10.0':
+    resolution: {integrity: sha512-EQjj1+WIbUmYzEnXjIY2QibecdkPeDHzYUPCUaTwHSsk/jQDoJNxPYHBbgLohPA+S43pPBxjv5pMcy0wYWcR6A==}
     peerDependencies:
-      '@powersync/common': ^2.2.0
+      '@capacitor-community/sqlite': ^8.1.0
+      '@capacitor/core': '>=8.0.0'
+      '@powersync/web': ^2.6.0
+
+  '@powersync/common@2.5.0':
+    resolution: {integrity: sha512-kMlAfrQddGIAFuO7qCyYxf2yxAKdCrwGany9VcHs8Rx9f5KuqxqaCikzq/SC4Evf/f/sTS5eIwczZPPQboTjxw==}
+
+  '@powersync/react@2.2.0':
+    resolution: {integrity: sha512-dp4MksnmHkNuv3mdD4wGdRfT/6GkGxh/FnYVBYmXKXi30YbnnvESQOVuxeWAVO/EUy0PUN+f9JDP8A3o2dXoqQ==}
+    peerDependencies:
+      '@powersync/common': ^2.5.0
       react: '*'
 
-  '@powersync/shared-internals@1.2.0':
-    resolution: {integrity: sha512-wkSgKKcIo9It6axdDBfAJNxzQcfc6hVMlcycxoPSAuMIo/GnXuyi2bl3DpMaZWMutrXlkemPKG3y4nuqxLYpVA==}
+  '@powersync/shared-internals@1.5.0':
+    resolution: {integrity: sha512-dIaMenW6gJNyKzD93d4X4CiBtJxyJ63pvK2CYGjqBtVqubGBt9d+jg6V6JTKw4VLPjFCZh7/zrXMV34wl7kzGw==}
     peerDependencies:
-      '@powersync/common': ^2.2.0
+      '@powersync/common': ^2.5.0
 
-  '@powersync/web@2.3.0':
-    resolution: {integrity: sha512-6NjVRB+RmxlL+insiWOZrpolrAChsfL1MpULv2Impk242y5ZSAdk+lUPn5XBYltsHorhKov8PplbDbL1sAYmIQ==}
+  '@powersync/web@2.6.0':
+    resolution: {integrity: sha512-/B8u/sPHyNiPH1bj+vOfN/9sHlbp9lwQGtS6BHJJjqWlhBaUxzh4xQMydyQcS6puHaDXzddpOlkZIvTLOTLMnw==}
     hasBin: true
     peerDependencies:
-      '@powersync/common': ^2.2.0
-      '@powersync/shared-internals': ^1.2.0
+      '@powersync/common': ^2.5.0
+      '@powersync/shared-internals': ^1.5.0
 
   '@radix-ui/number@1.1.1':
     resolution: {integrity: sha512-MkKCwxlXTgz6CFoJx3pCwn07GKp36+aZyu/u2Ln2VrA5DcdyCZkASEDBTd8x5whTQQL5CiYf4prXKLcgQdv29g==}
@@ -3034,6 +3053,13 @@ packages:
   boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
 
+  bplist-creator@0.1.0:
+    resolution: {integrity: sha512-sXaHZicyEEmY86WyueLTQesbeoH/mquvarJaQNbjuOQO+7gbFcDEWqKmcWA4cOTLzFlfgvkiVxolk1k5bBIpmg==}
+
+  bplist-parser@0.3.1:
+    resolution: {integrity: sha512-PyJxiNtA5T2PlLIeBot4lbp7rj4OadzjnMZD/G5zuBNt8ei/yCU7+wW0h2bag9vr8c+/WuRWmSxbqAl9hL1rBA==}
+    engines: {node: '>= 5.10.0'}
+
   bplist-parser@0.3.2:
     resolution: {integrity: sha512-apC2+fspHGI3mMKj+dGevkGo/tCqVB8jMb6i+OX+E29p0Iposz07fABkRIfVUPNd5A5VbuOz1bZbnmkKLYF+wQ==}
     engines: {node: '>= 5.10.0'}
@@ -3051,6 +3077,9 @@ packages:
   braces@3.0.3:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
+
+  browser-fs-access@0.35.0:
+    resolution: {integrity: sha512-sLoadumpRfsjprP8XzVjpQc0jK8yqHBx0PtUTGYj2fftT+P/t+uyDAQdMgGAPKD011in/O+YYGh7fIs0oG/viw==}
 
   browserslist@4.28.8:
     resolution: {integrity: sha512-V2NpofLblG64mfOtSgDhOJESZEGogzDMBv/q+W6oc4LXWP/q75eOXoOaaOu1EOadB9U4Bwx/e0yzbvwKH8zalA==}
@@ -4147,6 +4176,9 @@ packages:
     resolution: {integrity: sha512-ykkVRwrYvFm1nb2AJfKKYPr0emF6IiXDYUaFx4Zn9ZuIH7MrzEZ3sD5RlqGXNRpHtvUHJyOnCEFxOlNDtGo7wg==}
     engines: {node: 20 || >=22}
 
+  jeep-sqlite@2.8.0:
+    resolution: {integrity: sha512-FWNUP6OAmrUHwiW7H1xH5YUQ8tN2O4l4psT1sLd7DQtHd5PfrA1nvNdeKPNj+wQBtu7elJa8WoUibTytNTaaCg==}
+
   jiti@1.21.7:
     resolution: {integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==}
     hasBin: true
@@ -4233,6 +4265,9 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  lie@3.1.1:
+    resolution: {integrity: sha512-RiNhHysUjhrDQntfYSfY4MU24coXXdEOgw9WGcKHNeEwffDYbF//u87M1EWaMGzuFoSbqW0C9C6lEEhDOAswfw==}
 
   lie@3.3.0:
     resolution: {integrity: sha512-UaiMJzeWRlEujzAuw5LokY1L5ecNQYZKfmyZ9L7wDHb/p5etKaxXhohBcrw0EYby+G/NA52vRSN4N39dxHAIwQ==}
@@ -4321,6 +4356,9 @@ packages:
   listr2@9.0.5:
     resolution: {integrity: sha512-ME4Fb83LgEgwNw96RKNvKV4VTLuXfoKudAmm2lP8Kk87KaMK0/Xrx/aAkMWmT8mDb+3MlFDspfbCs7adjRxA2g==}
     engines: {node: '>=20.0.0'}
+
+  localforage@1.10.0:
+    resolution: {integrity: sha512-14/H1aX7hzBBmmh7sGPd+AOMkkIrHM3Z1PAyGgZigA1H1p5O5ANnMyWzvpAETtG68/dC4pC0ncy3+PPGzXZHPg==}
 
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
@@ -5204,6 +5242,9 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
+  simple-plist@1.3.1:
+    resolution: {integrity: sha512-iMSw5i0XseMnrhtIzRb7XpQEXepa9xhWxGUojHBL43SIpQuDQkh3Wpy67ZbDzZVr6EKxvwVChnVpdl8hEVLDiw==}
+
   simple-swizzle@0.2.4:
     resolution: {integrity: sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw==}
 
@@ -5243,6 +5284,9 @@ packages:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
     engines: {node: '>= 10.x'}
 
+  sql.js@1.15.2:
+    resolution: {integrity: sha512-ZmMYFsZPZWDKIJUh3A5rdnpRV3hB/r7AijwAzSzLnfv/9CSx4obUmDtA8brAjWJWjGtUVh43nIEJ+6nl6HuOUg==}
+
   srvx@0.11.22:
     resolution: {integrity: sha512-LqZxxBDMKuMAZzFzJnDCkFOrs9MZQZr0LvHiO/SuSZVdQaXD7xQ5UWTUxheJrQPve1qk9MG2B/yttUvJxw8egQ==}
     engines: {node: '>=20.16.0'}
@@ -5269,6 +5313,10 @@ packages:
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
+
+  stream-buffers@2.2.0:
+    resolution: {integrity: sha512-uyQK/mx5QjHun80FLJTfaWE7JtwfRMKBLkMne6udYOmvH0CawotVa7TfgYHzAnpphn4+TweIx1QKMnRIbipmUg==}
+    engines: {node: '>= 0.10.0'}
 
   string-width@4.2.3:
     resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
@@ -5830,6 +5878,10 @@ packages:
     resolution: {integrity: sha512-Hl0ZOAs672vg+06kfujwRhoS6/jehvULrlFkuF2dRu6pHgA8U06h3xqNIqNNU1LTXPcedxByAR4GS6pwQK0mgA==}
     engines: {node: '>=20'}
 
+  xcode@4.0.0:
+    resolution: {integrity: sha512-dDaoWzc9EP2fp9FS9PVZUkyvFxY4y1TOV9pcKaKLk++Ei/qb97XDFEVP7GnW7Osii/TzVABJ0jq2F+9/lq0TVA==}
+    engines: {node: '>=14.17.0'}
+
   xlsx@0.18.5:
     resolution: {integrity: sha512-dmg3LCjBPHZnQp5/F/+nnTa+miPJxUXB6vtk42YjBBKayDNagxGEeIdWApkYPOf3Z3pm3k62Knjzp7lMeTEtFQ==}
     engines: {node: '>=0.8'}
@@ -6024,23 +6076,28 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@capacitor/android@7.6.9(@capacitor/core@7.6.9)':
+  '@capacitor-community/sqlite@8.1.1(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
+      jeep-sqlite: 2.8.0
 
-  '@capacitor/app@7.1.2(@capacitor/core@7.6.9)':
+  '@capacitor/android@8.6.0(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/browser@7.0.5(@capacitor/core@7.6.9)':
+  '@capacitor/app@8.1.2(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/camera@7.0.5(@capacitor/core@7.6.9)':
+  '@capacitor/browser@8.0.5(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/cli@7.6.9(supports-color@8.1.1)':
+  '@capacitor/camera@8.2.6(@capacitor/core@8.6.0)':
+    dependencies:
+      '@capacitor/core': 8.6.0
+
+  '@capacitor/cli@8.6.0(supports-color@8.1.1)':
     dependencies:
       '@ionic/cli-framework-output': 2.2.8(supports-color@8.1.1)
       '@ionic/utils-subprocess': 3.0.1(supports-color@8.1.1)
@@ -6058,42 +6115,43 @@ snapshots:
       semver: 7.8.5
       tar: 7.5.22
       tslib: 2.8.1
+      xcode: 4.0.0
       xml2js: 0.6.2
     transitivePeerDependencies:
       - supports-color
 
-  '@capacitor/core@7.6.9':
+  '@capacitor/core@8.6.0':
     dependencies:
       tslib: 2.8.1
 
-  '@capacitor/filesystem@7.1.9(@capacitor/core@7.6.9)':
+  '@capacitor/filesystem@8.1.5(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
       '@capacitor/synapse': 1.0.4
 
-  '@capacitor/keyboard@7.0.6(@capacitor/core@7.6.9)':
+  '@capacitor/keyboard@8.0.6(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/local-notifications@7.0.7(@capacitor/core@7.6.9)':
+  '@capacitor/local-notifications@8.3.1(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/network@7.0.4(@capacitor/core@7.6.9)':
+  '@capacitor/network@8.0.1(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/preferences@7.0.4(@capacitor/core@7.6.9)':
+  '@capacitor/preferences@8.0.1(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/push-notifications@7.0.7(@capacitor/core@7.6.9)':
+  '@capacitor/push-notifications@8.1.3(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
-  '@capacitor/share@7.0.4(@capacitor/core@7.6.9)':
+  '@capacitor/share@8.0.3(@capacitor/core@8.6.0)':
     dependencies:
-      '@capacitor/core': 7.6.9
+      '@capacitor/core': 8.6.0
 
   '@capacitor/synapse@1.0.4': {}
 
@@ -6608,7 +6666,7 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
-  '@journeyapps/wa-sqlite@2.0.3': {}
+  '@journeyapps/wa-sqlite@2.0.10': {}
 
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:
@@ -6783,22 +6841,31 @@ snapshots:
 
   '@posthog/types@1.412.4': {}
 
-  '@powersync/common@2.2.0': {}
-
-  '@powersync/react@2.0.1(@powersync/common@2.2.0)(react@19.2.8)':
+  '@powersync/capacitor@0.10.0(@capacitor-community/sqlite@8.1.1(@capacitor/core@8.6.0))(@capacitor/core@8.6.0)(@powersync/common@2.5.0)(@powersync/web@2.6.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.5.0(@powersync/common@2.5.0)))':
     dependencies:
-      '@powersync/common': 2.2.0
+      '@capacitor-community/sqlite': 8.1.1(@capacitor/core@8.6.0)
+      '@capacitor/core': 8.6.0
+      '@powersync/shared-internals': 1.5.0(@powersync/common@2.5.0)
+      '@powersync/web': 2.6.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.5.0(@powersync/common@2.5.0))
+    transitivePeerDependencies:
+      - '@powersync/common'
+
+  '@powersync/common@2.5.0': {}
+
+  '@powersync/react@2.2.0(@powersync/common@2.5.0)(react@19.2.8)':
+    dependencies:
+      '@powersync/common': 2.5.0
       react: 19.2.8
 
-  '@powersync/shared-internals@1.2.0(@powersync/common@2.2.0)':
+  '@powersync/shared-internals@1.5.0(@powersync/common@2.5.0)':
     dependencies:
-      '@powersync/common': 2.2.0
+      '@powersync/common': 2.5.0
 
-  '@powersync/web@2.3.0(@powersync/common@2.2.0)(@powersync/shared-internals@1.2.0(@powersync/common@2.2.0))':
+  '@powersync/web@2.6.0(@powersync/common@2.5.0)(@powersync/shared-internals@1.5.0(@powersync/common@2.5.0))':
     dependencies:
-      '@journeyapps/wa-sqlite': 2.0.3
-      '@powersync/common': 2.2.0
-      '@powersync/shared-internals': 1.2.0(@powersync/common@2.2.0)
+      '@journeyapps/wa-sqlite': 2.0.10
+      '@powersync/common': 2.5.0
+      '@powersync/shared-internals': 1.5.0(@powersync/common@2.5.0)
       comlink: 4.4.2
       commander: 12.1.0
 
@@ -8237,6 +8304,14 @@ snapshots:
 
   boolbase@1.0.0: {}
 
+  bplist-creator@0.1.0:
+    dependencies:
+      stream-buffers: 2.2.0
+
+  bplist-parser@0.3.1:
+    dependencies:
+      big-integer: 1.6.52
+
   bplist-parser@0.3.2:
     dependencies:
       big-integer: 1.6.52
@@ -8257,6 +8332,8 @@ snapshots:
   braces@3.0.3:
     dependencies:
       fill-range: 7.1.1
+
+  browser-fs-access@0.35.0: {}
 
   browserslist@4.28.8:
     dependencies:
@@ -9371,6 +9448,14 @@ snapshots:
     dependencies:
       '@isaacs/cliui': 9.0.0
 
+  jeep-sqlite@2.8.0:
+    dependencies:
+      '@stencil/core': 4.44.2
+      browser-fs-access: 0.35.0
+      jszip: 3.10.2
+      localforage: 1.10.0
+      sql.js: 1.15.2
+
   jiti@1.21.7: {}
 
   jiti@2.7.0: {}
@@ -9473,6 +9558,10 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
+  lie@3.1.1:
+    dependencies:
+      immediate: 3.0.6
+
   lie@3.3.0:
     dependencies:
       immediate: 3.0.6
@@ -9538,6 +9627,10 @@ snapshots:
       log-update: 6.1.0
       rfdc: 1.4.1
       wrap-ansi: 9.0.2
+
+  localforage@1.10.0:
+    dependencies:
+      lie: 3.1.1
 
   locate-path@6.0.0:
     dependencies:
@@ -9730,7 +9823,7 @@ snapshots:
 
   nf3@0.3.24: {}
 
-  nitro@3.0.260610-beta(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1))(xml2js@0.6.2):
+  nitro@3.0.260610-beta(@capacitor/preferences@8.0.1(@capacitor/core@8.6.0))(dotenv@16.6.1)(jiti@2.7.0)(lru-cache@11.5.2)(rollup@4.63.1)(vite@8.2.2(@types/node@22.14.1)(esbuild@0.27.7)(jiti@2.7.0)(yaml@2.9.1))(xml2js@0.6.2):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.12(srvx@0.11.22)
@@ -9745,7 +9838,7 @@ snapshots:
       rolldown: 1.2.6
       srvx: 0.11.22
       unenv: 2.0.0-rc.24
-      unstorage: 2.0.0-alpha.7(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3)
+      unstorage: 2.0.0-alpha.7(@capacitor/preferences@8.0.1(@capacitor/core@8.6.0))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3)
     optionalDependencies:
       dotenv: 16.6.1
       jiti: 2.7.0
@@ -10529,6 +10622,12 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
+  simple-plist@1.3.1:
+    dependencies:
+      bplist-creator: 0.1.0
+      bplist-parser: 0.3.1
+      plist: 3.1.1
+
   simple-swizzle@0.2.4:
     dependencies:
       is-arrayish: 0.3.4
@@ -10566,6 +10665,8 @@ snapshots:
 
   split2@4.2.0: {}
 
+  sql.js@1.15.2: {}
+
   srvx@0.11.22: {}
 
   ssf@0.11.2:
@@ -10592,6 +10693,8 @@ snapshots:
   std-env@3.10.0: {}
 
   std-env@4.2.0: {}
+
+  stream-buffers@2.2.0: {}
 
   string-width@4.2.3:
     dependencies:
@@ -10843,9 +10946,9 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unstorage@2.0.0-alpha.7(@capacitor/preferences@7.0.4(@capacitor/core@7.6.9))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3):
+  unstorage@2.0.0-alpha.7(@capacitor/preferences@8.0.1(@capacitor/core@8.6.0))(db0@0.3.4)(lru-cache@11.5.2)(ofetch@2.0.0-alpha.3):
     optionalDependencies:
-      '@capacitor/preferences': 7.0.4(@capacitor/core@7.6.9)
+      '@capacitor/preferences': 8.0.1(@capacitor/core@8.6.0)
       db0: 0.3.4
       lru-cache: 11.5.2
       ofetch: 2.0.0-alpha.3
@@ -11044,6 +11147,10 @@ snapshots:
     dependencies:
       is-wsl: 3.1.1
       powershell-utils: 0.1.0
+
+  xcode@4.0.0:
+    dependencies:
+      simple-plist: 1.3.1
 
   xlsx@0.18.5:
     dependencies:

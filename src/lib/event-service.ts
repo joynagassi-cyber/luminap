@@ -6,6 +6,7 @@
 
 import { generateId } from "./utils";
 import { addEventPS, updateEventPS, deleteEventPS } from "./dataLayer";
+import { reportError } from "./observability/errorReporter";
 import { writeAudit, resolveAuditActor } from "./audit";
 import { getOrganizationId } from "./orgContext";
 import type { Event, BudgetItem, ShoppingItem } from "@/types";
@@ -45,7 +46,15 @@ export async function persistAddEvent(newEvent: Event): Promise<void> {
       budget_items: JSON.stringify(newEvent.budgetItems),
     });
   } catch (error) {
-    // Persist failure is non-fatal; offline queue will retry
+    // L'INSERT est LOCAL (PowerSync/SQLite) : s'il échoue, rien n'est « en
+    // file » qui réessaierait. Signaler puis relancer — l'appelant n'enregistre
+    // pas l'événement et l'écran affiche l'erreur (pattern B-05).
+    reportError(error, {
+      type: "database",
+      source: "persist-add-event",
+      context: { eventId: newEvent.id },
+    });
+    throw error;
   }
   // NeverBreak #6 — création d'événement tracée.
   await writeAudit({
@@ -81,7 +90,12 @@ export async function persistUpdateEvent(
   try {
     await updateEventPS(id, data);
   } catch (error) {
-    // Persist failure is non-fatal; offline queue will retry
+    reportError(error, {
+      type: "database",
+      source: "persist-update-event",
+      context: { eventId: id },
+    });
+    throw error;
   }
   // NeverBreak #6 — mise à jour d'événement tracée (avant/après).
   await writeAudit({
@@ -110,7 +124,12 @@ export async function persistDeleteEvent(
   try {
     await deleteEventPS(id);
   } catch (error) {
-    // Persist failure is non-fatal; offline queue will retry
+    reportError(error, {
+      type: "database",
+      source: "persist-delete-event",
+      context: { eventId: id },
+    });
+    throw error;
   }
   // NeverBreak #6 — suppression d'événement tracée.
   await writeAudit({

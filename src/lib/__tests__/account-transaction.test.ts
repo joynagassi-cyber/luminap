@@ -511,10 +511,10 @@ describe("persistReverseTransaction", () => {
     expect(call.org_id).toBe("test-org");
   });
 
-  it("swallows persist errors (non-fatal)", async () => {
+  it("propage les échecs de persistance (écriture locale, pas de file de reprise)", async () => {
     const { addTransactionPS } = await import("@/lib/dataLayer");
     vi.mocked(addTransactionPS).mockRejectedValueOnce(new Error("offline"));
     const tx = makeTx({ id: "rev-1", type: "EXPENSE" });
-    await expect(persistReverseTransaction(tx)).resolves.toBeUndefined();
+    await expect(persistReverseTransaction(tx)).rejects.toThrow("offline");
   });
 });

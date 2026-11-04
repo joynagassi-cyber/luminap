@@ -1,5 +1,28 @@
 # Mémoire projet — Lumina
 
+## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
+- **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
+  `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒
+  base locale non durable sur l'APK. Correctif = `@powersync/capacitor`
+  (SQLite NATIF via `@capacitor-community/sqlite`), qui exige **Capacitor ≥ 8**
+  ⇒ migration 7→8 (tous `@capacitor/*` en 8.x, AGP 8.13.0, Gradle 8.14.3,
+  minSdk 24 / compile+target 36). Import bascule dans `src/lib/powersync/index.ts`.
+- **Cause 2 — porte de disponibilité fermée hors ligne** : `usePowerSyncStatus`
+  (dataLayer.ts) exigeait `status.connected && status.hasSynced`. `hasSynced`
+  est **persisté** (vrai dès la 1re synchro, y compris au boot suivant SANS
+  réseau) ; exiger `connected` ⇒ `isPowerSyncReady()` reste `false` hors ligne
+  pour toujours ⇒ ~40 hooks de lecture retombent sur un repli vide. **Fix : prêt
+  dès `hasSynced === true`, indépendamment de `connected`.**
+- **Erreurs avalées (classe B-05)** : 8 sites d'écriture LOCALE avalaient l'échec
+  (« offline queue will retry » = commentaire FAUX, un INSERT local n'a pas de
+  file). Corrigés → `reportError` + `throw` : `event-service` (add/update/delete),
+  `member-service` (create/update), `versement-service`, `persistReverseTransaction`.
+  Tests `event-group-member` / `account-transaction` / `versement-cotisation`
+  mis au contrat « échouer bruyamment ». Mock `psStore.failNext(msg, match?)`
+  CIBLÉ (sinon l'échec frappait la lecture fail-open `period_locked_until`).
+- **Reste à valider on-device** : pas de Java/SDK dans le conteneur ⇒ build APK
+  + test hors ligne (création locale visible, puis upload à la reconnexion).
+
 ## Environnement d'agent (contraintes lourdes, vérifiées)
 - **Cypress TOURNE en local** (vérifié 2026-11-02) : binaire **16.0.0** +
   **Xvfb installés** dans ce conteneur. Recette :
@@ -151,6 +174,15 @@
 - **Déployable depuis ce conteneur** : jeton admin dans `~/.ps-secrets`
   (`PS_ADMIN_TOKEN`, `PS_DATABASE_PASSWORD`) — **coffre local, jamais commité**.
   `powersync validate` puis `powersync deploy sync-config`.
+  **Si `~/.ps-secrets` absent (constaté 2026-11-04)** : `$POWERSYNC_TOKEN`
+  (env secret, ~152 car.) sert directement de `PS_ADMIN_TOKEN` ; CLI via
+  `npx --yes powersync@0.10.3` (pas d'install globale). Séquence de vérif :
+  `deploy --dry-run` (valide + montre le diff) → `deploy sync-config` →
+  re-`deploy --dry-run` (« matches the deployed sync config ») → `fetch status`
+  (lag ~0) → `fetch config` (compter les branches). `git status` reste propre.
+  **Déployé le 2026-11-04** : streams double-scope multi-org (« Étape 2 »,
+  45 streams, 38 paires de branches `org_memberships` ACTIVE+PENDING) — voir
+  `2026-11-04.md`.
 - **Syntaxe sync-config** : PowerSync refuse les listes littérales
   `IN ('a','b')` → utiliser `OR` chaîné, ou `IN (sous-requête)`.
 - **PIÈGE MAJEUR (R89.b)** : un stream qui filtre par **JOIN** sur la table
@@ -164,6 +196,20 @@
   c'est incident.
 - Client : `src/lib/powersync/schema.ts` doit porter **exactement** les colonnes
   serveur (mapping par nom).
+- **Mode offline de bout en bout — testable EN LOCAL (vérifié 2026-11-04)** :
+  installer deps (`npx --yes pnpm@11 install --frozen-lockfile`), `xvfb`
+  (`sudo apt-get install -y xvfb`), Vite :8080, `.env.local` avec valeurs
+  réelles (gitignoré). Cypress (electron) tourne. `offline-write-sync.cy.ts`
+  → 1/1 (capture `ps_crud`). Le **worker WASM ne se connecte PAS en headless**
+  (résidu R85 : `currentStatus={connected:false}`, file non vidée) — MAIS le
+  helper DEV `__psFlushCrudUpload(5)` **vide la file et la ligne atteint le
+  serveur** (`ok:true`, `ps_crud` 1→0, REST confirme) ⇒ chemin offline→serveur
+  prouvable sans worker.
+- **Écart offline connu (non corrigé)** : `persistReverseTransaction`
+  (`transaction-service.ts:389`) **avale** l'échec d'écriture locale (commentaire
+  « offline queue will retry » FAUX) — asymétrie avec `persistAddTransaction`
+  corrigé (B-05) ; le test `account-transaction.test.ts` verrouille ce
+  comportement. `src/lib/offline/strategy.ts` (OfflineService) est **du code mort**.
 
 ## Base Supabase (hhgovvrnalibhgpakswi)
 - **Instance de DÉVELOPPEMENT**, pas la production : `transactions = 0`,

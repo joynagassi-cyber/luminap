@@ -1,23 +1,21 @@
 ext {
-    // minSdk 21 : Lumina cible les téléphones simples / anciens (5.0+).
-    // Capacitor 7 propose 23 par défaut, mais lit `rootProject.ext.minSdkVersion`
-    // s'il est présent — on conserve donc 21 volontairement (l'app reste
-    // installable sur Android 5.0+ ; Play Store exige targetSdk 24 minimum).
-    minSdkVersion = 21
-    // compileSdk/targetSdk 35 : Capacitor 7 (android) compile contre l'API 35
-    // (VANILLA_ICE_CREAM) — avec 34, `:capacitor-android:compileDebugJavaWithJavac`
-    // échoue (« cannot find symbol VANILLA_ICE_CREAM »).
-    compileSdkVersion = 35
-    targetSdkVersion = 35
-    androidxActivityVersion = '1.9.2'
-    androidxAppCompatVersion = '1.7.0'
-    androidxCoordinatorLayoutVersion = '1.2.0'
-    androidxCoreVersion = '1.15.0'
-    androidxFragmentVersion = '1.8.4'
-    coreSplashScreenVersion = '1.0.1'
-    androidxWebkitVersion = '1.12.1'
+    // Capacitor 8 impose minSdk 24 (Android 7.0). On abandonne minSdk 21 :
+    // d'une part Capacitor 8 / @capacitor-community/sqlite (stockage SQLite
+    // natif de PowerSync) exigent l'API 24, d'autre part la bibliothèque
+    // SQLCipher embarquée ne supporte pas les API antérieures.
+    minSdkVersion = 24
+    // compileSdk/targetSdk 36 : Capacitor 8 (android) compile contre l'API 36.
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    androidxActivityVersion = '1.11.0'
+    androidxAppCompatVersion = '1.7.1'
+    androidxCoordinatorLayoutVersion = '1.3.0'
+    androidxCoreVersion = '1.17.0'
+    androidxFragmentVersion = '1.8.9'
+    coreSplashScreenVersion = '1.2.0'
+    androidxWebkitVersion = '1.14.0'
     junitVersion = '4.13.2'
-    androidxJunitVersion = '1.2.1'
-    androidxEspressoCoreVersion = '3.6.1'
-    cordovaAndroidVersion = '10.1.1'
+    androidxJunitVersion = '1.3.0'
+    androidxEspressoCoreVersion = '3.7.0'
+    cordovaAndroidVersion = '14.0.1'
 }

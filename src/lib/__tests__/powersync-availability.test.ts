@@ -122,6 +122,23 @@ describe("usePowerSyncStatus — borne de disponibilité (P0)", () => {
     expect(isPowerSyncUnavailableNow()).toBe(false);
   });
 
+  it("hasSynced=true HORS LIGNE (connected=false) rend la réplique PRÊTE", () => {
+    // Cœur du correctif hors ligne : `hasSynced` est persisté en base, donc
+    // vrai dès qu'une synchro a eu lieu, même au boot suivant sans réseau.
+    // Exiger `connected` gardait la porte fermée et l'app sur squelettes.
+    ps.sync = {
+      currentStatus: { connected: false, hasSynced: true },
+      registerListener: () => () => {},
+    };
+    renderHook(() => usePowerSyncStatus());
+    expect(isPowerSyncReadyNow()).toBe(true);
+    // …et la borne de disponibilité ne déclare donc PAS l'indisponibilité.
+    act(() => {
+      vi.advanceTimersByTime(30_001);
+    });
+    expect(isPowerSyncUnavailableNow()).toBe(false);
+  });
+
   it("une absence de connexion durable déclenche bien l'indisponibilité", () => {
     ps.sync = {
       currentStatus: { connected: false, hasSynced: false },

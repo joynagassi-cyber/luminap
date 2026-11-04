@@ -1029,7 +1029,15 @@ export function usePowerSyncStatus(): boolean {
 
     const applyStatus = (status: any) => {
       statusRef.current = status;
-      if (status?.connected && status?.hasSynced) {
+      // `hasSynced` est PERSISTÉ en base : il vaut `true` dès qu'au moins une
+      // synchronisation complète a eu lieu, y compris lors des démarrages
+      // ULTÉRIEURS hors ligne (le SDK le recharge depuis SQLite au boot).
+      // On considère donc la réplique prête dès `hasSynced === true`,
+      // INDÉPENDAMMENT de `connected`. Exiger en plus `connected` enfermait
+      // l'app hors ligne dans un état « non prêt » perpétuel : les 40+ écrans
+      // qui lisent `isPowerSyncReady()` restaient sur des squelettes alors que
+      // les données locales étaient bel et bien présentes.
+      if (status?.hasSynced) {
         setReady(true);
         markPowerSyncReady();
       }

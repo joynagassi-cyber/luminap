@@ -1,4 +1,13 @@
-import { PowerSyncDatabase } from "@powersync/web";
+// PowerSyncDatabase vient de `@powersync/capacitor` : ce SDK détecte la
+// plateforme à l'exécution et bascule sur SQLite NATIF (via
+// `@capacitor-community/sqlite`) sur Android/iOS, tout en retombant sur le
+// SDK Web (WA-SQLite) sur navigateur. C'est la correction de la cause racine
+// du hors-ligne cassé sur l'APK : `@powersync/web` seul s'appuie sur IndexedDB
+// / OPFS dans la WebView Android, un stockage que l'OS peut effacer à tout
+// moment (données locales non durables → app vide, pas de synchronisation).
+// Les primitives de schéma (`Schema`, `Table`, `column`) restent importées de
+// `@powersync/web` (le SDK Capacitor étend le SDK Web).
+import { PowerSyncDatabase } from "@powersync/capacitor";
 import { AppSchema } from "./schema";
 import { SupabaseConnector } from "./SupabaseConnector";
 import { supabase } from "@/lib/auth";
