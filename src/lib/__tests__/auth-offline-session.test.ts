@@ -88,7 +88,7 @@ vi.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: () => false, getPlatform: () => "web" },
 }));
 
-import { authService } from "@/lib/auth";
+import { authService, isOfflineLikeError } from "@/lib/auth";
 
 const STORED_SESSION = {
   access_token: "stored-access",
@@ -245,6 +245,33 @@ describe("getSession — local-first (boot hors ligne instantané)", () => {
       session?.access_token,
     );
     expect(authService.getState().user?.id).toBe("user-1");
+  });
+});
+
+describe("isOfflineLikeError — un hoquet serveur ne déconnecte jamais", () => {
+  beforeEach(() => setOnline(true));
+
+  it("classe 5xx et 429 comme transitoires (session préservée)", () => {
+    expect(isOfflineLikeError({ status: 503, message: "Service Unavailable" })).toBe(
+      true,
+    );
+    expect(isOfflineLikeError({ status: 500 })).toBe(true);
+    expect(isOfflineLikeError({ status: 429 })).toBe(true);
+  });
+
+  it("classe AuthRetryableFetchError comme transitoire", () => {
+    expect(
+      isOfflineLikeError({ name: "AuthRetryableFetchError", message: "x" }),
+    ).toBe(true);
+  });
+
+  it("un rejet auth définitif (4xx) reste invalidant", () => {
+    expect(
+      isOfflineLikeError({
+        status: 400,
+        message: "Invalid Refresh Token: Refresh Token Not Found",
+      }),
+    ).toBe(false);
   });
 });
 

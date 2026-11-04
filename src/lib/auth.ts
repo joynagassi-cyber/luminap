@@ -168,6 +168,13 @@ export function isOfflineLikeError(err: unknown): boolean {
   const e = err as { name?: string; message?: string; status?: number } | null;
   if (!e) return false;
   if (e.name === "AuthRetryableFetchError") return true;
+  // Hoquet serveur transitoire (5xx, ou 429 rate-limit) : la session reste
+  // valide, le refresh réussira au prochain passage. Déconnecter ici
+  // produirait une déconnexion spurieuse lors d'une simple indisponibilité
+  // Supabase. Un rejet auth définitif est un 4xx (ex. 400 invalid_grant).
+  if (typeof e.status === "number" && (e.status >= 500 || e.status === 429)) {
+    return true;
+  }
   const msg = String(e.message ?? "");
   if (/invalid refresh token|refresh token not found/i.test(msg)) return false;
   return /failed to fetch|network|fetch|timeout|timed out|connexion|connection|load failed/i.test(
