@@ -6,6 +6,9 @@ import { IonRouterOutlet } from "@ionic/react";
 import { Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
+import { resumePowerSync } from "@/lib/powersync";
+import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
 import { SyncStatusNotifier } from "./components/SyncStatusNotifier";
@@ -337,6 +340,56 @@ const AppUrlOpenBridge = () => {
 };
 
 /**
+ * AppLifecycleBridge — REPRISE AU RETOUR AU PREMIER PLAN (produit).
+ *
+ * Objectif : « je quitte l'app et je reviens, le compte ne doit pas se
+ * déconnecter » + la sync reprend toute seule. En arrière-plan, Android gèle
+ * la WebView : la connexion de sync peut tomber et l'état mémoire d'auth peut
+ * être perdu. Au retour (`isActive`), on :
+ *   - `resumeSession()` : recharge/rafraîchit la session SANS jamais
+ *     déconnecter (voir authService.resumeSession) ;
+ *   - `resumePowerSync()` : relance la connexion de sync si nécessaire.
+ *
+ * Le même travail est fait sur `visibilitychange` (retour au premier plan sur
+ * le WEB — `appStateChange` n'existe que sur natif). No-op ailleurs.
+ */
+const AppLifecycleBridge = () => {
+  useEffect(() => {
+    const onResume = () => {
+      void authService.resumeSession();
+      void resumePowerSync();
+    };
+
+    let handle: { remove: () => Promise<void> | void } | undefined;
+    let active = true;
+    if (Capacitor.isNativePlatform()) {
+      void CapacitorApp.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) onResume();
+      })
+        .then((h) => {
+          if (active) handle = h;
+          else void h.remove();
+        })
+        .catch(() => {
+          /* plugin unavailable — ignore */
+        });
+    }
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") onResume();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      void handle?.remove();
+    };
+  }, []);
+  return null;
+};
+
+/**
  * UsageStatsBridge — statistiques d'usage ANONYMISÉES (PR15).
  *
  * Enregistre l'usage des ÉCRANS clés (liste blanche dans `usageStats.ts`) à
@@ -481,6 +534,7 @@ const App = () => {
           <RouteGuard />
           <AppReadyBridge />
           <AppUrlOpenBridge />
+          <AppLifecycleBridge />
           {/* PR15 — UsageStatsBridge DOIT être monté SOUS le Router : il
               appelle `useLocation()`. Monté hors de <IonReactRouter> (comme
               `SentryUserBridge`), il lève « useLocation() may be used only in

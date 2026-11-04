@@ -71,6 +71,17 @@ const TOKEN_RENEWAL_BUFFER_MS = 5 * 60 * 1000;
 // Session validation interval (check every 60 seconds)
 const SESSION_CHECK_INTERVAL_MS = 60 * 1000;
 
+// Budget du rafraîchissement de session au BOOT / au retour au premier plan.
+//
+// `supabase.auth.getSession()` attend `_recoverAndRefresh()` qui, quand le
+// token est expiré (cas normal : `expires_at` ≈ +1 h), fait un `POST /token`
+// RÉSEAU **sans timeout** avant de rendre la main. Au démarrage hors ligne
+// (ou sur réseau lent), c'est ce `await` qui bloquait le boot (splash long /
+// écran noir) — la session persistée n'était consultée qu'APRÈS l'échec.
+// On borne donc ce rafraîchissement : au-delà, on retombe sur la session
+// persistée et l'app démarre en local, la sync reprenant au retour du réseau.
+const SESSION_REFRESH_BOOT_TIMEOUT_MS = 4 * 1000;
+
 // Soft-logout backup key. On sign-out the active session is cleared locally
 // (and NOT revoked server-side), but its tokens are copied here first so
 // « Mes comptes » (/sessions) can restore the session with a single click —
@@ -157,6 +168,13 @@ export function isOfflineLikeError(err: unknown): boolean {
   const e = err as { name?: string; message?: string; status?: number } | null;
   if (!e) return false;
   if (e.name === "AuthRetryableFetchError") return true;
+  // Hoquet serveur transitoire (5xx, ou 429 rate-limit) : la session reste
+  // valide, le refresh réussira au prochain passage. Déconnecter ici
+  // produirait une déconnexion spurieuse lors d'une simple indisponibilité
+  // Supabase. Un rejet auth définitif est un 4xx (ex. 400 invalid_grant).
+  if (typeof e.status === "number" && (e.status >= 500 || e.status === 429)) {
+    return true;
+  }
   const msg = String(e.message ?? "");
   if (/invalid refresh token|refresh token not found/i.test(msg)) return false;
   return /failed to fetch|network|fetch|timeout|timed out|connexion|connection|load failed/i.test(
@@ -259,24 +277,72 @@ class AuthService {
 
   // Get current session with validation.
   //
-  // Repli offline-first : quand le SDK ne rend pas de session (token
-  // expiré + refresh impossible sans réseau), on retombe sur la session
-  // PERSISTÉE (`sb-…-auth-token`) si elle existe encore. RouteGuard et
-  // Splash s'appuient sur cette méthode pour décider dashboard vs /auth :
-  // sans ce repli, un démarrage hors ligne avec un token expiré renvoyait
-  // vers l'écran de connexion, inutilisable sans réseau. Un sign-out
-  // explicite vide le stockage → ce repli ne ressuscite aucune session ;
-  // un refresh token réellement révoqué sera invalidé au retour en ligne
-  // (`validateCurrentSession` / événement SIGNED_OUT).
+  // LOCAL-FIRST : la session PERSISTÉE (`sb-…-auth-token`) est rendue
+  // IMMÉDIATEMENT, sans jamais attendre le réseau. RouteGuard et Splash
+  // s'appuient sur cette méthode au MONTAGE : c'est ce qui rend le boot
+  // instantané hors ligne (avant, l'`await supabase.auth.getSession()` en
+  // tête attendait un refresh réseau NON borné quand le token était expiré
+  // → splash long / écran noir). Le refresh réseau est déclenché en
+  // ARRIÈRE-PLAN (fire-and-forget) pour renouveler le token sans bloquer.
+  //
+  // Un sign-out explicite vide le stockage → ce repli ne ressuscite aucune
+  // session ; un refresh token réellement révoqué sera invalidé au retour en
+  // ligne (`validateCurrentSession` / événement SIGNED_OUT).
   async getSession(): Promise<Session | null> {
+    const stored = readStoredSession();
+    if (stored) {
+      // Hydrate l'état singleton (sans effet de bord : pas de `profile` →
+      // `setState` ne touche ni le stockage ni le contexte d'org). Sans cela,
+      // les consommateurs qui lisent `getState().session` (ex. `AppContext`)
+      // voyaient `null` au boot alors que la session persistée existe.
+      if (this.state.session?.access_token !== stored.access_token) {
+        this.setState({ session: stored, user: stored.user, isLoading: false });
+      }
+      // Rafraîchissement opportuniste, jamais bloquant : le token expiré est
+      // renouvelé si le réseau répond, sinon on garde la session locale et
+      // la sync reprendra au retour du réseau.
+      if (this.isSessionExpiredOrExpiring(stored) && !isBrowserOffline()) {
+        void this.refreshStoredSessionInBackground(stored);
+      }
+      return stored;
+    }
+    // Aucune session persistée (ou sign-out) : le SDK fait foi. On BORNE
+    // l'attente réseau — sans session locale à quoi retomber, on ne bloque
+    // pas le boot plus de SESSION_REFRESH_BOOT_TIMEOUT_MS.
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session) return session;
-      return readStoredSession();
-    } catch (err) {
-      return readStoredSession();
+      const result = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), SESSION_REFRESH_BOOT_TIMEOUT_MS),
+        ),
+      ]);
+      return result?.data?.session ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Rafraîchit la session persistée sans bloquer l'appelant. Sur un refresh
+   * proactif qui échoue pour cause RÉSEAU, supabase-js PRÉSERVE la session
+   * (le token d'accès reste utilisable jusqu'à sa vraie expiration) : on ne
+   * déconnecte donc jamais ici. On n'appelle pas `handleSessionInvalidated`
+   * non plus — un refresh token réellement révoqué est traité par
+   * `validateCurrentSession` (rejet auth explicite) et l'événement SIGNED_OUT.
+   */
+  private async refreshStoredSessionInBackground(
+    session: Session,
+  ): Promise<void> {
+    try {
+      await Promise.race([
+        supabase.auth.refreshSession({ refresh_token: session.refresh_token }),
+        new Promise<null>((resolve) =>
+          setTimeout(() => resolve(null), SESSION_REFRESH_BOOT_TIMEOUT_MS),
+        ),
+      ]);
+    } catch {
+      // Réseau indisponible / refresh en échec : la session locale reste la
+      // source de vérité hors ligne. Aucune déconnexion.
     }
   }
 
@@ -1094,6 +1160,41 @@ class AuthService {
     }
   }
 
+  /**
+   * Reprise au RETOUR AU PREMIER PLAN (`appStateChange` → `isActive`).
+   *
+   * Objectif produit : « je quitte l'app et je reviens → je reste connecté ».
+   * Cette méthode ne déconnecte JAMAIS :
+   *   1. Si une session est déjà en mémoire, on rafraîchit le token en
+   *      arrière-plan (borné) et on s'arrête là.
+   *   2. Sinon, on recharge la session PERSISTÉE si elle est encore là (état
+   *      mémoire perdu au passage en arrière-plan). On ne touche PAS au backup
+   *      soft-session : un utilisateur qui a volontairement quitté (page
+   *      « Mes comptes ») ne doit pas être reconnecté de force — ce backup ne
+   *      sert qu'à la restauration explicite d'un clic sur /sessions.
+   * Un échec réseau est simplement ignoré : la vérité serveur se
+   * réconciliera au retour du réseau (`validateCurrentSession`).
+   */
+  async resumeSession(): Promise<void> {
+    const current = this.state.session;
+    if (current) {
+      if (this.isSessionExpiredOrExpiring(current) && !isBrowserOffline()) {
+        void this.refreshStoredSessionInBackground(current);
+      }
+      return;
+    }
+    if (isBrowserOffline()) return;
+
+    // Pas de session en mémoire (état perdu au passage en arrière-plan) : on
+    // tente de la reconstruire depuis le stockage persistant uniquement.
+    const stored = readStoredSession();
+    if (stored) {
+      this.setState({ session: stored, user: stored.user, isLoading: false });
+      this.notifyListeners();
+      this.startSessionValidation();
+    }
+  }
+
   // Update profile
   async updateProfile(
     updates: Partial<Pick<Profile, "first_name" | "last_name" | "role">>,
@@ -1227,15 +1328,15 @@ class AuthService {
         });
       } else if (
         event !== "SIGNED_OUT" &&
-        isBrowserOffline() &&
+        // Une session persistée encore présente prouve que l'utilisateur ne
+        // s'est PAS déconnecté (un signOut explicite vide ce stockage). On
+        // conserve donc l'état courant quel que soit `navigator.onLine` : un
+        // refresh qui échoue alors que le navigateur se croit EN LIGNE (réseau
+        // captif, serveur lent/5xx, réponse perdue) émet une session `null` et
+        // déconnectait l'utilisateur à tort. La vérité serveur se réconcilie
+        // au retour du réseau ; un vrai SIGNED_OUT purge toujours l'état.
         readStoredSession()
       ) {
-        // Hors ligne, supabase-js peut émettre une session `null` après un
-        // refresh raté (réseau) alors que l'utilisateur ne s'est pas
-        // déconnecté. Si la session persistée est toujours là, on conserve
-        // l'état courant : l'accès local (offline-first) prime, la vérité
-        // serveur sera réconciliée au retour du réseau. Un SIGNED_OUT
-        // explicite purge toujours l'état.
         this.setState({ isLoading: false });
       } else {
         this.setState({

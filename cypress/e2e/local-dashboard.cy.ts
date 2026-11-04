@@ -84,4 +84,46 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
     // (probed DOM) — there is no IonTitle on these screens.
     cy.get('h1', { timeout: 15_000 }).should('contain', 'Finance');
   });
+
+  it('démarre hors ligne avec une session EXPIRÉE (local-first, sans blocage réseau)', function () {
+    this.timeout(90_000);
+
+    cy.seedLocalSession();
+    // Boot une première fois (établit la fenêtre + l'origine).
+    cy.visit('/dashboard');
+
+    // Rend le refresh du token INJOIGNABLE quel que soit l'hôte Supabase
+    // (agnostique au projectRef) et le fait échouer comme une PANNE RÉSEAU
+    // (`ECONNABORTED` ⇒ `AuthRetryableFetchError`) : c'est le seul cas où
+    // supabase-js PRÉSERVE la session. Un rejet auth réel (« Invalid Refresh
+    // Token ») tuerait la session — à raison. `interceptCloud()` (before) ne
+    // matche que l'hôte de repli ; cette interception-ci est host-agnostique.
+    cy.intercept({ method: 'POST', url: '**/auth/v1/token**' }, (req) => {
+      req.reply({ errorCode: 'ECONNABORTED', body: 'offline' });
+    });
+
+    // Reproduit le cas réel : le token d'accès a expiré (durée de vie ~1 h).
+    // AVANT le correctif local-first, `getSession()` attendait un refresh
+    // réseau NON borné avant de retomber sur la session persistée → boot
+    // bloqué hors ligne. On rend donc le token expiré PUIS on recharge.
+    cy.window().then((win) => {
+      const key = Object.keys(win.localStorage).find((k) =>
+        /-auth-token$/.test(k),
+      );
+      if (!key) throw new Error('session seedée introuvable en localStorage');
+      const raw = JSON.parse(win.localStorage.getItem(key)!);
+      raw.expires_at = Math.floor(Date.now() / 1000) - 3600;
+      win.localStorage.setItem(key, JSON.stringify(raw));
+    });
+
+    cy.reload();
+
+    // Le shell rend sans réseau : la session persistée (expirée) suffit à
+    // franchir le RouteGuard. Un boot bloqué afficherait le skeleton
+    // « Chargement… » indéfiniment et échouerait ici.
+    cy.get('button[aria-label="Voir les détails de la caisse principale"]', {
+      timeout: 40_000,
+    }).should('be.visible');
+    cy.location('pathname').should('include', 'dashboard');
+  });
 });

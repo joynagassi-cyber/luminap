@@ -651,3 +651,30 @@ export async function disconnectPowerSync(): Promise<void> {
     _connector = null;
   }
 }
+
+/**
+ * Reprend la synchronisation au RETOUR AU PREMIER PLAN de l'app.
+ *
+ * Sur Android, l'OS gèle la WebView en arrière-plan : la connexion de sync
+ * peut être tombée. Sans ce réveil, l'utilisateur qui quitte puis revient à
+ * l'app attend une reprise qui n'arrive pas — l'app paraît « figée sur des
+ * données anciennes » alors que le réseau est là.
+ *
+ * IMPORTANT : ne JAMAIS couper une connexion SAINE. Le web déclenche ce
+ * réveil à chaque retour d'onglet (`visibilitychange`) : un
+ * `disconnect()`/`connect()` aveugle interromprait un téléchargement en cours.
+ * On se contente donc de re-mirer la session, et on ne relance `connect()` que
+ * si la connexion est réellement fermée. Idempotent, non bloquant, les erreurs
+ * réseau (hors ligne) sont avalées — la sync reprendra au prochain `online`.
+ */
+export async function resumePowerSync(): Promise<void> {
+  if (!_db || !_connector) return;
+  mirrorAppSessionIntoConnector();
+  if (_db.connected || _db.connecting) return;
+  try {
+    await _db.connect(_connector);
+    await subscribeOrgStreams();
+  } catch (error) {
+    console.debug("[PowerSync] resume failed (will retry):", error);
+  }
+}

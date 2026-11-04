@@ -88,7 +88,7 @@ vi.mock("@capacitor/core", () => ({
   Capacitor: { isNativePlatform: () => false, getPlatform: () => "web" },
 }));
 
-import { authService } from "@/lib/auth";
+import { authService, isOfflineLikeError } from "@/lib/auth";
 
 const STORED_SESSION = {
   access_token: "stored-access",
@@ -201,5 +201,176 @@ describe("validateCurrentSession — ne jamais déconnecter hors ligne", () => {
 
     expect(sb.signOut).toHaveBeenCalled();
     expect(authService.getState().session).toBeNull();
+  });
+});
+
+describe("getSession — local-first (boot hors ligne instantané)", () => {
+  it("rend la session persistée SANS appeler le SDK (aucun réseau bloquant)", async () => {
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    // Le SDK ne résout JAMAIS : s'il était attendu, getSession resterait
+    // bloqué. C'est précisément la cause du splash long hors ligne.
+    sb.getSession.mockImplementation(() => new Promise(() => {}));
+    sb.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "Failed to fetch", name: "AuthRetryableFetchError" },
+    });
+    setOnline(true);
+
+    const session = await authService.getSession();
+
+    expect(session?.user?.id).toBe("user-1");
+    expect(sb.getSession).not.toHaveBeenCalled();
+  });
+
+  it("sans session persistée : borne l'attente réseau du SDK (ne bloque pas le boot)", async () => {
+    vi.useFakeTimers();
+    try {
+      sb.getSession.mockImplementation(() => new Promise(() => {})); // ne résout jamais
+      const p = authService.getSession();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await p).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("hydrate l'état singleton avec la session persistée (consommateurs hors RouteGuard)", async () => {
+    (authService as any).state.session = null;
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    const session = await authService.getSession();
+
+    expect(authService.getState().session?.access_token).toBe(
+      session?.access_token,
+    );
+    expect(authService.getState().user?.id).toBe("user-1");
+  });
+});
+
+describe("isOfflineLikeError — un hoquet serveur ne déconnecte jamais", () => {
+  beforeEach(() => setOnline(true));
+
+  it("classe 5xx et 429 comme transitoires (session préservée)", () => {
+    expect(isOfflineLikeError({ status: 503, message: "Service Unavailable" })).toBe(
+      true,
+    );
+    expect(isOfflineLikeError({ status: 500 })).toBe(true);
+    expect(isOfflineLikeError({ status: 429 })).toBe(true);
+  });
+
+  it("classe AuthRetryableFetchError comme transitoire", () => {
+    expect(
+      isOfflineLikeError({ name: "AuthRetryableFetchError", message: "x" }),
+    ).toBe(true);
+  });
+
+  it("un rejet auth définitif (4xx) reste invalidant", () => {
+    expect(
+      isOfflineLikeError({
+        status: 400,
+        message: "Invalid Refresh Token: Refresh Token Not Found",
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("resumeSession — retour au premier plan sans déconnexion", () => {
+  afterEach(() => {
+    (authService as any).stopSessionValidation();
+  });
+
+  it("session en mémoire : conserve la session (aucun signOut)", async () => {
+    (authService as any).state.session = {
+      ...STORED_SESSION,
+      expires_at: Math.floor(Date.now() / 1000) + 60,
+    };
+    sb.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "Failed to fetch", name: "AuthRetryableFetchError" },
+    });
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(authService.getState().session).not.toBeNull();
+  });
+
+  it("état mémoire perdu + session persistée : restaure sans signOut", async () => {
+    (authService as any).state.session = null;
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(authService.getState().session?.user?.id).toBe("user-1");
+  });
+
+  it("hors ligne : ne tente rien et ne déconnecte pas", async () => {
+    (authService as any).state.session = null;
+    setOnline(false);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+  });
+
+  it("ne ressuscite PAS un compte volontairement quitté (backup ignoré)", async () => {
+    (authService as any).state.session = null;
+    // Backup soft-session présent (compte quitté via « Mes comptes ») mais
+    // AUCUNE session active persistée : la reprise ne doit pas reconnecter.
+    localStorage.setItem(
+      "lumina-session-backup",
+      JSON.stringify({
+        userId: "user-1",
+        access_token: "backup-access",
+        refresh_token: "backup-refresh",
+      }),
+    );
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(sb.refreshSession).not.toHaveBeenCalled();
+    expect(authService.getState().session).toBeNull();
+  });
+});
+
+describe("onAuthStateChange — pas de déconnexion sur session nulle spurieuse", () => {
+  it("session nulle EN LIGNE + session persistée → état conservé", () => {
+    (authService as any).state.session = { ...STORED_SESSION };
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    const unsub = authService.subscribe(() => {});
+    // Callback enregistré par `subscribe` (mock supabase).
+    const cb = (sb.onAuthStateChange as any).mock.calls[0][0] as (
+      e: string,
+      s: unknown,
+    ) => void;
+    // Événement non-SIGNED_OUT avec session nulle (refresh raté alors que le
+    // navigateur se croit en ligne) : on ne doit PAS vider l'état.
+    cb("TOKEN_REFRESHED", null);
+
+    expect(authService.getState().session).not.toBeNull();
+    unsub();
+  });
+
+  it("SIGNED_OUT explicite → état purgé", () => {
+    (authService as any).state.session = { ...STORED_SESSION };
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+
+    const unsub = authService.subscribe(() => {});
+    const cb = (sb.onAuthStateChange as any).mock.calls[0][0] as (
+      e: string,
+      s: unknown,
+    ) => void;
+    cb("SIGNED_OUT", null);
+
+    expect(authService.getState().session).toBeNull();
+    unsub();
   });
 });
