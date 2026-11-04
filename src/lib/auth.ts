@@ -284,6 +284,13 @@ class AuthService {
   async getSession(): Promise<Session | null> {
     const stored = readStoredSession();
     if (stored) {
+      // Hydrate l'état singleton (sans effet de bord : pas de `profile` →
+      // `setState` ne touche ni le stockage ni le contexte d'org). Sans cela,
+      // les consommateurs qui lisent `getState().session` (ex. `AppContext`)
+      // voyaient `null` au boot alors que la session persistée existe.
+      if (this.state.session?.access_token !== stored.access_token) {
+        this.setState({ session: stored, user: stored.user, isLoading: false });
+      }
       // Rafraîchissement opportuniste, jamais bloquant : le token expiré est
       // renouvelé si le réseau répond, sinon on garde la session locale et
       // la sync reprendra au retour du réseau.

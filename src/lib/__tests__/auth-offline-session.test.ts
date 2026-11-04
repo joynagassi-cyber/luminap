@@ -233,6 +233,19 @@ describe("getSession — local-first (boot hors ligne instantané)", () => {
       vi.useRealTimers();
     }
   });
+
+  it("hydrate l'état singleton avec la session persistée (consommateurs hors RouteGuard)", async () => {
+    (authService as any).state.session = null;
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    const session = await authService.getSession();
+
+    expect(authService.getState().session?.access_token).toBe(
+      session?.access_token,
+    );
+    expect(authService.getState().user?.id).toBe("user-1");
+  });
 });
 
 describe("resumeSession — retour au premier plan sans déconnexion", () => {
