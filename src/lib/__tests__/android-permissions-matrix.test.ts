@@ -73,8 +73,21 @@ describe("A1 — manifeste Android conforme à la matrice §1.2", () => {
 });
 
 describe("A1 — capacitor.config.ts : aucune config fantôme, défauts durcis", () => {
-  it("ne configure aucun plugin (C-01 : pas de bloc pour plugin absent)", () => {
-    expect(capConfig).not.toMatch(/^\s*plugins\s*:/m);
+  it("ne configure que des plugins installés — ensemble exact (C-01, liste blanche A3)", () => {
+    const block = capConfig.match(/plugins:\s*\{([\s\S]*?)\n {2}\},/);
+    if (!block) {
+      throw new Error("bloc plugins introuvable dans capacitor.config.ts");
+    }
+    const keys = [...block[1].matchAll(/^\s+([A-Z][A-Za-z]*):\s*\{/gm)].map(
+      (m) => m[1],
+    );
+    expect(keys.sort()).toEqual(["Keyboard", "SplashScreen"]);
+
+    // Chaque clé configurée correspond à un paquet réellement installé :
+    // une config pour un plugin absent serait ignorée en silence (C-01).
+    const pkg = read("package.json");
+    expect(pkg).toContain('"@capacitor/keyboard"');
+    expect(pkg).toContain('"@capacitor/splash-screen"');
   });
 
   it("logs et debug WebView restent coupés hors variante diagnostic (C-05)", () => {
