@@ -24,6 +24,7 @@ import { generateId } from "@/lib/utils";
 import { getOrganizationId } from "@/lib/orgContext";
 import { getCurrentActorId } from "@/lib/auth";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import { haptics } from "@/lib/haptics";
 import { useOnlineStatus } from "@/lib/dataLayer";
 import { policy } from "@/capabilities/policy";
 import { notification } from "@/capabilities/notification";
@@ -224,6 +225,7 @@ export default function TransactionNew() {
       // PR13 — période comptable close : message FR explicite, l'utilisateur
       // corrige la date ou demande la réouverture ; pas d'écran muet.
       setSubmitting(false);
+      haptics.error();
       setError(
         periodLockMessage(
           e,
@@ -274,6 +276,8 @@ export default function TransactionNew() {
       }).catch(() => {});
     }
 
+    // C-03 (A3) — retour haptique d'enregistrement (natif uniquement).
+    haptics.success();
     navigate(`/transaction/${txId}`);
   };
 
