@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  C-07a — Sauvegarde Android : AUCUNE donnée applicative ne doit sortir.
+  La base SQLite locale contient des données financières (transactions,
+  caisses, membres) appartenant à des tiers ; `Preferences`/`localStorage`
+  contiennent des jetons de session NON chiffrés.
+
+  Ce fichier couvre l'ancien mécanisme (`fullBackupContent`, API 23–30) ;
+  `data_extraction_rules.xml` couvre API 31+. Les deux sont déclarés dans
+  AndroidManifest.xml, avec `allowBackup="false"` en défense en profondeur
+  (une ROM constructeur peut ignorer partiellement l'un des deux mécanismes).
+-->
+<full-backup-content>
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="external" path="." />
+    <exclude domain="root" path="." />
+    <exclude domain="cache" path="." />
+</full-backup-content>

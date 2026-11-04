@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { captureClientError } from "@/lib/clientErrors";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
 import type { ArchivableEntity, Group, Member, Event } from "@/types";
@@ -14,6 +15,7 @@ import {
 import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
 import { purgeEntity, purgeAllArchived } from "@/lib/trash";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
+import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import {
   Users,
   Search,
@@ -150,7 +152,10 @@ export default function Archives() {
       setArchivedMembers(members.items);
       setArchivedEvents(events.items);
       return true;
-    } catch {
+    } catch (error) {
+      // Ne jamais avaler : sans trace, la liste vide d'erreur était identique
+      // à « aucune archive ».
+      captureClientError(error, { message: "Échec du chargement des archives" });
       setLoadError(true);
       return false;
     } finally {
@@ -161,6 +166,14 @@ export default function Archives() {
   useEffect(() => {
     loadArchived();
   }, [retryCount, loadArchived]);
+
+  // A5 — un élément restauré/supprimé ailleurs ne se voyait qu'après un
+  // rechargement de l'application : la page reste montée dans la pile Ionic.
+  useRefreshOnViewEnter(loadArchived, {
+    label: "archives",
+    onError: (error) =>
+      captureClientError(error, { message: "Échec du rechargement des archives" }),
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<

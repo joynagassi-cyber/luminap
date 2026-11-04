@@ -67,7 +67,9 @@
 
   /* Safe area insets (Capacitor mobile) */
   --ion-safe-area-top: env(safe-area-inset-top, 0px);
-  --ion-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  /* C-09 : le bas est fourni par le NATIF (MainActivity applique les insets
+     système en padding de la WebView). `env()` ici doublerait la marge. */
+  --ion-safe-area-bottom: 0px;
   --ion-safe-area-left: env(safe-area-inset-left, 0px);
   --ion-safe-area-right: env(safe-area-inset-right, 0px);
 

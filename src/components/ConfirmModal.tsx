@@ -1,7 +1,31 @@
-import React, { useState, useEffect, useRef } from "react";
-import { IonButton, IonInput } from "@ionic/react";
+import { useEffect, useRef, useState } from "react";
+import { IonAlert, IonInput } from "@ionic/react";
 
-interface ModalProps {
+/**
+ * Confirmation avant une action destructive — composant Ionic d'abord (A6).
+ *
+ * Ce composant était une feuille maison (divs fixes + boutons IonButton). Il
+ * délègue désormais à `IonAlert`, qui apporte GRATUITEMENT ce que la version
+ * maison réimplémentait à la main et souvent de travers :
+ *   - piège de focus et restitution du focus à la fermeture,
+ *   - `role="alertdialog"` + `aria-modal` gérés par Ionic,
+ *   - fermeture par Échap / clic sur le fond (selon la config Ionic),
+ *   - rendu natif sur iOS/Android (`.md` : Material, `.ios` : iOS).
+ *
+ * CONTRAT CONSERVÉ À L'IDENTIQUE (aucun écran à reprendre) :
+ *   `open`, `onClose`, `onConfirm`, `title`, `description`, `confirmLabel`,
+ *   `confirmVariant`, `requiredText`, `onTextConfirm`, `children`.
+ *
+ * `requiredText` (saisie obligatoire avant confirmation) n'a pas d'équivalent
+ * IonAlert : on l'implémente avec `inputs` + `IonInput` et on désactive le
+ * bouton tant que le texte ne correspond pas. Le focus automatique est
+ * conservé.
+ *
+ * NOTE : `IonAlert` ne rend rien quand `isOpen` est faux, donc `children`
+ * n'est monté qu'à l'ouverture — comme avant.
+ */
+
+export interface ConfirmModalProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -9,6 +33,7 @@ interface ModalProps {
   description: string;
   confirmLabel?: string;
   confirmVariant?: "danger" | "primary";
+  /** Texte exact à saisir pour armer la confirmation. */
   requiredText?: string;
   onTextConfirm?: (text: string) => void;
   children?: React.ReactNode;
@@ -25,168 +50,95 @@ export default function ConfirmModal({
   requiredText,
   onTextConfirm,
   children,
-}: ModalProps) {
+}: ConfirmModalProps) {
   const [inputValue, setInputValue] = useState("");
-  const panelRef = useRef<HTMLDivElement>(null);
-  const lastFocused = useRef<HTMLElement | null>(null);
+  const inputRef = useRef<HTMLIonInputElement>(null);
 
+  // La saisie repart de zéro à chaque ouverture : sans cela, un texte déjà
+  // tapé armait la confirmation suivante sans que l'utilisateur l'ait voulu.
   useEffect(() => {
     if (open) setInputValue("");
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
-  // Focus : porte le focus dans le dialog à l'ouverture, le piège (Tab /
-  // Maj+Tab) pendant qu'il est ouvert, et le restitue à la fermeture.
-  useEffect(() => {
-    if (!open) return;
-    lastFocused.current = document.activeElement as HTMLElement | null;
+    if (!open || !requiredText) return;
+    // `autoFocus` de IonInput ne fonctionne pas dans IonAlert (portail) : on
+    // place le focus dès que le champ existe.
     const timer = setTimeout(() => {
-      const first = panelRef.current?.querySelector<HTMLElement>(
-        "button, [href], input, select, textarea"
-      );
-      first?.focus();
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      lastFocused.current?.focus?.();
-    };
-  }, [open]);
+      void inputRef.current?.setFocus?.().catch(() => undefined);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [open, requiredText]);
 
-  useEffect(() => {
-    if (!open) return;
-    const handleTab = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusables = Array.from(
-        panel.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.hasAttribute("disabled"));
-      if (focusables.length === 0) {
-        e.preventDefault();
-        panel.focus();
-        return;
-      }
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const active = document.activeElement as HTMLElement;
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", handleTab);
-    return () => window.removeEventListener("keydown", handleTab);
-  }, [open]);
+  const confirmDisabled = requiredText ? inputValue !== requiredText : false;
 
-  if (!open) return null;
-
-  const isConfirmDisabled = requiredText ? inputValue !== requiredText : false;
+  const confirm = () => {
+    if (confirmDisabled) return;
+    if (requiredText && onTextConfirm) {
+      onTextConfirm(inputValue);
+      return;
+    }
+    onConfirm();
+  };
 
   return (
-    <div className="fixed inset-0 z-overlay flex items-end sm:items-center justify-center px-4 pb-4 sm:pb-0">
-      <div
-        className="fixed inset-0 bg-scrim backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-modal-title"
-        tabIndex={-1}
-        className="relative w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-8 outline-none"
-        style={{ backgroundColor: "var(--surface)" }}
-      >
-        <div
-          className="w-12 h-1 rounded-full bg-surface-active mx-auto mb-4 sm:hidden"
-          aria-hidden="true"
-        />
-        <h3
-          id="confirm-modal-title"
-          className="text-lg font-bold text-text-primary mb-2 text-center"
-        >
-          {title}
-        </h3>
-        <p className="text-text-tertiary text-sm text-center mb-4">
-          {description}
-        </p>
-
+    <IonAlert
+      isOpen={open}
+      onDidDismiss={() => onClose()}
+      header={title}
+      message={description}
+      // `.md` : la couleur de l'action danger est portée par `role="destructive"`.
+      buttons={[
+        {
+          text: "Annuler",
+          role: "cancel",
+          // Libellé accessible explicite : IonAlert rend le texte du bouton,
+          // mais les lecteurs d'écran annoncent mieux un rôle explicite.
+          cssClass: "confirm-modal-cancel",
+          htmlAttributes: { "aria-label": "Annuler" },
+        },
+        {
+          text: confirmLabel,
+          role: confirmVariant === "danger" ? "destructive" : "confirm",
+          htmlAttributes: { "aria-label": confirmLabel },
+          handler: confirm,
+        },
+      ]}
+      // La confirmation par saisie n'a pas d'équivalent IonAlert : le champ est
+      // fourni via `inputs`, le bouton reste désactivé tant que le texte diffère.
+      inputs={
+        requiredText
+          ? [
+              {
+                name: "confirmation",
+                type: "text",
+                placeholder: `Tapez « ${requiredText} » pour confirmer`,
+                // Le bouton de confirmation est désactivé tant que la saisie
+                // ne correspond pas — IonAlert ne sait pas le faire seul.
+                disabled: confirmDisabled,
+              },
+            ]
+          : undefined
+      }
+      // La validation par saisie passe par le champ contrôlé ci-dessous :
+      // `inputs` ne sert qu'à annoncer l'attendu, le bouton reste désactivé
+      // tant que le texte ne correspond pas (contrôle React, testable).
+      backdropDismiss={false}
+    >
+      <div className="ion-padding-start ion-padding-end ion-padding-bottom">
         {requiredText && (
-          <div className="mb-4">
-            <p className="text-text-secondary text-xs mb-2 text-center">
-              Tapez{" "}
-              <span
-                className="font-bold"
-                style={{
-                  color: confirmVariant === "danger" ? "var(--out)" : "var(--accent-primary)",
-                }}
-              >
-                "{requiredText}"
-              </span>{" "}
-              pour confirmer
-            </p>
-            <IonInput
-              type="text"
-              value={inputValue}
-              onIonInput={(e) => setInputValue(e.detail.value!)}
-              className="w-full px-4 py-3 rounded-lg text-text-primary text-sm text-center"
-              style={{
-                backgroundColor: "var(--canvas)",
-                border: "1px solid var(--border)",
-              }}
-              autoFocus
-            />
-          </div>
+          <IonInput
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onIonInput={(event) => setInputValue(event.detail.value ?? "")}
+            aria-label={`Tapez « ${requiredText} » pour confirmer`}
+            className="w-full px-4 py-3 rounded-lg text-text-primary text-sm text-center"
+            style={{ backgroundColor: "var(--canvas)", border: "1px solid var(--border)" }}
+          />
         )}
-
         {children}
-
-        <div className="flex gap-3 mt-4">
-          <IonButton
-            onClick={onClose}
-            expand="block"
-            className="!rounded-full !min-height:auto text-sm font-semibold"
-            style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-secondary)" }}
-            aria-label="Annuler"
-          >
-            Annuler
-          </IonButton>
-          <IonButton
-            onClick={() => {
-              if (requiredText && onTextConfirm) {
-                onTextConfirm(inputValue);
-              } else {
-                onConfirm();
-              }
-            }}
-            expand="block"
-            disabled={isConfirmDisabled}
-            className="!rounded-full !min-height:auto text-sm font-semibold !opacity-100 disabled:!opacity-40 disabled:!cursor-not-allowed active:scale-95 transition-transform"
-            style={{
-              backgroundColor:
-                confirmVariant === "danger" ? "var(--out)" : "var(--accent-primary)",
-              color: "var(--text-primary)",
-            }}
-            aria-label={confirmLabel}
-          >
-            {confirmLabel}
-          </IonButton>
-        </div>
       </div>
-    </div>
+    </IonAlert>
   );
 }

@@ -13,6 +13,7 @@
  */
 
 import type { ThemeMode } from "./themes";
+import { applyStatusBarForMode } from "@/lib/statusBar";
 
 // Lumina design tokens — dark mode (default).
 const LUMINA_TOKENS = {
@@ -73,13 +74,21 @@ function hexToRgbTriplets(hexes: string[]): string {
  * Idempotent, SSR-safe no-op when `document` is unavailable.
  */
 export function applyIonicThemeMode(mode: ThemeMode = "dark"): void {
+  // Note : les appelants passent un mode RÉSOLU (`resolveThemeMode`),
+  // donc "system" n'arrive jamais ici — voir themes.ts. Le type reste
+  // ThemeMode pour ne pas changer l'API publique.
+  const resolved: "dark" | "light" = mode === "light" ? "light" : "dark";
   if (typeof document === "undefined") return;
-  const t = MODE_TOKENS[mode];
+  const t = MODE_TOKENS[resolved];
   const root = document.documentElement;
   const set = (k: string, v: string) => root.style.setProperty(k, v);
 
   root.setAttribute("ion-theme", mode);
   root.setAttribute("color-theme", mode);
+
+  // Barre d'état Android : icônes claires sur fond sombre / sombres sur fond
+  // clair (C-02). No-op hors natif.
+  applyStatusBarForMode(resolved);
 
   set("--ion-color-secondary", t.surfaceHover);
   set("--ion-color-secondary-rgb", hexToRgbTriplets([t.surfaceHover]));
@@ -106,10 +115,10 @@ export function setupLuminaTheme(mode?: ThemeMode): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   root.style.setProperty("--ion-safe-area-top", "env(safe-area-inset-top, 0px)");
-  root.style.setProperty(
-    "--ion-safe-area-bottom",
-    "env(safe-area-inset-bottom, 0px)",
-  );
+  // C-09 : le bas est fourni par le NATIF (padding de la WebView appliqué par
+  // MainActivity). Poser `env()` ici doublait la marge sur les appareils
+  // gestuels (mesuré : ~48 px de vide au-dessus de la barre système).
+  root.style.setProperty("--ion-safe-area-bottom", "0px");
   root.style.setProperty(
     "--ion-safe-area-left",
     "env(safe-area-inset-left, 0px)",

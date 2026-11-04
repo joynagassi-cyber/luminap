@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useAccounts, useCaisses, useOrganizationRevision } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
@@ -102,6 +103,16 @@ export default function Finance() {
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions, orgRev]);
+
+  // A5 — Ionic garde l'écran MONTÉ : au retour (détail → retour, autre onglet),
+  // `useEffect` ne rejoue pas et la liste restait celle de la visite précédente.
+  // `useIonViewWillEnter` recharge AVANT que la transition ne rende l'écran
+  // visible (pas de « flash » de données périmées).
+  useRefreshOnViewEnter(loadTransactions, {
+    label: "finance",
+    onError: (error) =>
+      captureClientError(error, { message: "Échec du rechargement des transactions" }),
+  });
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
