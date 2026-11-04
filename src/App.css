@@ -272,11 +272,16 @@ textarea:focus-visible,
  * - .pt-safe-calc : haut de page SOUS un TopHeader sticky en flux —
  *   simple respiration (le header occupe déjà sa hauteur).
  */
+/* C-09 — inset BAS : source unique = le natif (`MainActivity` applique les
+ * insets système en padding de la WebView). Les utilitaires ci-dessous ne
+ * rajoutent donc PLUS `env(safe-area-inset-bottom)` : le faire doublait la
+ * marge (~48 px de vide) sur les appareils gestuels. L'inset HAUT reste en
+ * CSS (`--ion-safe-area-top`), le natif ne le pose pas. */
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: 0px;
 }
 .pb-safe-calc {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8rem);
+  padding-bottom: 8rem;
 }
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);

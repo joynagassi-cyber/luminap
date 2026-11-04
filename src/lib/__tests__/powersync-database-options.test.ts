@@ -36,8 +36,10 @@ function resolved(database: Record<string, unknown>) {
 }
 
 describe("options de la base PowerSync", () => {
+  const bootPlan = { filename: "lumina.db", encryptionKey: undefined };
+
   it("sous Cypress : worker ET multi-onglets désactivés (combinaison valide)", () => {
-    const opts = buildDatabaseOptions(true);
+    const opts = buildDatabaseOptions(bootPlan, true);
     expect(opts.useWebWorker).toBe(false);
     expect((opts as { enableMultiTabs?: boolean }).enableMultiTabs).toBe(false);
 
@@ -48,7 +50,7 @@ describe("options de la base PowerSync", () => {
   });
 
   it("hors Cypress : worker et multi-onglets laissés aux défauts du SDK", () => {
-    const opts = buildDatabaseOptions(false);
+    const opts = buildDatabaseOptions(bootPlan, false);
     expect(opts.useWebWorker).toBe(true);
     // On ne force pas le multi-onglets : le SDK garde son défaut.
     expect("enableMultiTabs" in opts).toBe(false);
@@ -67,7 +69,7 @@ describe("options de la base PowerSync", () => {
 
   it("la combinaison invalide (worker off + multi-onglets on) est écartée sous Cypress", () => {
     const r = resolved(
-      buildDatabaseOptions(true) as unknown as Record<string, unknown>,
+      buildDatabaseOptions(bootPlan, true) as unknown as Record<string, unknown>,
     );
     const invalid = r.useWebWorker === false && r.enableMultiTabs === true;
     expect(

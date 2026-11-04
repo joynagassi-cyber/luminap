@@ -92,8 +92,13 @@ describe("câblage réel dans la page Health (anti-régression : plus de capacit
     expect(src).toMatch(/resetOrg:\s*\(\)\s*=>\s*resetOrganizationId\(\)/);
   });
 
-  it("elle expose un bouton de récupération confirmé", () => {
+  it("elle expose un bouton de récupération CONFIRMÉ (IonAlert, pas window.confirm)", () => {
     expect(src).toMatch(/data-testid="health\.local-recovery"/);
-    expect(src).toMatch(/window\.confirm\(/);
+    // A6 : la confirmation ne doit plus être un modulateur SYSTÈME bloquant.
+    // Test négatif volontaire — il échouerait si `window.confirm` revenait.
+    expect(src).not.toMatch(/window\.confirm\(/);
+    expect(src).toMatch(/<IonAlert/);
+    // Le bouton n'agit plus directement : il ouvre la confirmation.
+    expect(src).toMatch(/onClick=\{\(\) => setConfirmRecovery\(true\)\}/);
   });
 });

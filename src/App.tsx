@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
@@ -61,8 +60,14 @@ installChunkErrorRecovery();
 // Ici on ne fait que signaler la disponibilité de la coquille.
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
+// A5 — aucun mode forcé : Ionic applique alors le mode de la plateforme
+// (le mode iOS sur iOS, Material partout ailleurs — défaut vérifié dans
+// @ionic/core, ionic-global). L'application est livrée sur Android : les
+// contrôles y prennent le rendu Material attendu (ondulation, transitions),
+// et iOS gardera le sien quand il sera livré. Ne pas réintroduire de mode
+// explicite sans décision documentée (garde A5). Validation visuelle :
+// checklist appareil §4.14.
 setupIonicReact({
-  mode: "ios",
   animated: true,
   ...({ keyboardBehavior: "ion-focus", keyboardFillMode: "overlap" } as any),
 });
@@ -456,7 +461,6 @@ const App = () => {
     }>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <UpdaterBridge />

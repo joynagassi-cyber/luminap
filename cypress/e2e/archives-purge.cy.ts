@@ -146,7 +146,10 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     });
     // Le dialogue de confirmation s'ouvre (titre explicite).
     cy.contains('Supprimer définitivement ?', { timeout: 20_000 }).should('exist');
-    cy.get('ion-button[aria-label="Annuler"]', { timeout: 20_000 }).click({
+    // A6 — le dialogue est un `IonAlert` : ses actions sont de vrais
+    // <button class="alert-button"> (l'ancien ConfirmModal rendait des
+    // <ion-button>). Le libellé accessible reste la source de vérité.
+    cy.get('button[aria-label="Annuler"]', { timeout: 20_000 }).click({
       force: true,
     });
     // La ligne survit (aucune purge tant que non confirmé).
@@ -162,7 +165,7 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.get(`button[aria-label="Supprimer définitivement ${groupName}"]`).click({
       force: true,
     });
-    cy.get('ion-button[aria-label="Supprimer définitivement"]', {
+    cy.get('button[aria-label="Supprimer définitivement"]', {
       timeout: 20_000,
     }).click({ force: true });
 
@@ -215,7 +218,8 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     });
     // Confirmation explicite (titre distinct).
     cy.contains('Vider la corbeille ?', { timeout: 20_000 }).should('exist');
-    cy.get('ion-button[aria-label="Vider la corbeille"]', { timeout: 20_000 })
+    // A6 — action de l'`IonAlert` (vrai <button>, pas <ion-button>).
+    cy.get('button[aria-label="Vider la corbeille"]', { timeout: 20_000 })
       .last()
       .click({ force: true });
 

@@ -14,13 +14,28 @@ import { supabase } from "@/lib/auth";
 // Import du module de disponibilité (minuscule, sans dépendance) — PAS
 // `@/lib/dataLayer` : importer ce dernier tirait tout le data layer (≈ 3 900
 // lignes) dans le chunk d'entrée et cassait le découpage de code (R116).
-import { markPowerSyncReady } from "./readiness";
+import { markPowerSyncReady, markPowerSyncDatabaseCreated } from "./readiness";
+import {
+  prepareDatabaseBoot,
+  prepareDatabaseBootSync,
+  markLegacyMigrationComplete,
+} from "./encryptedDatabase";
+import type { DatabaseBootPlan } from "./encryptedDatabase";
 import { pushBreadcrumb } from "@/lib/observability/breadcrumbs";
 import { reportError } from "@/lib/observability/errorReporter";
 
 // Singleton instance
 let _db: PowerSyncDatabase | null = null;
 let _connector: SupabaseConnector | null = null;
+/** Plan de démarrage retenu (chiffré / historique) — lu par la télémétrie. */
+let _bootPlan: DatabaseBootPlan | null = null;
+
+/** Pour les diagnostics (`/settings/health`) : ne contient JAMAIS la clé. */
+export function getDatabaseBootPlan(): Omit<DatabaseBootPlan, "encryptionKey"> | null {
+  if (!_bootPlan) return null;
+  const { encryptionKey: _omit, ...safe } = _bootPlan;
+  return safe;
+}
 
 /**
  * DEV-ONLY : expose le handle PowerSync sur window pour que les specs
@@ -251,6 +266,16 @@ export function getPowerSyncDatabase(): PowerSyncDatabase {
   return _db;
 }
 
+/**
+ * Variante NON levante de `getPowerSyncDatabase`, pour les composants montés
+ * avant la fin du démarrage (la création de la base attend la clé de
+ * chiffrement). Le contexte PowerSync est alors simplement absent ; les hooks
+ * de lecture retombent sur leur état « indisponible » explicite.
+ */
+export function getPowerSyncDatabaseOrNull(): PowerSyncDatabase | null {
+  return _db;
+}
+
 export function getPowerSyncConnector(): SupabaseConnector {
   if (!_connector) {
     throw new Error(
@@ -391,9 +416,13 @@ async function subscribeOrgStreams(): Promise<void> {
  *
  * `window.Cypress` n'existe que sous test → aucun impact production/build.
  */
-export function buildDatabaseOptions(isCypress: boolean) {
+export function buildDatabaseOptions(
+  bootPlan: Pick<DatabaseBootPlan, "filename" | "encryptionKey">,
+  isCypress: boolean,
+) {
   return {
-    dbFilename: "lumina.db",
+    dbFilename: bootPlan.filename,
+    encryptionKey: bootPlan.encryptionKey,
     debugMode: import.meta.env.DEV, // Activer le debug en développement
     useWebWorker: !isCypress,
     ...(isCypress ? { enableMultiTabs: false } : {}),
@@ -434,11 +463,84 @@ export async function initPowerSync(): Promise<void> {
   // encaissé dans la queue, pas retryé si le 4xx est « fatal »).
   mirrorAppSessionIntoConnector();
 
+  // ── Chiffrement de la base locale (A4, décision §7 #6) ────────────────
+  // La réplique contient des montants nominatifs. On choisit le fichier AVANT
+  // d'ouvrir : `prepareDatabaseBoot` ne modifie rien pour une base historique
+  // (aucune perte d'écritures hors-ligne) et signale toujours son choix.
+  // Chemin SYNCHRONE d'abord (web sans coffre, Cypress) : la création de la
+  // base ne doit pas attendre une I/O asynchrone, sinon le premier rendu React
+  // monte sans handle PowerSync et tous les écrans de données restent vides.
+  let bootPlan: DatabaseBootPlan | null = null;
+  try {
+    bootPlan = prepareDatabaseBootSync();
+  } catch (error) {
+    reportError(error, {
+      type: "database",
+      source: "db-encryption-boot",
+      context: { phase: "prepare-sync" },
+    });
+  }
+  if (!bootPlan) {
+    try {
+      bootPlan = await prepareDatabaseBoot();
+    } catch (error) {
+      // Ne devrait pas arriver (le module qualifie ses échecs), mais une base
+      // chiffrée sans clé ne doit JAMAIS être « remplacée » en silence.
+      reportError(error, {
+        type: "database",
+        source: "db-encryption-boot",
+        context: { phase: "prepare" },
+      });
+      bootPlan = { mode: "unencrypted", filename: "lumina.db", reason: "keystore-unavailable" };
+    }
+  }
+  _bootPlan = bootPlan;
+
+  // Hors natif, `localStorage` est la seule possibilité : ce n'est un incident
+  // que si un coffre natif aurait dû répondre (cas couvert par le plugin).
+  const isNative =
+    typeof window !== "undefined" &&
+    Boolean((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+  if (isNative && bootPlan.mode === "encrypted" && bootPlan.keySource === "localStorage") {
+    // Sur natif, une clé qui n'a pas pu aller au Keystore est un incident :
+    // elle reste dans le stockage du WebView (lisible par un dump de profil).
+    reportError(new Error("Clé de base stockée hors Keystore"), {
+      type: "database",
+      source: "db-encryption-key",
+      context: { source: bootPlan.keySource },
+    });
+  }
+  if (bootPlan.mode === "unencrypted" && bootPlan.reason !== "no-indexeddb" && bootPlan.reason !== "e2e") {
+    const codes: Record<string, string> = {
+      "key-corrupted": "Clé de base corrompue — réplique renouvelée",
+      "keystore-unavailable": "Coffre de clés indisponible — base non chiffrée",
+      "no-random": "Générateur aléatoire absent — base non chiffrée",
+      "legacy-pending-migration": "Base historique conservée le temps de vider la file d'upload",
+      "no-indexeddb": "Aucun IndexedDB (base en mémoire)",
+    };
+    // `legacy-pending-migration` est un état NORMAL d'une seule mise à jour :
+    // on le journalise sans le remonter comme incident.
+    if (bootPlan.reason !== "legacy-pending-migration") {
+      reportError(new Error(codes[bootPlan.reason ?? "no-indexeddb"] ?? "Base non chiffrée"), {
+        type: "database",
+        source: "db-encryption-boot",
+        context: {
+          reason: bootPlan.reason ?? "unknown",
+          orphanedEncryptedDbRemoved: String(bootPlan.orphanedEncryptedDbRemoved ?? false),
+        },
+      });
+    }
+  }
+
   // Créer la base de données
-  _db = new PowerSyncDatabase({
+  const db = new PowerSyncDatabase({
     schema: AppSchema,
-    database: buildDatabaseOptions(isCypress),
+    database: buildDatabaseOptions(bootPlan, isCypress),
   });
+  _db = db;
+  // Le handle existe : les composants montés avant la fin du démarrage
+  // (PowerSyncProvider) peuvent désormais le lire.
+  markPowerSyncDatabaseCreated();
 
   // Connecter à PowerSync
   _db.connect(_connector);
@@ -485,6 +587,35 @@ export async function initPowerSync(): Promise<void> {
     },
   });
 
+  // ── Migration de la base en clair : ne rien jeter avant preuve ─────────
+  // La base historique n'est supprimée qu'une fois la file d'upload VIDE.
+  // La vérification a lieu au premier « synced » (les écritures locales sont
+  // alors poussées) ET après chaque attente : sans cela, un utilisateur ayant
+  // saisi des transactions hors-ligne avant la mise à jour les perdrait.
+  if (bootPlan.reason === "legacy-pending-migration") {
+    _db.registerListener({
+      statusChanged: (status) => {
+        if (!status.hasSynced || status.uploading) return;
+        void hasNothingLeftToUpload(_db)
+          .then((empty) => {
+            if (!empty) return;
+            if (markLegacyMigrationComplete(bootPlan)) {
+              console.info(
+                "[PowerSync] file d'upload vide : la base en clair sera supprimée au prochain démarrage (réplique désormais chiffrée)",
+              );
+            }
+          })
+          .catch((error) => {
+            reportError(error, {
+              type: "database",
+              source: "db-encryption-migration",
+              context: { phase: "check-upload-queue" },
+            });
+          });
+      },
+    });
+  }
+
   // Kick off the first sync in the background. We deliberately do NOT await
   // it here: without an auth session (fresh browser, pre-login) the PowerSync
   // service will reject the empty token and `waitForFirstSync` could hang,
@@ -497,6 +628,20 @@ export async function initPowerSync(): Promise<void> {
 
   // DEV-ONLY : expose le handle sur window pour les specs Cypress.
   publishDevDiagnostics();
+}
+
+/**
+ * La file d'upload est-elle réellement vide ? `getUploadQueueStats` renvoie 0
+ * aussi bien quand tout est parti que quand le worker n'a pas encore lu la
+ * queue : on exige donc EN PLUS que `getCrudBatch` ne trouve rien à envoyer.
+ * Deux preuves concordantes valent mieux qu'un compteur optimiste quand la
+ * conséquence est la suppression d'une base locale.
+ */
+async function hasNothingLeftToUpload(db: PowerSyncDatabase): Promise<boolean> {
+  const stats = await db.getUploadQueueStats();
+  if (stats.count !== 0) return false;
+  const batch = await db.getCrudBatch(1);
+  return batch === null;
 }
 
 export async function disconnectPowerSync(): Promise<void> {

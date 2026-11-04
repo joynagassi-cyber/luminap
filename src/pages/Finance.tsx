@@ -1,4 +1,8 @@
 import { Fragment, useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
+import { usePullToSync } from "@/hooks/usePullToSync";
+import { getPowerSyncDatabase } from "@/lib/powersync";
+import { showError, showSuccess } from "@/utils/toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCategories, useAccounts, useCaisses, useOrganizationRevision } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
@@ -26,6 +30,8 @@ import {
   IonPage,
   IonHeader,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonTitle,
   IonToolbar,
   IonInfiniteScroll,
@@ -102,6 +108,31 @@ export default function Finance() {
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions, orgRev]);
+
+  // A5 — Ionic garde l'écran MONTÉ : au retour (détail → retour, autre onglet),
+  // `useEffect` ne rejoue pas et la liste restait celle de la visite précédente.
+  // `useIonViewWillEnter` recharge AVANT que la transition ne rende l'écran
+  // visible (pas de « flash » de données périmées).
+  // A7 — tirer pour synchroniser : le geste recharge la liste ET attend un
+  // cycle PowerSync réel (aucune synchro factice).
+  const pull = usePullToSync({
+    getDatabase: () => {
+      try {
+        return getPowerSyncDatabase();
+      } catch {
+        // PowerSync pas encore initialisé : le geste le signalera lui-même.
+        return null;
+      }
+    },
+    notify: (message, kind) =>
+      kind === "success" ? showSuccess(message) : showError(message),
+  });
+
+  useRefreshOnViewEnter(loadTransactions, {
+    label: "finance",
+    onError: (error) =>
+      captureClientError(error, { message: "Échec du rechargement des transactions" }),
+  });
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
@@ -189,6 +220,10 @@ export default function Finance() {
   return (
     <IonPage>
       <IonContent className="bg-canvas">
+        {/* A7 — IonRefresher : geste standard de rafraîchissement. */}
+        <IonRefresher slot="fixed" onIonRefresh={pull.onIonRefresh}>
+          <IonRefresherContent pullingText="Tirer pour synchroniser" refreshingSpinner="crescent" />
+        </IonRefresher>
         <div className="min-h-dvh">
           {loading ? (
             <div data-screen-state="loading">
