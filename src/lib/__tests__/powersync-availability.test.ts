@@ -150,4 +150,40 @@ describe("usePowerSyncStatus — borne de disponibilité (P0)", () => {
     });
     expect(isPowerSyncUnavailableNow()).toBe(true);
   });
+
+  it("boot HORS LIGNE : le `statusChanged` (hasSynced rechargé depuis SQLite) débloque la réplique", () => {
+    // Timeline RÉELLE d'un démarrage sans réseau, après une synchro passée :
+    //   1. au montage, `currentStatus` vaut `{ connected: false, hasSynced:
+    //      undefined }` — le SDK n'a pas encore lu l'état persistant ;
+    //   2. `initialize()` appelle `resolveOfflineSyncStatus()` qui recharge
+    //      `hasSynced` depuis SQLite et ÉMET `statusChanged`.
+    // Sans cet abonnement (ou si le hook utilisait une API inexistante comme
+    // `addListener`/`getStatus()`), `_psReady` resterait `false` À JAMAIS et
+    // les 40+ écrans gardés afficheraient un squelette/vide alors que la base
+    // locale contient les données — c'est exactement le bug hors-ligne.
+    let emit: ((s: any) => void) | null = null;
+    ps.sync = {
+      currentStatus: { connected: false, hasSynced: undefined },
+      registerListener: (l: any) => {
+        emit = l.statusChanged;
+        return () => {};
+      },
+    };
+    renderHook(() => usePowerSyncStatus());
+    // Étape 1 : rien n'est encore prêt (un seul frame, pas d'état bloquant).
+    expect(isPowerSyncReadyNow()).toBe(false);
+    expect(typeof emit, "le hook DOIT s'abonner via registerListener").toBe(
+      "function",
+    );
+
+    // Étape 2 : le SDK signale l'état rechargé — hors ligne (connected=false).
+    act(() => emit?.({ connected: false, hasSynced: true }));
+    expect(isPowerSyncReadyNow()).toBe(true);
+    // La borne de 30 s ne doit pas re-déclarer l'indisponibilité : la réplique
+    // est prête (données locales disponibles), même sans connexion.
+    act(() => {
+      vi.advanceTimersByTime(30_001);
+    });
+    expect(isPowerSyncUnavailableNow()).toBe(false);
+  });
 });
