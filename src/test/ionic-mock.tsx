@@ -17,6 +17,7 @@
  * non listé devient un `<div>`), pour ne jamais casser sur un composant
  * nouvellement importé par une page.
  */
+import { createContext, useContext } from "react";
 import type { ReactNode, ChangeEvent } from "react";
 
 type IonChangeDetail = { value: string | null };
@@ -135,6 +136,124 @@ export function IonCheckbox({ checked, onIonChange, ...rest }: IonInputProps & {
       onChange={(e) => onIonChange?.({ detail: { value: e.target.checked ? "true" : "false" } })}
       {...passthrough(rest)}
     />
+  );
+}
+
+/**
+ * IonSearchbar — `role="searchbox"` + `ionInput` sur `detail.value`.
+ *
+ * En simple enveloppe générique, le champ resterait inerte : les tests de
+ * filtrage passeraient en affichant la liste complète, ce qui est exactement
+ * le bug qu'ils sont censés détecter.
+ */
+export function IonSearchbar({
+  value,
+  onIonInput,
+  onIonChange,
+  placeholder,
+  ...rest
+}: IonInputProps) {
+  const emit = (fn?: (e: { detail: IonChangeDetail }) => void) => (e: ChangeEvent<HTMLInputElement>) => {
+    fn?.({ detail: { value: e.target.value } });
+  };
+  return (
+    <input
+      type="search"
+      role="searchbox"
+      data-testid="ion-searchbar"
+      placeholder={placeholder}
+      value={value == null ? "" : String(value)}
+      onChange={emit(onIonInput ?? onIonChange)}
+      {...passthrough(rest)}
+    />
+  );
+}
+
+/**
+ * IonToggle — fidèle sur l'essentiel : un `<input type="checkbox">` dont le
+ * changement remonte un `ionChange` avec `detail.checked` (forme réelle de
+ * l'événement Ionic, distincte de `detail.value`).
+ *
+ * Un toggle inerte ferait passer les tests d'écran sans jamais prouver que
+ * basculer change quoi que ce soit.
+ */
+export function IonToggle({
+  checked,
+  onIonChange,
+  ...rest
+}: {
+  checked?: boolean;
+  onIonChange?: (e: { detail: { checked: boolean } }) => void;
+  [key: string]: unknown;
+}) {
+  return (
+    <input
+      type="checkbox"
+      role="switch"
+      data-testid="ion-toggle"
+      checked={Boolean(checked)}
+      onChange={(e) => onIonChange?.({ detail: { checked: e.target.checked } })}
+      {...passthrough(rest)}
+    />
+  );
+}
+
+/**
+ * IonSegment + IonSegmentButton — fidèles sur ce qui compte pour les tests :
+ * chaque option est un `<button>` dont `aria-pressed` reflète la sélection, et
+ * un clic remonte un `ionChange` avec `detail.value`, comme Ionic.
+ *
+ * Nécessaire en contexte (et non en simples enveloppes) : des boutons inertes
+ * feraient échouer les tests qui vérifient que l'écran change de période.
+ */
+const SegmentContext = createContext<{
+  value?: string;
+  onChange?: (value: string) => void;
+}>({});
+
+export function IonSegment({
+  value,
+  onIonChange,
+  children,
+  ...rest
+}: {
+  value?: string;
+  onIonChange?: (e: { detail: { value: string } }) => void;
+  children?: ReactNode;
+  [key: string]: unknown;
+}) {
+  return (
+    <SegmentContext.Provider
+      value={{ value, onChange: (v) => onIonChange?.({ detail: { value: v } }) }}
+    >
+      <div role="group" {...passthrough(rest)}>
+        {children}
+      </div>
+    </SegmentContext.Provider>
+  );
+}
+
+export function IonSegmentButton({
+  value,
+  children,
+  ...rest
+}: {
+  value: string;
+  children?: ReactNode;
+  [key: string]: unknown;
+}) {
+  const ctx = useContext(SegmentContext);
+  const selected = ctx.value === value;
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      data-selected={selected ? "true" : undefined}
+      onClick={() => ctx.onChange?.(value)}
+      {...passthrough(rest)}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -271,6 +390,7 @@ export function createIonicMock() {
     "IonButtons",
     "IonItem",
     "IonLabel",
+    "IonNote",
     "IonList",
     "IonCard",
     "IonCardContent",
@@ -279,7 +399,6 @@ export function createIonicMock() {
     "IonSpinner",
     "IonProgressBar",
     "IonInfiniteScroll",
-    "IonSearchbar",
     "IonTabBar",
     "IonTabButton",
     "IonRouterOutlet",
@@ -304,6 +423,10 @@ export function createIonicMock() {
     IonSelectOption,
     IonButton,
     IonCheckbox,
+    IonSegment,
+    IonSegmentButton,
+    IonToggle,
+    IonSearchbar,
     IonAlert: IonAlertMock,
     IonModal,
     IonBackButton: ({ children, ...rest }: { children?: ReactNode; [key: string]: unknown }) => (
