@@ -29,6 +29,12 @@
  * `requestPermissions(` dans une page/un composant, résusciter le
  * faux proxy `OneSignalPush` ou désenregistrer le pont/le plugin de
  * réglages fait échouer la garde A2 correspondante.
+ *
+ * A3 (même fichier) — verrouille les plugins essentiels et le contrat
+ * insets/clavier : configurer un plugin désinstallé, retirer le
+ * rembourrage natif bas (MainActivity) ou réintroduire un
+ * env(safe-area-inset-bottom) en dur dans BottomNav fait échouer la
+ * garde A3 correspondante.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -73,8 +79,21 @@ describe("A1 — manifeste Android conforme à la matrice §1.2", () => {
 });
 
 describe("A1 — capacitor.config.ts : aucune config fantôme, défauts durcis", () => {
-  it("ne configure aucun plugin (C-01 : pas de bloc pour plugin absent)", () => {
-    expect(capConfig).not.toMatch(/^\s*plugins\s*:/m);
+  it("ne configure que des plugins installés — ensemble exact (C-01, liste blanche A3)", () => {
+    const block = capConfig.match(/plugins:\s*\{([\s\S]*?)\n {2}\},/);
+    if (!block) {
+      throw new Error("bloc plugins introuvable dans capacitor.config.ts");
+    }
+    const keys = [...block[1].matchAll(/^\s+([A-Z][A-Za-z]*):\s*\{/gm)].map(
+      (m) => m[1],
+    );
+    expect(keys.sort()).toEqual(["Keyboard", "SplashScreen"]);
+
+    // Chaque clé configurée correspond à un paquet réellement installé :
+    // une config pour un plugin absent serait ignorée en silence (C-01).
+    const pkg = read("package.json");
+    expect(pkg).toContain('"@capacitor/keyboard"');
+    expect(pkg).toContain('"@capacitor/splash-screen"');
   });
 
   it("logs et debug WebView restent coupés hors variante diagnostic (C-05)", () => {
@@ -156,5 +175,52 @@ describe("A2 — porte unique des permissions et transport push réel", () => {
     expect(read("android/capacitor.settings.gradle")).toContain(
       "capacitor-native-settings",
     );
+  });
+});
+
+describe("A3 — plugins essentiels, insets et clavier (C-01/C-02/C-03/C-09/C-10)", () => {
+  it("status-bar, splash-screen et haptics sont installés ET enregistrés Android", () => {
+    const pkg = read("package.json");
+    const settingsGradle = read("android/capacitor.settings.gradle");
+    for (const name of ["status-bar", "splash-screen", "haptics"]) {
+      expect(pkg).toContain(`"@capacitor/${name}"`);
+      expect(settingsGradle).toContain(`:capacitor-${name}`);
+    }
+  });
+
+  it("la config porte la stratégie clavier et la fin de splash (C-10/C-01)", () => {
+    expect(capConfig).toContain("resize: 'native'");
+    expect(capConfig).toContain("resizeOnFullScreen: true");
+    expect(capConfig).toContain("launchShowDuration: 0");
+  });
+
+  it("C-09 : bas = rembourrage natif seul, CSS neutralisable sur Android", () => {
+    // Le correctif natif du bug P1-3 (onglets sous la navigation
+    // système) est LA source pour le bas — ne pas le retirer.
+    const java = read(
+      "android/app/src/main/java/com/lumina/mfejc/MainActivity.java",
+    );
+    expect(java).toContain(
+      "view.setPadding(bars.left, 0, bars.right, bars.bottom)",
+    );
+    // Côté CSS : neutralisation explicite sous la classe plateforme,
+    // et BottomNav consomme la variable (jamais env() en dur).
+    expect(read("src/App.css")).toContain("html.lumina-native-android");
+    const bottomNav = read("src/components/BottomNav.tsx");
+    expect(bottomNav).toContain("var(--ion-safe-area-bottom");
+    expect(bottomNav).not.toContain("env(safe-area-inset-bottom");
+    expect(read("src/main.tsx")).toContain('"lumina-native-android"');
+  });
+
+  it("barre d'état, splash et haptique sont branchés (C-02/C-01/C-03)", () => {
+    expect(read("src/App.tsx")).toContain("StatusBarBridge");
+    const bridge = read("src/components/StatusBarBridge.tsx");
+    expect(bridge).toContain("setOverlaysWebView({ overlay: false })");
+    expect(bridge).toContain("dataset.theme");
+    expect(read("src/pages/Splash.tsx")).toContain("SplashScreen.hide()");
+    expect(read("src/lib/haptics.ts")).toContain("@capacitor/haptics");
+    const txNew = read("src/pages/TransactionNew.tsx");
+    expect(txNew).toContain("haptics.success()");
+    expect(txNew).toContain("haptics.error()");
   });
 });

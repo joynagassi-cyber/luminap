@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { haptics } from '@/lib/haptics';
 
 export interface ScanResult {
   text: string;
@@ -124,6 +125,8 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         (result, err) => {
           if (result) {
             stopCamera();
+            // C-03 (A3) — retour haptique sur scan décodé.
+            haptics.success();
             onScan({
               text: (result as any).text,
               format: (result as any).format?.formatName || 'QR_CODE',
@@ -147,7 +150,9 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
     try {
       const codeReader = new BrowserMultiFormatReader();
       const result = await codeReader.decodeFromImageUrl(imagePath);
-      
+
+      // C-03 (A3) — retour haptique sur scan décodé.
+      haptics.success();
       onScan({
         text: (result as any).text,
         format: (result as any).format?.formatName || 'QR_CODE',

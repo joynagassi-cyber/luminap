@@ -12,6 +12,7 @@ import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
 import { SyncStatusNotifier } from "./components/SyncStatusNotifier";
 import { PermissionPrimerGate } from "./components/PermissionPrimerGate";
+import { StatusBarBridge } from "./components/StatusBarBridge";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
@@ -459,6 +460,8 @@ const App = () => {
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <UpdaterBridge />
+        {/* A3 (C-02) — barre d'état thématisée (natif uniquement). */}
+        <StatusBarBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
         {/* M15 — z-index nommé : --z-toast (70) / --z-skip (100) coordonnés

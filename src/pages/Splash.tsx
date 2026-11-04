@@ -4,6 +4,8 @@ import { useLoadInitialData } from "@/lib/dataLayer";
 import { needsOnboarding } from "@/lib/onboardingState";
 import { authService } from "@/lib/auth";
 import { IonPage, IonContent } from "@ionic/react";
+import { Capacitor } from "@capacitor/core";
+import { SplashScreen } from "@capacitor/splash-screen";
 
 /**
  * Splash UNIQUE de l'application (demande terrain : la chaîne de démarrage
@@ -53,6 +55,18 @@ export default function Splash() {
       navigate("/welcome", { replace: true });
     }
   };
+
+  // C-01 (A3) — termine le splash NATIF dès que ce visuel est peint : la
+  // config `launchShowDuration: 0` (plugin @capacitor/splash-screen,
+  // installé en A3) le fait déjà au chargement ; cet appel est le filet
+  // déterministe, idempotent, pour ne jamais rester sur l'écran système.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const raf = requestAnimationFrame(() => {
+      void SplashScreen.hide().catch(() => {});
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Affichage minimum (anti-clignotement) — un seul timer, plus de phases.
   useEffect(() => {

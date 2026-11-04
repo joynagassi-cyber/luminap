@@ -14,6 +14,7 @@ import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { policy } from "@/capabilities/policy";
 import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import { haptics } from "@/lib/haptics";
 import { periodLockMessage } from "@/lib/periodLock";
 import { parseAmountToCents } from "@/lib/amountInput";
 import type { FundSource, Transaction } from "@/types";
@@ -191,10 +192,13 @@ export default function TransactionEdit() {
         compensates_for: compensatesFor || null,
         comment: comment || null,
       });
+      // C-03 (A3) — retour haptique d'enregistrement (natif uniquement).
+      haptics.success();
       navigate(`/transaction/${id}`);
     } catch (e) {
       // PR13 — période close (ou autre refus) : message FR au lieu d'un
       // formulaire qui « ne fait rien ».
+      haptics.error();
       setError(
         periodLockMessage(
           e,

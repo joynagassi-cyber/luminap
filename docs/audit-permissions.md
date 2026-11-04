@@ -76,9 +76,10 @@ Sans question car sans ambiguïté : retrait de `USE_FULL_SCREEN_INTENT`
 (inutilisée), verrouillage d'`allowBackup` (P0, données financières), jamais
 de `READ/WRITE_EXTERNAL_STORAGE`, aucune demande de permission au démarrage à froid.
 
-## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2)
+## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2 et A3)
 
-Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A2 :
+Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A3
+(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3) :
 
 - [ ] **4.1** `adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"`
       → permissions déclarées = matrice §1.2 ; `POST_NOTIFICATIONS` : `granted=false` avant la demande, `true` après accord. Résultat : …
@@ -91,6 +92,18 @@ Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la 
 - [ ] **4.6** Notification de test (rappel local + push) reçue, app fermée puis ouverte. Résultat : …
 - [ ] **4.7** `adb backup` / sauvegarde Google : aucune donnée d'application récupérable
       (`allowBackup="false"`). Résultat : …
+- [ ] **4.8** (A3) Démarrage à froid : un seul enchaînement perceptible (écran système
+      → page `/splash`), aucun écran blanc prolongé ni double logo. Résultat : …
+- [ ] **4.9** (A3) Barre d'état (suite du 4.5) : thème SOMBRE lisible aussi, fond
+      assorti à l'en-tête, bascule correcte quand le mode système change. Résultat : …
+- [ ] **4.10** (A3) Bas de l'écran : barre d'onglets ni recouverte par ◀ ● ■ ni
+      surélevée d'un vide — navigation 3 boutons ET gestuelle. Résultat : …
+- [ ] **4.11** (A3) Formulaire de transaction, clavier ouvert : le bouton
+      d'enregistrement reste visible/utilisable ; idem écran de connexion (contenu
+      pas poussé hors écran). Résultat : …
+- [ ] **4.12** (A3) Retour haptique : vibration discrète à l'enregistrement d'une
+      transaction (et pattern d'erreur si échec), et au décodage d'un QR par le
+      scanner. Résultat : …
 
 ## 5. Porte de sortie A1 (cette PR)
 
