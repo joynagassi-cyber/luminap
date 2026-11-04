@@ -255,3 +255,23 @@ mutation (retirer le gestionnaire fait échouer le test) avant d'être conservé
 
 **Non prouvé ici** : le rendu visuel de ces composants sur appareil Android
 réel. Aucun émulateur dans cet environnement.
+
+## 14. A8 — arbitrage IonTabs (décision : no-go)
+
+Décision documentée le 4 nov. 2026 : **no-go**, conserver la `BottomNav`
+maison — `docs/a8-iontabs-decision.md` (routeur react-router propriétaire
+de la navigation ; enfants React non rendus en light DOM sous React 19,
+incident déjà payé sur cette barre même ; budget de performance mesuré).
+Une évaluation croisée menée le même jour (#418) conclut identiquement
+sur des preuves complémentaires — onglets configurables 1 à 4 + menu
+latéral, FAB contextuel, préchargement de chunk anti-écran-noir,
+safe-area P1-3, second précédent d'interopérabilité `IonAlert` — versées
+dans la note canonique, avec les critères d'une éventuelle preuve de
+concept si la décision rouvrait. Ligne `BottomNav` mise à jour dans
+`docs/ui-exceptions.md`. **La phase A8 est close.**
+
+Le même lot (#418) corrige le timeout de harnais vu sur main après #415 :
+les `.then()` réseau de `cross-tenant.cy.ts` et `forms-v2.cy.ts` portent
+désormais leur `timeout` explicite (un `.then()` sans option est borné à
+8 s — le budget posé sur `cy.window()` ne s'y propage pas ; échec mesuré
+run `41850075695`).

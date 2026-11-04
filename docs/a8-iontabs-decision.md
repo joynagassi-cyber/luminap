@@ -1,4 +1,4 @@
-﻿# A8 — `IonTabs` : décision go / no-go
+# A8 — `IonTabs` : décision go / no-go
 
 **Date** : 4 novembre 2026 · **Phase** : A8 du plan §4 · **Décision** : **NO-GO**
 
@@ -101,6 +101,45 @@ La décision serait à rouvrir si l'une de ces conditions change :
 3. le budget de performance est relevé volontairement, décision tracée.
 
 Aucune des trois n'est remplie au 4 novembre 2026.
+
+---
+
+## Arguments complémentaires (évaluation croisée, #418)
+
+Une seconde évaluation menée en parallèle le même jour conclut
+identiquement (no-go) sur des preuves distinctes, versées ici pour
+garder une source unique :
+
+- **La barre porte du produit, pas seulement des onglets**
+  (`src/components/BottomNav.tsx`, 312 lignes) : onglets **configurables
+  par l'utilisateur** (1 à 4 features épinglées, persistées —
+  `src/lib/features.ts`), bouton « Menu » ouvrant `FeatureSidebar`,
+  **FAB contextuel** à destination déterministe par route, préchargement
+  du chunk de la vue avant `navigate()` (`ensureNavViewChunk`, garde
+  anti-écran-noir verrouillée par `cypress/e2e/nav-bottom.cy.ts`), et
+  règles d'affichage liées au natif (safe-area forcé à 0 sur Android —
+  P1-3, masquage sur formulaires — P2-6, z-index sous les modales — M15).
+  Aucun de ces comportements n'est absorbé par `IonTabs` ; les onglets
+  dynamiques contredisent en outre son modèle de piles déclarées par
+  onglet (76 routes en pile unique aujourd'hui).
+- **`IonTabBar` seul** (coquille visuelle sans piles) a aussi été écarté :
+  gain cosmétique, réintroduction du risque du point 2, et double
+  compensation du safe-area Android à neutraliser.
+- **Second précédent d'interopérabilité** (même classe que le point 2) :
+  `IonAlert` a reçu `inputs={undefined}` posé comme propriété par React,
+  écrasant le défaut `[]` du cœur Ionic — alertes vides, confirmations
+  destructrices cassées de #404 à #411 (correctif + garde #415). Deux
+  incidents payés justifient d'exiger une preuve plutôt qu'un pari.
+
+Si la décision venait à rouvrir (conditions ci-dessus), la preuve de
+concept devrait démontrer au minimum : rendu stable des icônes/libellés
+en build de production sur appareil réel (démarrage à froid) ; 2 piles
+indépendantes + page de détail + lien profond atterrissant dans la bonne
+pile ; bouton Retour matériel conforme ; aucune régression sur
+`nav-bottom.cy.ts` (écran noir, budget de chunks), la checklist
+safe-area §4.10 et le budget perf du point 3 ; mémoire mesurée après
+visite des 4 onglets (les vues gardées montées maintiennent leurs
+abonnements PowerSync en vie).
 
 ---
 

@@ -156,7 +156,11 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
       cy.window({ timeout: 60_000 })
         .its('__psFlushCrudUpload')
         .should('be.a', 'function')
-        .then((flush: any) => flush(5));
+        // Timeout sur le `.then()` (pas seulement sur `cy.window()`) :
+        // sinon Cypress borne l'attente de la promesse à 8 s
+        // (`defaultCommandTimeout`) — un flush réseau sous charge CI
+        // peut dépasser (échec mesuré sur cross-tenant, run 41850075695).
+        .then({ timeout: 60_000 }, (flush: any) => flush(5));
     });
 
     // Normalisation DRAFT : T6.2 publie le formulaire sans le remettre en
@@ -189,7 +193,7 @@ describe('Lumina — Forms v2 (currency, table view, DRAFT edit)', () => {
           cy.window({ timeout: 60_000 })
             .its('__psFlushCrudUpload')
             .should('be.a', 'function')
-            .then((flush: any) => flush(5));
+            .then({ timeout: 60_000 }, (flush: any) => flush(5));
         }
       });
 
