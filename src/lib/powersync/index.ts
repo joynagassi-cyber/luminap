@@ -370,6 +370,36 @@ async function subscribeOrgStreams(): Promise<void> {
   }
 }
 
+/**
+ * Options de la base PowerSync — extraites pour être testables sans booter
+ * l'app entière (cf. `powersync-database-options.test.ts`).
+ *
+ * Sous Cypress (`isCypress`), on désactive DEUX choses indissociables :
+ *   - `useWebWorker: false` : le worker WASM dédié de `@powersync/web` se
+ *     bloque dans le contexte Electron headless (après ~5 allers-retours
+ *     comlink, `db.execute` ne résout plus jamais, échec `DataCloneError`).
+ *     On exécute donc SQLite sur le thread principal pendant les tests.
+ *   - `enableMultiTabs: false` : RÉGRESSION `@powersync/web` 2.6.0. Quand le
+ *     worker est désactivé, l'adaptateur WASQLite ouvre sa connexion EN
+ *     PROCESSUS (`source = null` dans `DatabaseClient`), or la sync
+ *     multi-onglets (activée par défaut dès que `SharedWorker` existe)
+ *     sélectionne `SharedWebStreamingSyncImplementation`, qui appelle
+ *     `db.shareConnection()` → lève « shareConnection() is only available for
+ *     connections based by workers ». La promesse rejetée faisait échouer le
+ *     boot de ~11 specs Cypress. Le multi-onglets n'a de sens qu'en
+ *     production (vrais onglets).
+ *
+ * `window.Cypress` n'existe que sous test → aucun impact production/build.
+ */
+export function buildDatabaseOptions(isCypress: boolean) {
+  return {
+    dbFilename: "lumina.db",
+    debugMode: import.meta.env.DEV, // Activer le debug en développement
+    useWebWorker: !isCypress,
+    ...(isCypress ? { enableMultiTabs: false } : {}),
+  };
+}
+
 export async function initPowerSync(): Promise<void> {
   // Idempotent: a second call is a no-op so repeated boots / HMR do not
   // create a second database handle.
@@ -407,28 +437,7 @@ export async function initPowerSync(): Promise<void> {
   // Créer la base de données
   _db = new PowerSyncDatabase({
     schema: AppSchema,
-    database: {
-      dbFilename: "lumina.db",
-      debugMode: import.meta.env.DEV, // Activer le debug en développement
-      // E2E : le worker WASM dédié de `@powersync/web` se bloque dans le
-      // contexte Electron headless de Cypress — après ~5 allers-retours
-      // comlink, le 6e appel `db.execute` ne résout plus jamais (l'échec
-      // remonte en `DataCloneError` non clonable). On exécute donc SQLite
-      // sur le thread principal pendant les tests : c'est l'option prévue
-      // par PowerSync pour les environnements de test. `window.Cypress`
-      // n'existe que sous Cypress → aucun impact production/build.
-      useWebWorker: !isCypress,
-      // E2E (régression @powersync/web 2.6.0) : quand `useWebWorker` est
-      // désactivé, l'adaptateur ouvre sa connexion EN PROCESSUS (`source =
-      // null`), or la sync multi-onglets (activée par défaut dès que
-      // `SharedWorker` existe) appelle `db.shareConnection()`, qui lève
-      // alors « shareConnection() is only available for connections based
-      // by workers » — une promesse rejetée qui faisait échouer le boot de
-      // ~11 specs Cypress. Le multi-onglets n'a de sens qu'en production
-      // (vrais onglets) ; on le désactive uniquement sous Cypress, où le
-      // worker est déjà désactivé. Aucun impact production.
-      ...(isCypress ? { enableMultiTabs: false } : {}),
-    },
+    database: buildDatabaseOptions(isCypress),
   });
 
   // Connecter à PowerSync
