@@ -144,12 +144,12 @@ describe('Lumina — PR3 corbeille / restauration (soft-delete)', () => {
       .contains('Archiver le groupe', { timeout: 30_000 })
       .click({ force: true });
     // A6 — confirmation via IonAlert (ConfirmModal adossé) : le CTA est un
-    // vrai <button> dans le SHADOW DOM de l'alerte — on pilote depuis
-    // l'hôte (même idiome que invitations.cy.ts ; les requêtes racine ne
-    // traversent pas le shadow DOM, et filtrer `:visible` casse la
-    // chaîne : les hôtes Ionic sont masqués tant que non présentés).
+    // vrai <button> dans le SHADOW DOM de l'alerte. `includeShadowDom`
+    // est REQUIS pour que find/contains y cherchent (doc Cypress) : sans
+    // lui, la traversée échoue dès que plusieurs hôtes ion-alert
+    // coexistent sur la page (deux ConfirmModal dans GroupDetail).
     cy.get('ion-alert', { timeout: 20_000 })
-      .find('button')
+      .find('button', { includeShadowDom: true })
       .contains('Archiver')
       .click({ force: true });
 
