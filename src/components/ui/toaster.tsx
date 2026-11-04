@@ -10,12 +10,16 @@
  *    Next.js que cette application (Vite + Ionic) n'utilise nulle part
  *    ailleurs : le hook renvoyait toujours « system » et ignorait le thème
  *    réel de l'application (posé par `applyStoredThemeMode` via `data-theme`).
- * 3. La position était `top-center`, donc SOUS l'en-tête Ionique et sous la
- *    barre d'état Android : un toast pouvait recouvrir le titre de l'écran.
  *
  * Le thème est maintenant lu sur la source de vérité de l'application
- * (`data-theme` sur `<html>`), et positionné en bas — au-dessus de la barre
- * d'onglets (`--z-toast`, 70) mais hors des zones d'en-tête.
+ * (`data-theme` sur `<html>`).
+ *
+ * POSITION — `top-center`, volontairement. Le déplacer en bas a été essayé
+ * puis REJETÉ : le toast a `--z-toast` (70) contre `--z-nav` (40), il passait
+ * donc AU-DESSUS de la barre d'onglets — soit exactement sur la navigation
+ * principale, en masquant des boutons pendant plusieurs secondes. Un toast qui
+ * recouvre brièvement un titre est bien moins gênant qu'un toast qui bloque
+ * l'accès aux onglets. La marge haute évite la barre d'état native.
  */
 
 import { Toaster as Sonner, type ToasterProps } from "sonner";
@@ -49,11 +53,12 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme={theme}
-      // Bas de l'écran : ne recouvre jamais l'en-tête ni la barre d'état.
-      position="bottom-center"
-      // Marge au-dessus de la barre d'onglets (hauteur + inset natif fourni
-      // par la couche `--ion-safe-area-bottom`, source unique depuis A3).
-      offset={{ bottom: "calc(72px + var(--ion-safe-area-bottom, 0px))" }}
+      // Haut de l'écran : ne recouvre JAMAIS la barre d'onglets (z-toast 70 >
+      // z-nav 40), contrairement à un placement en bas.
+      position="top-center"
+      // Marge haute = inset de la barre d'état native (source unique depuis
+      // A3) + un peu d'air, pour ne pas coller à l'encoche.
+      offset={{ top: "calc(8px + var(--ion-safe-area-top, 0px))" }}
       toastOptions={{
         style: {
           background: "var(--surface)",

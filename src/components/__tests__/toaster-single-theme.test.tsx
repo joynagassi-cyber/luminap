@@ -8,8 +8,9 @@
  *   2. le second lisait son thème dans `next-themes`, dépendance Next.js que
  *      l'application n'utilise nulle part : le thème réel (`data-theme` sur
  *      `<html>`, posé par `applyStoredThemeMode`) était ignoré ;
- *   3. la position `top-center` plaçait le toast sous l'en-tête ionique et sous
- *      la barre d'état Android.
+ *   3. la position : `top-center` est CONSERVÉE après examen — un toast placé
+ *      en bas passerait au-dessus de la barre d'onglets (`--z-toast` 70 >
+ *      `--z-nav` 40) et masquerait la navigation principale.
  *
  * NON-VACUITÉ : revenir à `theme="system"` (ou supprimer l'observateur) fait
  * échouer le test de bascule de thème ; remettre `position="top-center"` fait
@@ -64,11 +65,12 @@ describe("A6 — Toaster unique", () => {
     expect(sonner.props.at(-1)!.theme).toBe("light");
   });
 
-  it("s'affiche en BAS, au-dessus de la barre d'onglets (jamais sur l'en-tête)", () => {
+  it("ne recouvre JAMAIS la barre d'onglets (position haute)", () => {
     render(<Toaster />);
     const props = sonner.props.at(-1)!;
-    expect(props.position).toBe("bottom-center");
-    // `offset` est un objet ({ bottom: "calc(…)" }) — on inspecte sa valeur.
-    expect(JSON.stringify(props.offset)).toContain("72px");
+    // Le toast a un z-index supérieur au nav : placé en bas, il masquerait des
+    // boutons de navigation. Il doit donc rester en haut.
+    expect(props.position).toBe("top-center");
+    expect(JSON.stringify(props.offset)).toContain("safe-area-top");
   });
 });
