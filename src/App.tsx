@@ -1,5 +1,4 @@
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
@@ -462,7 +461,6 @@ const App = () => {
     }>
     <TooltipProvider>
       <Toaster />
-      <Sonner />
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <UpdaterBridge />

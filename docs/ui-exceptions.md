@@ -64,3 +64,22 @@ statuts typés et `reportError`.
 Ajouter une ligne au tableau (composant, équivalent Ionic, motif daté)
 dans la PR qui introduit le composant maison. Sans ligne ici, la PR doit
 utiliser le composant Ionic.
+
+---
+
+## Mise à jour A6/A7 (4 nov. 2026)
+
+| Sujet | Avant | Après |
+|---|---|---|
+| Toasts applicatifs | **deux** toasters Sonner montés (dont un via `next-themes`, dépendance Next.js inutilisée ailleurs) | **un seul** `Toaster`, thème lu sur `data-theme` (source de vérité de l'app) |
+| Position des toasts | `top-center` (recouvrait l'en-tête et la barre d'état) | `bottom-center`, au-dessus de la barre d'onglets |
+| Rafraîchissement manuel | aucun | `IonRefresher` (tirer pour synchroniser) sur `/finance` et `/members` |
+
+Les toasts restent **Sonner** et non `useIonToast` : Sonner est déjà en place
+(45 points d'appel), accessible et thémé, tandis qu'`useIonToast` exigerait de
+réécrire tous ces appels sans gain fonctionnel mesurable. L'exception est donc
+**assumée et documentée** ici plutôt que contournée en silence.
+
+`IonRefresher` en revanche est bien un composant Ionic natif : c'est la règle
+« Ionic d'abord » appliquée là où elle apporte quelque chose (geste natif,
+inertie, retour visuel).

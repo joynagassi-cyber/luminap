@@ -205,3 +205,28 @@ INTERDIT : déclarer « fait » sans preuve ; demander READ/WRITE_EXTERNAL_STORA
 - Plugins Capacitor essentiels installés et configurés ; aucun plugin configuré sans être installé.
 - Sauvegarde Android et stockage conformes à la décision de sécurité ; verrou d'application si retenu.
 - Écrans clés migrés vers les composants Ionic natifs (retours, feuilles, listes), vérifiés sur appareil réel.
+
+---
+
+## 12. A6 (suite) et A7 — toasts, listes
+
+| Point | Avant | Après |
+|---|---|---|
+| Toasters montés | **2** (`ui/toaster` + `ui/sonner`) | **1** |
+| Dépendance `next-themes` | utilisée pour le thème des toasts, ignorait le thème réel | **retirée** (`data-theme` + `MutationObserver`) |
+| Position des toasts | `top-center` | `top-center` **conservée** (voir ci-dessous) + marge barre d'état |
+| `IonRefresher` | **0** | **2 écrans** (`/finance`, `/members`) |
+| points d'appel de toast | 45 | 45 (inchangés — exception Sonner documentée) |
+| tests | 2 601 | **2 610** (+9) |
+
+**Position des toasts — essai rejeté.** Le passage en `bottom-center` a été
+implémenté puis **annulé** : le toast a `--z-toast` (70) contre `--z-nav` (40),
+il passait donc *au-dessus* de la barre d'onglets et masquait la navigation
+principale pendant plusieurs secondes. Un toast qui recouvre brièvement un titre
+est moins gênant qu'un toast qui bloque les onglets. Cette décision est tracée
+ici parce que « corrigé puis annulé » est une information utile, pas un détail.
+
+Le geste « tirer pour synchroniser » **ne simule pas** une synchronisation : il
+appelle `waitForFirstSync()` et, si PowerSync n'est pas prêt ou ne répond pas
+dans les 15 s, il **referme le geste** avec un message. Un refresher qui reste
+ouvert fige l'écran — c'est précisément ce que les tests interdisent.
