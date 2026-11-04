@@ -367,7 +367,26 @@ Décision §7 #6 : **requis**. La réplique contient des montants nominatifs ; u
 une base chiffrée (aucun appareil disponible). À vérifier dans
 `docs/audit-permissions.md`, section « chiffrement ».
 
-### 9.3 Limites assumées
+### 9.3 Incident et correctif (traçabilité CI)
+
+| Run | `cypress-run (1)` | `cypress-run (2)` |
+|---|---|---|
+| avant A4 (A1–A3) | 1 spec en échec | 1 spec en échec |
+| **A4, première version** | **41 specs en échec** | **80 specs en échec** |
+| A4 corrigée | 1 spec en échec | ✅ |
+
+Cause : `initPowerSync` attendait la lecture du Keystore AVANT de créer la
+base. Sur le web, `PowerSyncProvider` montait sans handle → tous les écrans de
+données vides. Correctif : chemin de décision **synchrone**
+(`prepareDatabaseBootSync`) pour le web et pour Cypress (base historique, non
+chiffrée, aucune clé générée) ; la voie asynchrone (Keystore) reste celle du
+natif. Quatre tests verrouillent ce contrat.
+
+Leçon : une phase de sécurité qui touche au DÉMARRAGE doit être validée par la
+CI E2E, pas seulement par des tests unitaires — le chiffrement est resté
+correct tout du long, c'est l'ordonnancement du boot qui cassait l'application.
+
+### 9.4 Limites assumées
 
 | Limite | Pourquoi c'est acceptable (ou pas) |
 |---|---|
@@ -376,7 +395,7 @@ une base chiffrée (aucun appareil disponible). À vérifier dans
 | Rotation de clé non implémentée. | Aucun besoin produit exprimé. `PRAGMA rekey` exige de rouvrir la base avec l'ancienne clé ; le faire à moitié serait pire que ne pas le faire. |
 | `lumina.db` en clair survit une session après la mise à jour. | Nécessaire pour ne pas perdre les écritures hors-ligne non synchronisées ; supprimée au démarrage suivant, une fois la file prouvée vide. |
 
-### 9.4 Compteurs A4
+### 9.5 Compteurs A4
 
 | Mesure | Avant | Après |
 |---|---|---|
@@ -384,7 +403,7 @@ une base chiffrée (aucun appareil disponible). À vérifier dans
 | secrets stockés hors Keystore sur natif | — | **0** (repli seulement en cas d'échec, journalisé) |
 | plugins Capacitor installés | 12 | **13** (`@aparajita/capacitor-secure-storage` 7.1.6) |
 | plugins configurés non installés | 0 | **0** |
-| tests | 2 531 | **2 562** (+31) |
+| tests | 2 531 | **2 566** (+35) |
 
 ---
 
