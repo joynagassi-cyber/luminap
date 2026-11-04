@@ -1,5 +1,5 @@
 import { captureClientError } from "@/lib/clientErrors";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useMembers, addMemberPS, isPowerSyncReadyNow } from "@/lib/dataLayer";
@@ -27,6 +27,7 @@ import {
   IonInfiniteScroll,
   IonInput,
 } from "@ionic/react";
+import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import EmptyState from "@/components/EmptyState";
 import { showError } from "@/utils/toast";
 
@@ -39,16 +40,28 @@ export default function MembersPage() {
   const [retryArchived, setRetryArchived] = useState(0);
 
   // Load archived members via Resource capability
-  useEffect(() => {
+  const loadArchivedMembers = useCallback(() => {
     setArchivedError(false);
-    resource
+    return resource
       .listArchived<Member>("Member")
       .then(({ items }) => setArchivedMembers(items))
       .catch((e) => {
         captureClientError(e, { message: "Échec du chargement des membres archivés" });
         setArchivedError(true);
       });
-  }, [retryArchived]);
+  }, []);
+
+  useEffect(() => {
+    void loadArchivedMembers();
+  }, [retryArchived, loadArchivedMembers]);
+
+  // A5 — au retour sur l'écran (membre ajouté ailleurs, archivage depuis une
+  // autre page), la liste des archivés doit être relue : la page reste montée.
+  useRefreshOnViewEnter(loadArchivedMembers, {
+    label: "members.archived",
+    onError: (error) =>
+      captureClientError(error, { message: "Échec du rechargement des membres archivés" }),
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [showForm, setShowForm] = useState(false);

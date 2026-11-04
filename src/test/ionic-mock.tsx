@@ -208,6 +208,13 @@ export function createIonicMock() {
   ] as const;
 
   const mod: Record<string, unknown> = {
+    // Hooks de cycle de vie de vue : hors `<IonRouterOutlet>` (jsdom), Ionic
+    // ne les déclenche jamais. No-op fidèle à ce comportement — les pages
+    // gardent leur `useEffect` de premier chargement pour les tests.
+    useIonViewWillEnter: () => undefined,
+    useIonViewDidEnter: () => undefined,
+    useIonViewWillLeave: () => undefined,
+    useIonViewDidLeave: () => undefined,
     IonInput,
     IonTextarea,
     IonSelect,

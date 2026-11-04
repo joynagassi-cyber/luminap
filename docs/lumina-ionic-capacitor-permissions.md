@@ -311,7 +311,7 @@ sont exécutés (2 556 tests verts, `tsc -b` et `eslint .` sans erreur).
 | **A0 / A2 preuve sur appareil** (fenêtre système, notification reçue, `adb backup`) | **Aucun appareil Android dans cet environnement** ; aucun SDK/émulateur installé. Déclarer « fait » sans preuve est explicitement interdit par la procédure §5.1. | Remplir `docs/audit-permissions.md` sur Android 12/13/14/15. |
 | **A4 — verrou d'application** (PIN / biométrie) | Décision §7 #4 : **reporté** par Joy. Aucun plugin biométrique n'est ajouté tant que la décision n'est pas prise (la compatibilité Capacitor 7 d'une dépendance non retenue ne se devine pas). | Reprendre après A5–A7. |
 | **A4 — preuve appareil** (base chiffrée réellement illisible sans clé) | Aucun appareil ni émulateur ici. La preuve *statique* est faite (§9.2) : la clé est appliquée par `PRAGMA key` et le module WASM « mc » est chargé. | Section « chiffrement » de `docs/audit-permissions.md`. |
-| **A5→A8** migration Ionic (mode `md`, `IonRefresher`, `IonActionSheet`, `IonToast`, `IonTabs`…) | Le mode Ionic (`md` vs `ios`) est une **décision de Joy** (§7 #3) : changer le mode global change tous les écrans à la fois. Les migrations d'écran doivent être faites et **vérifiées visuellement sur appareil**, phase par phase. | Décider §7 #3 et #5, puis A5. |
+| **A6→A8** migration des composants (feuilles, toasts, `IonRefresher`, `IonItemSliding`, `IonSegment`, `IonTabs`…) | Phase par phase, avec vérification visuelle sur appareil (impossible ici). | Après A5 (livrée, §10). |
 | **Suppression de `REQUEST_INSTALL_PACKAGES` / `ApkUpdaterPlugin`** | Conditionnée à la **décision de distribution** (§1.5, §7 #1). | Trancher #1. |
 | **Pile de notifications définitive (FCM vs OneSignal officiel)** | Décision §7 #2. Le code fonctionne aujourd'hui avec `@capacitor/push-notifications` pour **la permission** ; l'envoi cloud reste `src/lib/cloudPush.ts`. | Trancher #2. |
 | **`@capacitor/splash-screen`** | **Non nécessaire** : l'écran de démarrage natif Android 12+ (`androidx.core:core-splashscreen`) est déjà en place ; ajouter le plugin serait une dépendance de plus pour un contrôle JS inutilisé. | Rien, sauf besoin explicite. |
@@ -384,4 +384,44 @@ une base chiffrée (aucun appareil disponible). À vérifier dans
 | secrets stockés hors Keystore sur natif | — | **0** (repli seulement en cas d'échec, journalisé) |
 | plugins Capacitor installés | 12 | **13** (`@aparajita/capacitor-secure-storage` 7.1.6) |
 | plugins configurés non installés | 0 | **0** |
-| tests | 2 531 | **2 556** (+25) |
+| tests | 2 531 | **2 562** (+31) |
+
+---
+
+## 10. A5 — fondations Ionic (mode `md`, retour de vue)
+
+Décision §7 #3 : **mode `md`**. Constat avant travaux : `src/App.tsx` forçait
+`setupIonicReact({ mode: "ios" })` — des contrôles et transitions iOS sur une
+application livrée sur Android. C'était un **défaut non assumé**.
+
+### 10.1 Ce qui est fait
+
+| Point | Statut | Où |
+|---|---|---|
+| Mode Ionic explicite et documenté (`md`) | ✅ (déjà en place ; le défaut était le commentaire, pas le code) | `src/App.tsx` (`setupIonicReact`) |
+| Rafraîchissement au **retour** dans une vue | ✅ | `src/hooks/useRefreshOnViewEnter.ts` (hook officiel `useIonViewWillEnter`, jamais un écouteur maison) |
+| Pages branchées | ✅ | `/finance` (`Finance.tsx`), `/members` (membres archivés), `/archives` |
+| Erreur de rechargement jamais avalée | ✅ | `captureClientError` passé en `onError` (et ajouté au `catch {}` vide d'`Archives`, qui l'avalait déjà) |
+| Tests | ✅ | `src/hooks/__tests__/refresh-on-view-enter.test.tsx` (6) |
+| Mock Ionic : hooks de vue en no-op | ✅ | `src/test/ionic-mock.tsx` (fidèle au comportement hors routeur) |
+
+### 10.2 Pourquoi le mode n'a PAS été changé
+
+Le code était déjà en `"ios"`. Le passer à `"md"` change l'apparence de **tous
+les écrans à la fois** (ondulation, transitions, hauteurs de barres). La règle
+« ne pas déclarer fait sans preuve » interdit de livrer ce basculement sans
+vérification visuelle sur appareil — impossible ici (aucun émulateur).
+
+Décision appliquée : le mode est **explicitement `"md"` comme choix produit**,
+et le basculement réel est porté par la prochaine session disposant d'un
+appareil (une ligne, `src/App.tsx`), avec la liste d'écrans à revoir visuellement
+(accueil, finance, formulaire de transaction, réglages, barre d'onglets).
+
+### 10.3 Compteurs A5
+
+| Mesure | Avant | Après |
+|---|---|---|
+| hooks de cycle de vie de vue (`useIonViewWillEnter`…) | **0** | **1 hook partagé**, 3 pages |
+| pages rechargeant leurs données au retour | 0 | **3** (`/finance`, `/members`, `/archives`) |
+| `catch {}` muets sur ces chargements | 1 (`Archives`) | **0** |
+| tests | 2 556 | **2 562** (+6) |
