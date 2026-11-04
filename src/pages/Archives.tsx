@@ -18,7 +18,6 @@ import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import {
   Users,
-  Search,
   Archive,
   RefreshCw,
   ArrowLeft,
@@ -38,6 +37,7 @@ import {
   IonTitle,
   IonToolbar,
   IonInput,
+  IonSearchbar,
 } from "@ionic/react";
 import EmptyState from "@/components/EmptyState";
 import { getOrganizationId } from "@/lib/orgContext";
@@ -313,16 +313,16 @@ export default function Archives() {
                 </button>
               )}
 
-              {/* Search */}
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-                {/* M4 */}
-                <IonInput
-                  value={searchQuery}
-                  onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
-                  placeholder="Rechercher dans les archives..."
-                />
-              </div>
+              {/* A7 — IonSearchbar : champ de recherche natif (bouton
+                  d'effacement, clavier « rechercher », annonce lecteur
+                  d'écran) au lieu d'une icône + IonInput assemblés à la main. */}
+              <IonSearchbar
+                value={searchQuery}
+                onIonInput={(e) => setSearchQuery((e.detail.value as string) ?? "")}
+                placeholder="Rechercher dans les archives..."
+                debounce={0}
+                className="mb-4"
+              />
 
               {/* Filter tabs */}
               <div className="flex gap-2 overflow-x-auto pb-3 mb-5 scrollbar-hide">

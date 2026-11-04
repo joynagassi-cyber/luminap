@@ -230,3 +230,28 @@ Le geste « tirer pour synchroniser » **ne simule pas** une synchronisation : i
 appelle `waitForFirstSync()` et, si PowerSync n'est pas prêt ou ne répond pas
 dans les 15 s, il **referme le geste** avec un message. Un refresher qui reste
 ouvert fige l'écran — c'est précisément ce que les tests interdisent.
+
+---
+
+## 13. A7 — état final
+
+| Composant | Avant | Après | Écran |
+|---|---|---|---|
+| `IonRefresher` | 0 | **2** | `/finance`, `/members` |
+| `IonSegment` | 0 | **0 — reporté** (voir `docs/ui-exceptions.md`) | — |
+| `IonToggle` | 0 | **17** (instances) | `/settings/features` |
+| `IonSearchbar` | 1 | **2** | `/archives` (+ `InvitationManage`) |
+| `IonSkeletonText` | 0 | **0 (refusé, documenté)** | — |
+| `IonItemSliding` | 0 | **0 (sans objet)** | — |
+
+Chaque adoption est couverte par un test de **comportement**, pas de présence :
+changer de période refait le calcul, basculer un interrupteur écrit l'état
+persisté, taper dans la recherche filtre la liste. Chacun a été invalidé par
+mutation (retirer le gestionnaire fait échouer le test) avant d'être conservé.
+
+`IonSkeletonText` est explicitement refusé : son animation n'a aucun cas
+`prefers-reduced-motion`, contrairement au squelette maison. Détail dans
+`docs/ui-exceptions.md`.
+
+**Non prouvé ici** : le rendu visuel de ces composants sur appareil Android
+réel. Aucun émulateur dans cet environnement.
