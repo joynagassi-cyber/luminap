@@ -180,7 +180,7 @@ export default function BottomNav() {
           onClick={fabAction.action}
           style={{
             position: "fixed",
-            bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)",
+            bottom: "calc(var(--ion-safe-area-bottom, 0px) + 80px)",
             right: 20,
             zIndex: "var(--z-nav)",
             width: 56,
@@ -225,11 +225,13 @@ export default function BottomNav() {
           background: "var(--nav-bg)",
           backdropFilter: "blur(10px)",
           borderTop: "1px solid var(--border)",
-          // Bug P1-3 : la barre doit se terminer AU-DESSUS de la
-          // navigation système Android (edge-to-edge) — le padding bas
-          //absorbe l'inset système au lieu d'un fixe 8px que les
-          // boutons ◀ ● ■ recouvraient.
-          padding: "4px 8px calc(env(safe-area-inset-bottom, 0px) + 8px)",
+          // C-09 (A3) — l'inset bas vient de --ion-safe-area-bottom :
+          // env() sur le web/PWA (la barre finit au-dessus de
+          // l'indicateur d'accueil), forcé à 0 sur Android natif où
+          // MainActivity rembourre déjà la WebView (bug P1-3 : les
+          // boutons ◀ ● ■ recouvraient la barre) — source unique,
+          // pas de double compensation.
+          padding: "4px 8px calc(var(--ion-safe-area-bottom, 0px) + 8px)",
         }}
       >
         <div
