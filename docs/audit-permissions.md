@@ -76,10 +76,10 @@ Sans question car sans ambiguïté : retrait de `USE_FULL_SCREEN_INTENT`
 (inutilisée), verrouillage d'`allowBackup` (P0, données financières), jamais
 de `READ/WRITE_EXTERNAL_STORAGE`, aucune demande de permission au démarrage à froid.
 
-## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2 et A3)
+## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3 et l'arbitrage A4)
 
-Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A3
-(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3) :
+Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A4
+(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3 ; 4.13 valide l'arbitrage A4) :
 
 - [ ] **4.1** `adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"`
       → permissions déclarées = matrice §1.2 ; `POST_NOTIFICATIONS` : `granted=false` avant la demande, `true` après accord. Résultat : …
@@ -104,6 +104,11 @@ Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la 
 - [ ] **4.12** (A3) Retour haptique : vibration discrète à l'enregistrement d'une
       transaction (et pattern d'erreur si échec), et au décodage d'un QR par le
       scanner. Résultat : …
+- [ ] **4.13** (A4) Changement de compte sur le même appareil : noter une saisie
+      hors-ligne avec le compte A, se déconnecter, se reconnecter avec un compte B
+      → aucune donnée de A (église, transactions) ne doit apparaître ; revenir au
+      compte A → sa saisie en attente est toujours là (arbitrage de l'étude C-07c
+      §6 : la réplique n'est pas purgée au changement de compte). Résultat : …
 
 ## 5. Porte de sortie A1 (cette PR)
 

@@ -1,4 +1,5 @@
 import { Preferences } from "@capacitor/preferences";
+import { reportError } from "@/lib/observability/errorReporter";
 
 /**
  * StorageAdapter — wraps the Capacitor Preferences plugin with a clean typed interface.
@@ -6,9 +7,18 @@ import { Preferences } from "@capacitor/preferences";
  * Provides key/value persistence that works across web and native platforms.
  * All values are serialized to JSON strings before storage.
  * Falls back to localStorage in browser environments when Capacitor is unavailable.
+ *
+ * A4 / C-11 — a NATIVE Preferences failure also falls back to localStorage
+ * (availability first), but no longer silently: silently splitting reads and
+ * writes between two stores can fork the data (a write lands in localStorage
+ * while a later read succeeds against stale Preferences). The first fallback
+ * of a session is journaled via `reportError` so a broken native store is
+ * visible instead of masqueraded. See docs/etude-c07c-stockage-securise.md.
  */
 export class StorageAdapter {
   private static instance: StorageAdapter | null = null;
+  /** C-11: the fallback signal is sent at most once per session. */
+  private static fallbackSignaled = false;
   private group: string;
   /** Set by tests to force capacitor env detection. */
   static __mockStorage: typeof Preferences | null = null;
@@ -31,7 +41,8 @@ export class StorageAdapter {
         const result = await Preferences.get({ key });
         if (result.value === null) return null;
         return this.parseJson<T>(result.value);
-      } catch {
+      } catch (error) {
+        StorageAdapter.signalFallback("get", key, error);
         return this.getFromLocalStorage<T>(key);
       }
     }
@@ -44,7 +55,8 @@ export class StorageAdapter {
       try {
         await Preferences.set({ key, value: this.stringify(value) });
         return;
-      } catch {
+      } catch (error) {
+        StorageAdapter.signalFallback("set", key, error);
         // fall through to localStorage
       }
     }
@@ -57,7 +69,8 @@ export class StorageAdapter {
       try {
         await Preferences.remove({ key });
         return;
-      } catch {
+      } catch (error) {
+        StorageAdapter.signalFallback("remove", key, error);
         // fall through to localStorage
       }
     }
@@ -70,7 +83,8 @@ export class StorageAdapter {
       try {
         await Preferences.clear();
         return;
-      } catch {
+      } catch (error) {
+        StorageAdapter.signalFallback("clear", "(all)", error);
         // fall through to localStorage
       }
     }
@@ -83,11 +97,31 @@ export class StorageAdapter {
       try {
         const result = await Preferences.keys();
         return result.keys;
-      } catch {
+      } catch (error) {
+        StorageAdapter.signalFallback("keys", "(all)", error);
         return this.getLocalStorageKeys();
       }
     }
     return this.getLocalStorageKeys();
+  }
+
+  /**
+   * C-11: journal a native→localStorage fallback, at most once per session
+   * (a failing store hit in a loop must not flood the error sink).
+   */
+  private static signalFallback(
+    op: string,
+    key: string,
+    error: unknown,
+  ): void {
+    if (StorageAdapter.fallbackSignaled) return;
+    StorageAdapter.fallbackSignaled = true;
+    reportError(
+      error instanceof Error
+        ? error
+        : new Error(`Preferences.${op} a échoué, repli localStorage`),
+      { source: "storage-adapter-fallback", context: { op, key } },
+    );
   }
 
   /**
@@ -98,10 +132,13 @@ export class StorageAdapter {
     StorageAdapter.__mockStorage = mockPlugin;
     // Reset instance so new group parameter takes effect
     StorageAdapter.instance = null;
+    // Re-arm the once-per-session fallback signal for deterministic tests
+    StorageAdapter.fallbackSignaled = false;
   }
 
   static resetMockPlugin(): void {
     StorageAdapter.__mockStorage = null;
+    StorageAdapter.fallbackSignaled = false;
     // Don't reset instance — tests manage singleton per test
   }
 
