@@ -20,8 +20,25 @@
   Tests `event-group-member` / `account-transaction` / `versement-cotisation`
   mis au contrat « échouer bruyamment ». Mock `psStore.failNext(msg, match?)`
   CIBLÉ (sinon l'échec frappait la lecture fail-open `period_locked_until`).
-- **Reste à valider on-device** : pas de Java/SDK dans le conteneur ⇒ build APK
-  + test hors ligne (création locale visible, puis upload à la reconnexion).
+- **Régression @powersync/web 2.6.0 (trouvée en revue, PR #409)** : le bump
+  2.3.0→2.6.0 (imposé par le peer de `@powersync/capacitor@0.10.0`) casse le
+  harness E2E. Avec `useWebWorker:false` (requis sous Cypress), l'adaptateur
+  WASQLite ouvre sa connexion **en process** (`source=null`), mais la sync
+  **multi-onglets** (défaut dès que `SharedWorker` existe) →
+  `SharedWebStreamingSyncImplementation` → `db.shareConnection()` → throw
+  « only available for connections based by workers » (11 specs rouges).
+  **Fix** : `...(isCypress ? { enableMultiTabs: false } : {})` dans les options
+  DB (`src/lib/powersync/index.ts`). `shareConnection()` n'est appelé QUE par
+  ce chemin. Gardes ajoutées : `powersync-native-driver.test.ts` (import
+  `PowerSyncDatabase` depuis `@powersync/capacitor`, `@capacitor/*` tous en
+  8.x, `:powersync-capacitor` dans `android/app/capacitor.build.gradle`) +
+  timeline boot hors ligne dans `powersync-availability.test.ts` (hasSynced
+  `undefined`→`statusChanged`→prêt sans `connected`). Non-vacuité par mutation.
+- **APK** : `Build Debug APK` CI ✅ (assembleDebug réel) — le conteneur n'a pas
+  le SDK Android, mais la CI produit l'APK. Reste : test **fonctionnel
+  on-device** (création hors ligne visible, puis upload à la reconnexion).
+- **Dépôt GitHub uniquement** (aucun remote GitLab / `.gitlab-ci.yml`) ⇒ « MR »
+  = la PR GitHub #409 (pas de MR GitLab à créer).
 
 ## Environnement d'agent (contraintes lourdes, vérifiées)
 - **Cypress TOURNE en local** (vérifié 2026-11-02) : binaire **16.0.0** +
