@@ -1409,3 +1409,26 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `createConnection(..., 'no-encryption', ...)` (TODO SDK). Base non chiffrée
   en pratique sur natif ; le mode chiffré (`lumina-enc.db`) est sans effet.
 - `src/lib/offline/` (OfflineService/conflicts) = **code mort supprimé**.
+
+## Offline-first Lumina — PR #419 (2026-11-04)
+- **Cause racine du « pas vraiment offline »** : `authService.getSession()`
+  (src/lib/auth.ts) appelait `supabase.auth.getSession()` en tête ; token
+  expiré (~1 h = cas normal) ⇒ `POST /token` réseau **NON borné** au montage
+  (RouteGuard/Splash) ⇒ boot bloqué hors ligne. Fix : `readStoredSession()`
+  rendu immédiatement + refresh d'arrière-plan borné (4 s).
+- **Reprise au premier plan** : `AppLifecycleBridge` (App.tsx,
+  `appStateChange`+`visibilitychange`) → `resumeSession()` (ne déconnecte
+  jamais) + `resumePowerSync()` (reconnecte si `!connected && !connecting`).
+- **Jamais déconnecté sur erreur réseau** : `onAuthStateChange` ne purge que
+  sur `SIGNED_OUT` OU absence de session persistée ; `isOfflineLikeError`
+  classe `AuthRetryableFetchError` **+ 5xx/429** comme transitoires (un 4xx
+  type `invalid_grant` reste invalidant).
+- **PIÈGE E2E offline** : un test « offline » doit simuler une **PANNE RÉSEAU**
+  (`cy.intercept('**/auth/v1/token**', req.reply({errorCode:'ECONNABORTED'}))`),
+  jamais un rejet auth serveur : supabase-js **supprime** la session sur un
+  rejet auth (400) — correct — donc le test verrait `/auth`. L'interception de
+  repli `interceptCloud()` ne matche QUE l'hôte de secours ⇒ un test
+  host-agnostique est requis.
+- **Cypress en local** : `npx cypress install` + `apt-get install -y
+  --fix-missing xvfb` (snapshot.debian.org fait des 503 → réessayer) ;
+  `npx vite --port 8080 --strictPort` ; `CYPRESS_BASE_URL=http://localhost:8080`.
