@@ -143,9 +143,15 @@ describe('Lumina — PR3 corbeille / restauration (soft-delete)', () => {
     cy.get(`${ACTIVE_PAGE} button`)
       .contains('Archiver le groupe', { timeout: 30_000 })
       .click({ force: true });
-    // A6 — confirmation via IonAlert : le CTA est un vrai <button> portant
-    // l'aria-label (ConfirmModal n'est plus qu'un adaptateur autour d'IonAlert).
-    cy.get('button[aria-label="Archiver"]', { timeout: 20_000 }).click({ force: true });
+    // A6 — confirmation via IonAlert (ConfirmModal adossé) : le CTA est un
+    // vrai <button> dans le SHADOW DOM de l'alerte — on pilote depuis
+    // l'hôte visible (les requêtes racine ne traversent pas le shadow DOM,
+    // même idiome que invitations.cy.ts).
+    cy.get('ion-alert', { timeout: 20_000 })
+      .filter(':visible')
+      .find('button')
+      .contains('Archiver')
+      .click({ force: true });
 
     // La bascule est PERSISTÉE : la ligne passe ARCHIVED (relecture réplique).
     cy.window({ timeout: 30_000 }).then({ timeout: 30_000 }, async (win) => {

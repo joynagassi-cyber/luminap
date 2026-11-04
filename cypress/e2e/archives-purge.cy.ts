@@ -144,14 +144,19 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.get(`button[aria-label="Supprimer définitivement ${groupName}"]`).click({
       force: true,
     });
-    // Le dialogue de confirmation s'ouvre (titre explicite).
-    cy.contains('Supprimer définitivement ?', { timeout: 20_000 }).should('exist');
-    // A6 — le dialogue est un `IonAlert` : ses actions sont de vrais
-    // <button class="alert-button"> (l'ancien ConfirmModal rendait des
-    // <ion-button>). Le libellé accessible reste la source de vérité.
-    cy.get('button[aria-label="Annuler"]', { timeout: 20_000 }).click({
-      force: true,
-    });
+    // Le dialogue de confirmation s'ouvre (titre explicite). A6 : c'est
+    // un `IonAlert` — titre et actions vivent dans son SHADOW DOM, que
+    // les requêtes racine de Cypress ne traversent pas ; on pilote donc
+    // depuis l'hôte visible (même idiome que invitations.cy.ts).
+    cy.get('ion-alert', { timeout: 20_000 })
+      .filter(':visible')
+      .contains('Supprimer définitivement ?')
+      .should('exist');
+    cy.get('ion-alert')
+      .filter(':visible')
+      .find('button')
+      .contains('Annuler')
+      .click({ force: true });
     // La ligne survit (aucune purge tant que non confirmé).
     cy.window({ timeout: 30_000 }).then({ timeout: 30_000 }, async (win) => {
       const rows = await dbOf(win).getAll(
@@ -165,9 +170,11 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.get(`button[aria-label="Supprimer définitivement ${groupName}"]`).click({
       force: true,
     });
-    cy.get('button[aria-label="Supprimer définitivement"]', {
-      timeout: 20_000,
-    }).click({ force: true });
+    cy.get('ion-alert', { timeout: 20_000 })
+      .filter(':visible')
+      .find('button')
+      .contains('Supprimer définitivement')
+      .click({ force: true });
 
     cy.window({ timeout: 40_000 }).then({ timeout: 40_000 }, async (win) => {
       const db = dbOf(win);
@@ -211,16 +218,21 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.visit('/archives');
     cy.contains(groupName, { timeout: 60_000 }).should('be.visible');
 
-    // Le déclencheur est un <button> natif ; le CTA du dialogue est un
-    // <ion-button> (ConfirmModal) — deux tags distincts, même libellé.
+    // Le déclencheur est un <button> natif de la page ; la confirmation
+    // est un `IonAlert` (ConfirmModal adossé, A6) — on pilote depuis
+    // l'hôte visible pour traverser son shadow DOM.
     cy.get('button[aria-label="Vider la corbeille"]', { timeout: 30_000 }).click({
       force: true,
     });
     // Confirmation explicite (titre distinct).
-    cy.contains('Vider la corbeille ?', { timeout: 20_000 }).should('exist');
-    // A6 — action de l'`IonAlert` (vrai <button>, pas <ion-button>).
-    cy.get('button[aria-label="Vider la corbeille"]', { timeout: 20_000 })
-      .last()
+    cy.get('ion-alert', { timeout: 20_000 })
+      .filter(':visible')
+      .contains('Vider la corbeille ?')
+      .should('exist');
+    cy.get('ion-alert')
+      .filter(':visible')
+      .find('button')
+      .contains('Vider la corbeille')
       .click({ force: true });
 
     cy.window({ timeout: 40_000 }).then({ timeout: 40_000 }, async (win) => {
