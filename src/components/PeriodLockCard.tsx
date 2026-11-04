@@ -20,7 +20,7 @@ import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { usePeriodLock } from "@/hooks/usePeriodLock";
 import { getOrganizationId } from "@/lib/orgContext";
 import { captureClientError } from "@/lib/clientErrors";
-import { toast } from "@/components/ui/use-toast";
+import { showError, showSuccess } from "@/utils/toast";
 import type { Role } from "@/types";
 
 /** `2026-10-31` → `31/10/2026` (affichage FR). */
@@ -53,16 +53,14 @@ export default function PeriodLockCard() {
     try {
       const ok = await setLock(date);
       if (ok) {
-        toast({
-          title: "Période clôturée",
-          description: `Les écritures jusqu'au ${formatFr(date)} inclus sont désormais bloquées.`,
-        });
+        showSuccess(
+          `Les écritures jusqu'au ${formatFr(date)} inclus sont désormais bloquées.`,
+          { header: "Période clôturée" },
+        );
         setDraft("");
       } else {
-        toast({
-          title: "Échec de la clôture",
-          description: "La date de clôture n'a pas pu être enregistrée.",
-          variant: "destructive",
+        showError("La date de clôture n'a pas pu être enregistrée.", {
+          header: "Échec de la clôture",
         });
       }
     } catch (err) {
@@ -70,10 +68,8 @@ export default function PeriodLockCard() {
         message: "Clôture de période échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Échec de la clôture",
-        description: "La date de clôture n'a pas pu être enregistrée.",
-        variant: "destructive",
+      showError("La date de clôture n'a pas pu être enregistrée.", {
+        header: "Échec de la clôture",
       });
     } finally {
       setBusy(false);
@@ -86,15 +82,13 @@ export default function PeriodLockCard() {
     try {
       const ok = await clearLock();
       if (ok) {
-        toast({
-          title: "Période rouverte",
-          description: "Les écritures sont de nouveau autorisées sur toutes les dates.",
-        });
+        showSuccess(
+          "Les écritures sont de nouveau autorisées sur toutes les dates.",
+          { header: "Période rouverte" },
+        );
       } else {
-        toast({
-          title: "Échec de la réouverture",
-          description: "La clôture n'a pas pu être retirée.",
-          variant: "destructive",
+        showError("La clôture n'a pas pu être retirée.", {
+          header: "Échec de la réouverture",
         });
       }
     } catch (err) {
@@ -102,10 +96,8 @@ export default function PeriodLockCard() {
         message: "Réouverture de période échouée",
         route: "/settings/gestion",
       });
-      toast({
-        title: "Échec de la réouverture",
-        description: "La clôture n'a pas pu être retirée.",
-        variant: "destructive",
+      showError("La clôture n'a pas pu être retirée.", {
+        header: "Échec de la réouverture",
       });
     } finally {
       setBusy(false);

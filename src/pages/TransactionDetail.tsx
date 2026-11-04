@@ -36,9 +36,8 @@ import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useSubmitGuard } from "@/hooks/useSubmitGuard";
 import { useMakerChecker } from "@/hooks/useMakerChecker";
 import { canApprove as canApproveRule } from "@/lib/makerChecker";
-import { toast } from "@/components/ui/use-toast";
-import { notification } from "@/capabilities/notification";
 import { showError } from "@/utils/toast";
+import { notification } from "@/capabilities/notification";
 import { captureClientError } from "@/lib/clientErrors";
 import { isPeriodLockedError, periodLockMessage } from "@/lib/periodLock";
 import {
@@ -200,10 +199,8 @@ export default function TransactionDetail() {
     // erreur typée, mais on évite ici d'ouvrir une fenêtre de double-soumission
     // pour une action qui ne peut pas aboutir.
     if (selfApprovalBlocked) {
-      toast({
-        title: "Approbation impossible",
-        description: "L'auteur ne peut pas approuver sa propre dépense.",
-        variant: "destructive",
+      showError("L'auteur ne peut pas approuver sa propre dépense.", {
+        header: "Approbation impossible",
       });
       return;
     }

@@ -33,7 +33,8 @@ import { MemoryRouter } from "react-router-dom";
 const restoreBackupRows = vi.fn();
 const recordUsage = vi.fn();
 const captureClientError = vi.fn();
-const toast = vi.fn();
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
 
 const backupState = {
   ready: true,
@@ -76,8 +77,9 @@ vi.mock("@/lib/clientErrors", () => ({
   captureClientError: (...args: unknown[]) => captureClientError(...args),
 }));
 
-vi.mock("@/components/ui/use-toast", () => ({
-  toast: (...args: unknown[]) => toast(...args),
+vi.mock("@/utils/toast", () => ({
+  showSuccess: (...args: unknown[]) => toastSuccess(...args),
+  showError: (...args: unknown[]) => toastError(...args),
 }));
 
 vi.mock("@/components/SettingsShell", () => ({
@@ -116,7 +118,8 @@ beforeEach(() => {
   restoreBackupRows.mockResolvedValue({ written: 1, created: 1, updated: 0 });
   recordUsage.mockClear();
   captureClientError.mockClear();
-  toast.mockClear();
+  toastSuccess.mockClear();
+  toastError.mockClear();
   backupState.ready = true;
   accessState.allowed = true;
 });
@@ -214,8 +217,9 @@ describe("SettingsGestion — plan de restauration", () => {
     ];
     expect(options?.sourceLabel).toBeTruthy();
 
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Sauvegarde restaurée" }),
+    expect(toastSuccess).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ header: "Sauvegarde restaurée" }),
     );
   });
 

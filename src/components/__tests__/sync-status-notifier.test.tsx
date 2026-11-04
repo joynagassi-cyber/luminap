@@ -25,8 +25,9 @@ vi.mock("@/lib/hooks/usePowerSyncIndicator", () => ({
   usePowerSyncIndicator: () => mocks.indicator.value,
 }));
 
-vi.mock("sonner", () => ({
-  toast: { warning: mocks.toastWarning, error: mocks.toastError },
+vi.mock("@/utils/toast", () => ({
+  showWarning: mocks.toastWarning,
+  showError: mocks.toastError,
 }));
 
 import { SyncStatusNotifier } from "@/components/SyncStatusNotifier";

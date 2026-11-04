@@ -1,14 +1,15 @@
 // @vitest-environment jsdom
 /**
- * Tests for useLocalStore, useToast, and useIsMobile.
+ * Tests for useLocalStore and useIsMobile.
  *
  * Store tests cover: initial state shape, selectRole (with localStorage),
  * addTransaction, updateTransaction validation & apply, deleteTransaction,
  * approveTransaction, reverseTransaction, createGroup, updateConfig (persist),
  * getCaisseForDisplay, getCotisationsForCulte, and notifications helpers.
  *
- * Toast tests cover: state transitions via the exported reducer (ADD/UPDATE/DISMISS/
- * REMOVE), TOAST_LIMIT enforcement, and the useToast hook's reactive state.
+ * (Les anciens tests du hook toast Radix ont été retirés en A6 avec le
+ * hook lui-même — les retours passent par `@/utils/toast`, testé dans
+ * `toast-facade.test.ts`.)
  *
  * Mobile tests cover: initial undefined state, media query subscription,
  * and reactive changes when matchMedia returns a new MediaQueryList.
@@ -203,7 +204,6 @@ vi.mock("@/lib/notification-service", async (importOriginal) => {
 
 // ─── Imports after all mocks are installed ───────────────────────────────────
 import { useLocalStore } from "@/store/useLocalStore";
-import { useToast, toast, reducer, type State as ToastState } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -550,133 +550,6 @@ describe("useLocalStore", () => {
   });
 });
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// useToast / toast
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-describe("toast reducer (pure unit)", () => {
-  const initialState: ToastState = { toasts: [] };
-
-  it("ADD_TOAST pushes a toast at the head of the list", () => {
-    const result = reducer(initialState, { type: "ADD_TOAST", toast: { id: "t1", title: "Hi" } as any });
-    expect(result.toasts).toHaveLength(1);
-    expect(result.toasts[0]!.id).toBe("t1");
-  });
-
-  it("ADD_TOAST respects TOAST_LIMIT=1 — second add drops the first", () => {
-    let state: ToastState = reducer(initialState, { type: "ADD_TOAST", toast: { id: "t1" } as any });
-    state = reducer(state, { type: "ADD_TOAST", toast: { id: "t2" } as any });
-    expect(state.toasts).toHaveLength(1);
-    expect(state.toasts[0]!.id).toBe("t2");
-  });
-
-  it("UPDATE_TOAST merges fields into the matching toast", () => {
-    const withToast: ToastState = {
-      toasts: [{ id: "t1", title: "original", open: true } as any],
-    };
-    const result = reducer(withToast, {
-      type: "UPDATE_TOAST",
-      toast: { id: "t1", title: "updated" },
-    });
-    expect(result.toasts[0]!.title).toBe("updated");
-    expect(result.toasts[0]!.id).toBe("t1");
-  });
-
-  it("DISMISS_TOAST with toastId sets open=false on that toast", () => {
-    const withToast: ToastState = {
-      toasts: [{ id: "t1", open: true }, { id: "t2", open: true }] as any,
-    };
-    const result = reducer(withToast, { type: "DISMISS_TOAST", toastId: "t1" });
-    expect(result.toasts[0]!.open).toBe(false);
-    expect(result.toasts[1]!.open).toBe(true);
-  });
-
-  it("DISMISS_TOAST with no toastId dismisses all toasts", () => {
-    const withToast: ToastState = {
-      toasts: [{ id: "t1", open: true }, { id: "t2", open: true }] as any,
-    };
-    const result = reducer(withToast, { type: "DISMISS_TOAST" });
-    expect(result.toasts.every((t: any) => t.open === false)).toBe(true);
-  });
-
-  it("REMOVE_TOAST with toastId removes only that toast", () => {
-    const withToast: ToastState = {
-      toasts: [{ id: "t1" }, { id: "t2" }] as any,
-    };
-    const result = reducer(withToast, { type: "REMOVE_TOAST", toastId: "t1" });
-    expect(result.toasts.map((t: any) => t.id)).toEqual(["t2"]);
-  });
-
-  it("REMOVE_TOAST with no toastId clears all toasts", () => {
-    const withToast: ToastState = {
-      toasts: [{ id: "t1" }, { id: "t2" }] as any,
-    };
-    const result = reducer(withToast, { type: "REMOVE_TOAST" });
-    expect(result.toasts).toEqual([]);
-  });
-});
-
-describe("useToast hook", () => {
-  it("starts with an empty toasts array", () => {
-    const { result } = renderHook(() => useToast());
-    expect(result.current.toasts).toEqual([]);
-  });
-
-  it("toast() call adds a toast and update() mutates it", () => {
-    const { result } = renderHook(() => useToast());
-    act(() => {
-      result.current.toast({ title: "Hello" });
-    });
-    expect(result.current.toasts).toHaveLength(1);
-    expect(result.current.toasts[0]!.title).toBe("Hello");
-    const firstId = result.current.toasts[0]!.id;
-
-    act(() => {
-      result.current.toast({ title: "Updated" });
-    });
-    // TOAST_LIMIT=1 so the second toast replaces the first
-    expect(result.current.toasts).toHaveLength(1);
-    expect(result.current.toasts[0]!.title).toBe("Updated");
-    expect(result.current.toasts[0]!.id).not.toBe(firstId);
-  });
-
-  it("dismiss() sets open=false on the toast", () => {
-    const { result } = renderHook(() => useToast());
-    act(() => {
-      result.current.toast({ title: "Dismiss me" });
-    });
-    act(() => {
-      result.current.dismiss();
-    });
-    expect(result.current.toasts[0]!.open).toBe(false);
-  });
-
-  it("calling dismiss with an id dismisses that specific toast", () => {
-    const { result } = renderHook(() => useToast());
-    // With TOAST_LIMIT=1, only the latest toast remains — test dismiss on that single toast
-    act(() => {
-      result.current.toast({ title: "B" });
-    });
-    expect(result.current.toasts).toHaveLength(1);
-    expect(result.current.toasts[0]!.title).toBe("B");
-    const id = result.current.toasts[0]!.id;
-    act(() => {
-      result.current.dismiss(id);
-    });
-    expect(result.current.toasts[0]!.open).toBe(false);
-  });
-
-  it("exceeding TOAST_LIMIT keeps only the most recent toast", () => {
-    const { result } = renderHook(() => useToast());
-    act(() => {
-      result.current.toast({ title: "First" });
-    });
-    act(() => {
-      result.current.toast({ title: "Second" });
-    });
-    expect(result.current.toasts).toHaveLength(1);
-    expect(result.current.toasts[0]!.title).toBe("Second");
-  });
-});
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // useIsMobile

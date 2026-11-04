@@ -71,7 +71,7 @@ vi.mock("@/lib/dataLayer", () => ({
 
 vi.mock("@/lib/orgContext", () => ({ getOrganizationId: () => "org-1" }));
 vi.mock("@/lib/clientErrors", () => ({ captureClientError: vi.fn() }));
-vi.mock("@/components/ui/use-toast", () => ({ toast: vi.fn() }));
+vi.mock("@/utils/toast", () => ({ showError: vi.fn(), showSuccess: vi.fn() }));
 
 import PeriodLockCard from "@/components/PeriodLockCard";
 

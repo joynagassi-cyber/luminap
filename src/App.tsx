@@ -1,5 +1,4 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { IonApp, setupIonicReact } from "@ionic/react";
@@ -461,8 +460,8 @@ const App = () => {
       </div>
     }>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
+      {/* A6 — plus d'hôte toast web : les retours passent par le IonToast
+          d'Ionic (@/utils/toast, contrôleur impératif, aucun montage). */}
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <UpdaterBridge />

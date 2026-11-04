@@ -25,7 +25,8 @@ import { MemoryRouter } from "react-router-dom";
 
 const downloadBlob = vi.fn();
 const captureClientError = vi.fn();
-const toast = vi.fn();
+const toastSuccess = vi.fn();
+const toastError = vi.fn();
 
 // Enveloppe de sauvegarde renvoyée par le hook (forme réelle de BackupBundle).
 const bundle = {
@@ -69,8 +70,9 @@ vi.mock("@/lib/clientErrors", () => ({
   captureClientError: (...args: unknown[]) => captureClientError(...args),
 }));
 
-vi.mock("@/components/ui/use-toast", () => ({
-  toast: (...args: unknown[]) => toast(...args),
+vi.mock("@/utils/toast", () => ({
+  showSuccess: (...args: unknown[]) => toastSuccess(...args),
+  showError: (...args: unknown[]) => toastError(...args),
 }));
 
 vi.mock("@/components/SettingsShell", () => ({
@@ -105,7 +107,8 @@ function renderPage() {
 beforeEach(() => {
   downloadBlob.mockClear();
   captureClientError.mockClear();
-  toast.mockClear();
+  toastSuccess.mockClear();
+  toastError.mockClear();
   backupState.ready = true;
   backupState.buildBundle = vi.fn(() => bundle);
 });
@@ -151,8 +154,9 @@ describe("SettingsGestion — export JSON / CSV", () => {
     const parsed = JSON.parse(text);
     expect(parsed.format).toBe("lumina-backup");
     expect(parsed.data.transactions[0].id).toBe("t1");
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Sauvegarde téléchargée" }),
+    expect(toastSuccess).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ header: "Sauvegarde téléchargée" }),
     );
   });
 
@@ -177,11 +181,9 @@ describe("SettingsGestion — export JSON / CSV", () => {
 
     await waitFor(() => expect(captureClientError).toHaveBeenCalledTimes(1));
     expect(downloadBlob).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: "Échec de la sauvegarde",
-        variant: "destructive",
-      }),
+    expect(toastError).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ header: "Échec de la sauvegarde" }),
     );
   });
 });
