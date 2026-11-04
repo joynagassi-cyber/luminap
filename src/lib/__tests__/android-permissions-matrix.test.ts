@@ -224,3 +224,47 @@ describe("A3 — plugins essentiels, insets et clavier (C-01/C-02/C-03/C-09/C-10
     expect(txNew).toContain("haptics.error()");
   });
 });
+
+/**
+ * A4 — Sécurité du stockage (étape C-11 + inventaire C-07c).
+ *
+ * L'étude `docs/etude-c07c-stockage-securise.md` documente où vivent les
+ * jetons aujourd'hui. Ces gardes sont des fils-pièges : elles n'empêchent
+ * pas la migration future vers un coffre natif, elles forcent à mettre
+ * l'étude à jour quand la topologie des secrets change.
+ */
+describe("A4 — stockage : repli journalisé et copies de jetons bornées", () => {
+  it("le repli localStorage du StorageAdapter est journalisé (C-11)", () => {
+    const adapter = read("src/adapters/native/StorageAdapter.ts");
+    expect(adapter).toContain("reportError");
+    expect(adapter).toContain("storage-adapter-fallback");
+  });
+
+  it("le refresh_token n'est manipulé que par les modules d'auth/sync connus (C-07c)", () => {
+    const ALLOWED = new Set([
+      "src/lib/auth.ts",
+      "src/lib/powersync/SupabaseConnector.ts",
+      "src/lib/powersync/index.ts",
+    ]);
+    const offenders: string[] = [];
+    const walk = (rel: string): void => {
+      for (const entry of readdirSync(join(process.cwd(), rel), {
+        withFileTypes: true,
+      })) {
+        const child = `${rel}/${entry.name}`;
+        if (entry.isDirectory()) {
+          if (entry.name !== "__tests__") walk(child);
+        } else if (
+          /\.(ts|tsx)$/.test(entry.name) &&
+          !entry.name.includes(".test.") &&
+          !ALLOWED.has(child) &&
+          read(child).includes("refresh_token")
+        ) {
+          offenders.push(child);
+        }
+      }
+    };
+    walk("src");
+    expect(offenders).toEqual([]);
+  });
+});
