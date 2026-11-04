@@ -1,23 +1,21 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-/**
- * Variante « diagnostic » (C-05) : un build de dépannage SUR APPAREIL (logcat,
- * inspection distante) sans changer le build de production.
- *
- *   CAPACITOR_DIAGNOSTIC=1 pnpm run build:cap && npx cap sync android
- *
- * `cap sync` lit ce fichier sous Node : les variables d'environnement y sont
- * disponibles, contrairement au bundle web. Sans la variable, le comportement
- * de release reste STRICTEMENT inchangé (logs coupés, debug WebView désactivé).
- */
-const diagnostic = process.env.CAPACITOR_DIAGNOSTIC === '1';
+// Variante « diagnostic » (A1 / C-05) : ce fichier est évalué par la
+// CLI Capacitor (Node) au moment du `cap sync`. Avec
+// `LUMINA_DIAGNOSTIC=true npx cap sync android`, le build devient
+// inspectable (logs + debug distant de la WebView) pour le diagnostic
+// sur appareil. SANS la variable, le défaut reste le durcissement
+// production — ne jamais inverser ce défaut (garde :
+// android-permissions-matrix.test.ts).
+const env = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+  .process?.env ?? {};
+const diagnostic = env.LUMINA_DIAGNOSTIC === 'true';
 
 const config: CapacitorConfig = {
   appId: 'com.lumina.mfejc',
   appName: 'Lumina',
   webDir: 'dist',
-  // Production hardening: suppress all JS logs in release builds.
-  // Variante diagnostic : logs conservés pour lire `adb logcat` sur appareil.
+  // Production hardening: suppress all JS logs in release builds
   loggingBehavior: diagnostic ? 'debug' : 'none',
   // Root background color must match splash to avoid flash of white
   backgroundColor: '#121212',
@@ -30,7 +28,8 @@ const config: CapacitorConfig = {
     // Explicitly disable mixed content (default false, but document intent)
     allowMixedContent: false,
     // Disable remote debugging in release builds (default false, explicit).
-    // Activé UNIQUEMENT dans la variante diagnostic (chrome://inspect).
+    // La variante diagnostic (voir en-tête) l'active pour l'inspection
+    // sur appareil ; sans LUMINA_DIAGNOSTIC elle reste à false.
     webContentsDebuggingEnabled: diagnostic,
     // Keep focus on webview for keyboard handling
     initialFocus: true,
@@ -42,26 +41,27 @@ const config: CapacitorConfig = {
     scrollEnabled: true,
     contentInset: 'never',
   },
+  // Blocs `plugins` (A1→A3 / C-01) : ne configurer QUE des plugins
+  // installés — sinon la config est ignorée en silence et simule un
+  // branchement inexistant. L'ensemble EXACT des clés est verrouillé
+  // par la garde android-permissions-matrix.test.ts :
+  // - Keyboard (C-10) : stratégie explicite — redimensionnement natif
+  //   de la WebView, y compris en plein écran edge-to-edge (Android
+  //   15), faute de quoi le CTA collé des formulaires reste sous le
+  //   clavier. `useKeyboardAvoidance` ne compense alors que le
+  //   reliquat non redimensionné (anti double-compensation).
+  // - SplashScreen (C-01, plugin installé en A3) : durée 0 — le thème
+  //   natif Android 12+ (`AppTheme.NoActionBarLaunch` + fond #121212)
+  //   couvre le chargement, puis l'unique page React `/splash` prend
+  //   la main et appelle `SplashScreen.hide()`. L'ancien
+  //   `launchShowDuration: 0`, mort faute de plugin, devient réel.
   plugins: {
-    // ── Plugins INSTALLÉS uniquement ──────────────────────────────────────
-    // C-01 : les sections `SplashScreen` et `OneSignal` décrivaient des
-    // plugins NON installés : la configuration était ignorée (au mieux), et
-    // laissait croire que le splash et le push étaient pilotés depuis ici.
-    //  - écran de démarrage : natif Android 12+ via
-    //    androidx.core:core-splashscreen (`AppTheme.NoActionBarLaunch`,
-    //    `res/values/styles.xml`), aucun plugin requis ;
-    //  - push : pile `@capacitor/push-notifications` ; l'initialisation
-    //    OneSignal « manuelle » a été retirée (pont inexistant, P-01).
-    // Aucune entrée ici tant que le plugin correspondant n'est pas dans
-    // package.json (contrôle : scripts/check-native-plugins.mjs).
     Keyboard: {
-      // C-10 : une seule stratégie d'évitement du clavier. L'application
-      // utilise `useKeyboardAvoidance` + Ionic `keyboardFillMode: "overlap"` ;
-      // on empêche donc le redimensionnement natif de la WebView de
-      // s'ajouter par-dessus (double compensation → bouton « Enregistrer »
-      // hors écran ou grand vide).
-      resize: 'none',
-      resizeOnFullScreen: false,
+      resize: 'native',
+      resizeOnFullScreen: true,
+    },
+    SplashScreen: {
+      launchShowDuration: 0,
     },
   },
 };

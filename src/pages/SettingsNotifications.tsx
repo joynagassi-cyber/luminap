@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -17,12 +17,11 @@ import SettingsShell from "@/components/SettingsShell";
 import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { notification } from "@/capabilities/notification";
+import { App } from "@capacitor/app";
 import {
-  useNotificationPermission,
-  useRefreshOnResume,
-} from "@/hooks/useNotificationPermission";
-import PermissionPrimer from "@/components/PermissionPrimer";
-import type { PermissionStatus } from "@/lib/nativePermissions";
+  permissions,
+  type PermissionStatus,
+} from "@/lib/permissionService";
 
 interface NotifPrefs {
   transactions: boolean;
@@ -87,16 +86,12 @@ export default function SettingsNotifications() {
   const navigate = useNavigate();
   const [prefs, setPrefs] = useState<NotifPrefs>(loadPrefs);
   const [marked, setMarked] = useState(false);
-  // Permission de notifications : l'état affiché est l'état RÉEL d'Android
-  // (accordée / refusée / bloquée), pas un booléen local qui pouvait rester
-  // faux même quand Android avait accordé la permission. La demande passe par
-  // le `PermissionPrimer` (explication) puis le `PermissionService` — jamais
-  // par le pont OneSignal (inopérant, cf. P-01).
-  const notif = useNotificationPermission();
-  const pushEnabled = notif.status === "granted";
-  const pushPending = notif.pending;
-  // Retour des réglages Android → l'état affiché se met à jour sans redémarrage.
-  useRefreshOnResume(notif.refresh);
+  // État SYSTÈME de la permission notifications (A2) : lu via
+  // PermissionService à l'ouverture de l'écran et au retour des réglages
+  // Android — jamais supposé. `null` = première lecture en cours.
+  const [permStatus, setPermStatus] = useState<PermissionStatus | null>(null);
+  const [pushPending, setPushPending] = useState(false);
+  const pushEnabled = permStatus === "granted";
   // Envoi d'une notification de test (locale + cloud) — diagnostic « ça marche ? ».
   const [testSent, setTestSent] = useState(false);
   const [testPending, setTestPending] = useState(false);
@@ -118,6 +113,27 @@ export default function SettingsNotifications() {
     localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
   }, [prefs]);
 
+  // Lecture du statut système réel, puis relecture au retour au premier
+  // plan (retour des réglages Android après un cas « bloqué », ou
+  // changement fait hors de l'app). Sur le web : statut « unavailable »,
+  // l'interrupteur reste désactivé (rien à gérer dans le navigateur).
+  const refreshPermStatus = useCallback(() => {
+    void permissions.check("notifications").then(setPermStatus);
+  }, []);
+
+  useEffect(() => {
+    refreshPermStatus();
+    const handlePromise = App.addListener(
+      "appStateChange",
+      ({ isActive }) => {
+        if (isActive) refreshPermStatus();
+      },
+    );
+    return () => {
+      void handlePromise.then((handle) => handle.remove());
+    };
+  }, [refreshPermStatus]);
+
   const toggle = (k: keyof NotifPrefs) =>
     setPrefs((p) => ({ ...p, [k]: !p[k] }));
 
@@ -127,42 +143,24 @@ export default function SettingsNotifications() {
     setTimeout(() => setMarked(false), 2000);
   };
 
-  /**
-   * Activer les notifications : ouvre l'explication (`PermissionPrimer`), qui
-   * déclenche la fenêtre système Android. Si Android a déjà accordé la
-   * permission (ou si l'utilisateur l'a activée dans les réglages), rien ne
-   * s'ouvre : l'interrupteur reflète simplement l'état réel.
-   *
-   * Désactiver depuis l'application n'est PAS possible : Android ne permet pas
-   * à une application de retirer sa propre permission. On renvoie donc vers les
-   * réglages, au lieu de laisser croire que l'interrupteur « coupe » le push.
-   */
+  // Interrupteur push = miroir du statut SYSTÈME (A2). Android ne permet
+  // pas à l'app de révoquer la permission : selon l'état, le geste
+  // demande la fenêtre système (prompt/denied) ou ouvre les réglages
+  // (granted → pour couper, blocked → pour réactiver). Toute la logique
+  // vit dans PermissionService — aucun autre chemin de demande n'existe.
   const handleTogglePush = async () => {
-    if (pushPending) return;
-    // Web / permission sans objet : il n'y a aucune fenêtre système à ouvrir.
-    // Sans cette sortie, la feuille s'ouvrait pour annoncer une fonctionnalité
-    // qui n'existe pas sur cet appareil.
-    if (notif.status === null || notif.status === "unavailable") return;
-    if (pushEnabled) {
-      await notif.openSettings();
+    if (pushPending || permStatus === null || permStatus === "unavailable") {
       return;
     }
-    await notif.ask();
-  };
-
-  /** Libellé de l'état réel, sous le titre. */
-  const permissionHint = (status: PermissionStatus | null): string => {
-    switch (status) {
-      case "granted":
-        return "Notifications activées sur cet appareil.";
-      case "blocked":
-        return "Bloquées dans Android. Ouvrez les réglages pour les réactiver.";
-      case "denied":
-        return "Refusées. Vous pouvez réessayer : Android redemandera.";
-      case "unavailable":
-        return "Indisponible sur cet appareil (web ou version d'Android antérieure).";
-      default:
-        return "Activez pour recevoir les alertes de dépense et les rappels.";
+    setPushPending(true);
+    try {
+      if (permStatus === "prompt" || permStatus === "denied") {
+        setPermStatus(await permissions.request("notifications"));
+      } else {
+        await permissions.openAppSettings();
+      }
+    } finally {
+      setPushPending(false);
     }
   };
 
@@ -254,19 +252,27 @@ export default function SettingsNotifications() {
         <div className="flex items-center gap-3 min-w-0">
           <BellOff className="w-4 h-4 flex-shrink-0" style={{ color: pushEnabled ? "var(--accent-primary)" : "var(--text-tertiary)" }} />
           <div className="min-w-0">
-            <p className="text-text-primary text-sm font-semibold">Notifications activées</p>
+            <p className="text-text-primary text-sm font-semibold">Notifications push</p>
             <p className="text-text-tertiary text-xs">
-              {permissionHint(notif.status)}
+              {permStatus === null
+                ? "Lecture de l'état système…"
+                : permStatus === "granted"
+                  ? "Activées sur cet appareil. Touchez pour gérer dans Android."
+                  : permStatus === "blocked"
+                    ? "Bloquées dans les réglages Android. Touchez pour ouvrir les réglages."
+                    : permStatus === "unavailable"
+                      ? "Disponible sur l'application mobile."
+                      : "Activez pour recevoir des notifications push."}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleTogglePush}
-          disabled={pushPending}
+          disabled={pushPending || permStatus === null || permStatus === "unavailable"}
           role="switch"
           aria-checked={pushEnabled}
-          aria-label="Notifications activées"
+          aria-label="Notifications push"
           className="relative flex-shrink-0 w-10 h-6 rounded-full transition-colors disabled:opacity-40"
           style={{ backgroundColor: pushEnabled ? "var(--accent-primary)" : "var(--surface-hover)" }}
         >
@@ -278,33 +284,6 @@ export default function SettingsNotifications() {
           </span>
         </button>
       </div>
-
-      {/* État bloqué : la seule action utile est d'ouvrir les réglages Android. */}
-      {notif.status === "blocked" && (
-        <button
-          type="button"
-          onClick={() => void notif.openSettings()}
-          className="w-full flex items-center justify-center gap-2 py-3 mb-4 rounded-xl font-medium text-sm active:scale-95"
-          style={{
-            backgroundColor: "var(--card)",
-            color: "var(--accent-primary)",
-            border: "1px solid var(--border)",
-          }}
-          aria-label="Ouvrir les réglages Android de Lumina"
-        >
-          Ouvrir les réglages Android
-        </button>
-      )}
-
-      <PermissionPrimer
-        isOpen={notif.primerOpen}
-        status={notif.status}
-        message="Recevez une alerte quand une dépense attend votre visa, et des rappels pour les rapports à remettre. Aucune notification publicitaire."
-        pending={notif.pending}
-        onConfirm={() => void notif.confirm()}
-        onDismiss={() => void notif.dismiss()}
-        onOpenSettings={() => void notif.openSettings()}
-      />
 
       {/* Diagnostic : envoyer une notification de test (locale + cloud) */}
       <button

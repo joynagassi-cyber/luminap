@@ -42,6 +42,7 @@ import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar, IonButtons, IonBa
 import EmptyState from "@/components/EmptyState";
 import ConfirmModal from "@/components/ConfirmModal";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { getCurrentActorId } from "@/lib/auth";
 
 type Tab = "transactions" | "membres" | "historique" | "parametres";
 
@@ -218,7 +219,7 @@ export default function GroupDetail() {
       return;
     }
     try {
-      await lifecycle.archive("Group", id!, "Archive manuelle", "local-user");
+      await lifecycle.archive("Group", id!, "Archive manuelle", getCurrentActorId());
       navigate("/groups");
     } catch (e: any) {
       setError("Nous n'avons pas pu archiver ce groupe. Veuillez réessayer.");
@@ -236,7 +237,7 @@ export default function GroupDetail() {
       id!,
       selectedMemberId,
       "MEMBRE",
-      user?.id ?? "local-user",
+      getCurrentActorId(),
     );
     setShowAddMember(false);
     setSelectedMemberId("");
@@ -245,7 +246,7 @@ export default function GroupDetail() {
   };
 
   const handleRemoveMember = async (membershipId: string) => {
-    await relationship.removeMembership(membershipId, "local-user");
+    await relationship.removeMembership(membershipId, getCurrentActorId());
   };
 
   return (

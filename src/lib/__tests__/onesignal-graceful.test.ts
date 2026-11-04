@@ -30,7 +30,10 @@ describe("OneSignal — dégradation gracieuse sans App ID", () => {
     await expect(service.login("user-1")).resolves.toBeUndefined();
     await expect(service.setTag("role", "MEMBRE")).resolves.toBeUndefined();
     await expect(service.requestPermission()).resolves.toBe(false);
-    await expect(service.getUserId()).resolves.toBeNull();
+    // A2 — `getUserId()` (mort, 0 appelant en production) a disparu ; la
+    // lecture des tags passe par le miroir local, fonctionnel même sans
+    // App ID : il reflète le setTag ci-dessus.
+    await expect(service.getTags()).resolves.toEqual({ role: "MEMBRE" });
     await expect(service.logout()).resolves.toBeUndefined();
   });
 

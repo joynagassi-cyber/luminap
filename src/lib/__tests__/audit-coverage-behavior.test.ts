@@ -249,7 +249,9 @@ describe("NeverBreak #6 — cotisation-service trace culte + cotisations", () =>
 
 describe("NeverBreak #6 — versement-service trace le mouvement d'argent", () => {
   it("createVersement écrit UNE entrée d'audit Versement/CREATE liée à la tx source", async () => {
-    localStorage.setItem("lumina-session", "session-A");
+    // Acteur = identité authentifiée (getCurrentActorId → lumina-user) ;
+    // l'ancien UUID de session `lumina-session` n'est plus une identité.
+    localStorage.setItem("lumina-user", JSON.stringify({ id: "11111111-2222-3333-4444-555555555555" }));
     const { versementId, sourceTx } = await createVersement({
       sourceCaisseId: "caisse-1",
       amount: 25000,
@@ -261,7 +263,7 @@ describe("NeverBreak #6 — versement-service trace le mouvement d'argent", () =
     expect(row.action).toBe("CREATE");
     expect(row.entity_id).toBe(versementId);
     expect(row.transaction_id).toBe(sourceTx.id);
-    expect(row.user_id).toBe("session-A");
+    expect(row.user_id).toBe("11111111-2222-3333-4444-555555555555");
   });
 });
 

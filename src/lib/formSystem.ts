@@ -22,6 +22,7 @@ import {
   createGroupPS,
   executeWrite,
 } from "./dataLayer";
+import { getCurrentActorId } from "./auth";
 
 /**
  * FormDefinitionRepository — PowerSync-backed
@@ -34,7 +35,7 @@ export const formDefinitionRepo = {
     await writeAudit({
       orgId: getOrganizationId(),
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "CREATE",
       entityType: "FormDefinition",
@@ -68,7 +69,7 @@ export const formDefinitionRepo = {
     await writeAudit({
       orgId: existing.orgId,
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "UPDATE",
       entityType: "FormDefinition",
@@ -87,7 +88,7 @@ export const formDefinitionRepo = {
     await writeAudit({
       orgId: existing.orgId,
       transactionId: null,
-      userId: "local-user",
+      userId: getCurrentActorId(),
       actorRoleAtTime: null,
       action: "DELETE",
       entityType: "FormDefinition",

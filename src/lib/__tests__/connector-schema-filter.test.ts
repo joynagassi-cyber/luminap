@@ -169,3 +169,79 @@ describe("PowerSync connector — R89.c, pas de faux succès d'upload", () => {
     }
   });
 });
+
+/**
+ * B-03 (bornière) — les colonnes « acteur » uuid nullables reçoivent
+ * des valeurs héritées non-UUID ("local-user" d'anciennes versions) :
+ * l'upload doit les coercer en `null` (ligne sauvée) au lieu d'être
+ * rejeté 22P02 et l'op jetée. Couvre notamment `audit_entries.user_id`,
+ * qui n'avait AUCUNE bornière : tout l'audit sans acteur résolu était
+ * perdu en silence à la synchronisation.
+ */
+describe("PowerSync connector — bornière uuid acteur", () => {
+  async function pushAndCapture(
+    crud: Array<Record<string, unknown>>,
+  ): Promise<Array<{ table: string; record: Record<string, unknown> }>> {
+    const { SupabaseConnector } = await import(
+      "../powersync/SupabaseConnector"
+    );
+    const upserts: Array<{ table: string; record: Record<string, unknown> }> =
+      [];
+    const connector = new SupabaseConnector();
+    (connector as unknown as { client: unknown }).client = {
+      from: (table: string) => ({
+        upsert: async (record: Record<string, unknown>) => {
+          upserts.push({ table, record });
+          return { error: null };
+        },
+      }),
+    };
+    (
+      connector as unknown as { ensureUploadSession: () => Promise<void> }
+    ).ensureUploadSession = async () => {};
+    await connector.pushCrudTransaction({
+      crud,
+      complete: async () => {},
+    } as never);
+    return upserts;
+  }
+
+  it("coercée audit_entries.user_id non-UUID en null (l'audit n'est plus rejeté)", async () => {
+    const upserts = await pushAndCapture([
+      {
+        table: "audit_entries",
+        op: UpdateType.PUT,
+        id: "audit-1",
+        opData: {
+          org_id: "org-1",
+          user_id: "local-user",
+          action: "CREATE",
+          entity_type: "Transaction",
+          entity_id: "tx-1",
+        },
+      },
+    ]);
+    expect(upserts).toHaveLength(1);
+    expect(upserts[0].record.user_id).toBeNull();
+    expect(upserts[0].record.org_id).toBe("org-1");
+  });
+
+  it("préserve un UUID acteur valide et coercée les autres colonnes acteur", async () => {
+    const valid = "11111111-2222-3333-4444-555555555555";
+    const upserts = await pushAndCapture([
+      {
+        table: "transactions",
+        op: UpdateType.PUT,
+        id: "tx-2",
+        opData: {
+          org_id: "org-1",
+          created_by_id: valid,
+          approved_by_id: "local-user",
+        },
+      },
+    ]);
+    expect(upserts).toHaveLength(1);
+    expect(upserts[0].record.created_by_id).toBe(valid);
+    expect(upserts[0].record.approved_by_id).toBeNull();
+  });
+});

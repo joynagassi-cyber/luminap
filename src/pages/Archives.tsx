@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { captureClientError } from "@/lib/clientErrors";
 import { resource } from "@/capabilities/resource";
 import { lifecycle } from "@/capabilities/lifecycle";
 import type { ArchivableEntity, Group, Member, Event } from "@/types";
@@ -15,7 +16,6 @@ import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
 import { purgeEntity, purgeAllArchived } from "@/lib/trash";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
 import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
-import { captureClientError } from "@/lib/clientErrors";
 import {
   Users,
   Search,
@@ -42,6 +42,7 @@ import {
 import EmptyState from "@/components/EmptyState";
 import { getOrganizationId } from "@/lib/orgContext";
 import type { Role } from "@/types";
+import { getCurrentActorId } from "@/lib/auth";
 
 export default function Archives() {
   const navigate = useNavigate();
@@ -170,7 +171,8 @@ export default function Archives() {
   // rechargement de l'application : la page reste montée dans la pile Ionic.
   useRefreshOnViewEnter(loadArchived, {
     label: "archives",
-    onError: (error) => captureClientError(error, { message: "Échec du rechargement des archives" }),
+    onError: (error) =>
+      captureClientError(error, { message: "Échec du rechargement des archives" }),
   });
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -218,7 +220,7 @@ export default function Archives() {
   ) => {
     const entityType =
       type === "event" ? "Event" : type.charAt(0).toUpperCase() + type.slice(1);
-    await lifecycle.restore(entityType as any, id, "", "local-user");
+    await lifecycle.restore(entityType as any, id, "", getCurrentActorId());
     navigate(-1);
   };
 
@@ -233,7 +235,7 @@ export default function Archives() {
     setPurgeError("");
     setPurging(true);
     try {
-      await purgeEntity(toEntityType(type), id, user?.id ?? "local-user");
+      await purgeEntity(toEntityType(type), id, getCurrentActorId());
       await loadArchived();
     } catch {
       setPurgeError(
@@ -249,7 +251,7 @@ export default function Archives() {
     setPurgeError("");
     setPurging(true);
     try {
-      await purgeAllArchived(user?.id ?? "local-user");
+      await purgeAllArchived(getCurrentActorId());
       await loadArchived();
     } catch {
       setPurgeError("Vidage impossible. Réessayez (hors ligne ?).");

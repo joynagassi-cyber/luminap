@@ -39,6 +39,7 @@ vi.mock("@ionic/react", async () => {
 
 // ─── dataLayer : hooks synchrones, données vides (états « vide »/« prêt ») ─
 vi.mock("@/lib/dataLayer", () => ({
+  useOrganizationRevision: () => 0,
   useTransactions: () => ({ data: [], isLoading: false }),
   useEvents: () => ({ data: [], isLoading: false }),
   useMembers: () => ({ data: [], isLoading: false, error: undefined, retry: vi.fn() }),

@@ -1,189 +1,232 @@
-/**
- * PermissionService — non-vacuité documentée :
- *  - si `resolveStatus` cesse de promouvoir `denied` en `blocked` au 2ᵉ refus,
- *    le test « refus définitif » échoue ;
- *  - si `request()` n'enregistre plus le refus, le compteur reste à 0 et le test
- *    « blocage après deux refus » échoue ;
- *  - si `shouldAsk` ignore le report, le test « Plus tard » échoue ;
- *  - si `request()` est appelée hors natif et prétend `granted`, le test
- *    « web = indisponible » échoue ;
- *  - si `openAppSettings` avale l'absence du plugin natif, le test de
- *    signalement échoue (une permission bloquée resterait sans issue).
- */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  ASK_AGAIN_DELAY_MS,
+  computeShouldAsk,
+  isPrimerEligible,
+  mapDisplayToStatus,
+  permissions,
+} from "../permissionService";
 
-const { mockPush, mockPreferences, mockReportError } = vi.hoisted(() => ({
-  mockPush: {
-    checkPermissions: vi.fn(),
-    requestPermissions: vi.fn(),
-  } as any,
-  mockPreferences: {
-    get: vi.fn(),
-    set: vi.fn(),
-  } as any,
-  mockReportError: vi.fn(),
+// ─── Plugins simulés ─────────────────────────────────────────────────
+const h = vi.hoisted(() => ({
+  native: true,
+  prefs: new Map<string, string>(),
+  checkPermissions: vi.fn(),
+  requestPermissions: vi.fn(),
+  openSettings: vi.fn(),
+  initOneSignal: vi.fn(async () => undefined),
+  reportError: vi.fn(),
 }));
 
 vi.mock("@capacitor/core", () => ({
-  Capacitor: {
-    isNativePlatform: vi.fn(() => true),
-    Plugins: {},
+  Capacitor: { isNativePlatform: () => h.native },
+}));
+vi.mock("@capacitor/local-notifications", () => ({
+  LocalNotifications: {
+    checkPermissions: h.checkPermissions,
+    requestPermissions: h.requestPermissions,
   },
 }));
-
-vi.mock("@capacitor/push-notifications", () => ({
-  PushNotifications: mockPush,
-}));
-
 vi.mock("@capacitor/preferences", () => ({
-  Preferences: mockPreferences,
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({
+      value: h.prefs.get(key) ?? null,
+    }),
+    set: async ({ key, value }: { key: string; value: string }) => {
+      h.prefs.set(key, value);
+    },
+  },
 }));
-
+vi.mock("capacitor-native-settings", () => ({
+  NativeSettings: { open: h.openSettings },
+  AndroidSettings: { ApplicationDetails: "application_details" },
+  IOSSettings: { App: "app" },
+}));
+vi.mock("@/lib/onesignal", () => ({ initOneSignal: h.initOneSignal }));
 vi.mock("@/lib/observability/errorReporter", () => ({
-  reportError: mockReportError,
+  reportError: h.reportError,
 }));
 
-import { Capacitor } from "@capacitor/core";
-import {
-  PermissionService,
-  resolveStatus,
-  isSnoozed,
-  MAX_DENIALS_BEFORE_BLOCKED,
-  SNOOZE_DAYS,
-} from "../nativePermissions/nativePermissionService";
+const ASKED_KEY = "lumina.perm.notif.askedAt";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-const native = Capacitor.isNativePlatform as unknown as ReturnType<typeof vi.fn>;
+beforeEach(() => {
+  h.native = true;
+  h.prefs.clear();
+  vi.clearAllMocks();
+  h.initOneSignal.mockResolvedValue(undefined);
+  h.openSettings.mockResolvedValue(undefined);
+});
 
-describe("resolveStatus", () => {
-  it("mappe les états bruts du plugin", () => {
-    expect(resolveStatus("granted", 0)).toBe("granted");
-    expect(resolveStatus("prompt", 0)).toBe("prompt");
-    expect(resolveStatus("prompt-with-rationale", 0)).toBe("prompt");
-    expect(resolveStatus("denied", 0)).toBe("denied");
-    expect(resolveStatus("denied", 1)).toBe("denied");
-    expect(resolveStatus(undefined, 0)).toBe("unavailable");
+// ─── Logique pure ────────────────────────────────────────────────────
+
+describe("mapDisplayToStatus", () => {
+  it("traduit les états Capacitor en statuts produit", () => {
+    expect(mapDisplayToStatus("granted", false)).toBe("granted");
+    expect(mapDisplayToStatus("prompt", false)).toBe("prompt");
+    expect(mapDisplayToStatus("prompt-with-rationale", true)).toBe("prompt");
+    expect(mapDisplayToStatus("denied", false)).toBe("denied");
+    expect(mapDisplayToStatus("valeur-inconnue", false)).toBe("unavailable");
   });
 
-  it("promeut `denied` en `blocked` après deux refus (Android ne redemande plus)", () => {
-    expect(resolveStatus("denied", MAX_DENIALS_BEFORE_BLOCKED)).toBe("blocked");
-    expect(resolveStatus("denied", 5)).toBe("blocked");
+  it("un refus après une demande déjà faite vaut blocage (réglages)", () => {
+    expect(mapDisplayToStatus("denied", true)).toBe("blocked");
   });
 });
 
-describe("isSnoozed", () => {
-  it("est vrai seulement si la date de report est dans le futur", () => {
-    const now = 1_000;
-    expect(isSnoozed(now + 1, now)).toBe(true);
-    expect(isSnoozed(now - 1, now)).toBe(false);
-    expect(isSnoozed(null, now)).toBe(false);
+describe("computeShouldAsk", () => {
+  const now = 1_800_000_000_000;
+
+  it("ne propose jamais si accordé, bloqué ou indisponible", () => {
+    for (const status of ["granted", "blocked", "unavailable"] as const) {
+      expect(computeShouldAsk({ status, lastInteractionAt: null, now })).toBe(
+        false,
+      );
+    }
+  });
+
+  it("propose si jamais demandé", () => {
+    expect(
+      computeShouldAsk({ status: "prompt", lastInteractionAt: null, now }),
+    ).toBe(true);
+    expect(
+      computeShouldAsk({ status: "denied", lastInteractionAt: null, now }),
+    ).toBe(true);
+  });
+
+  it("respecte le délai de 7 jours, borne incluse", () => {
+    expect(
+      computeShouldAsk({
+        status: "prompt",
+        lastInteractionAt: now - 3 * DAY_MS,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      computeShouldAsk({
+        status: "prompt",
+        lastInteractionAt: now - ASK_AGAIN_DELAY_MS + 1,
+        now,
+      }),
+    ).toBe(false);
+    expect(
+      computeShouldAsk({
+        status: "prompt",
+        lastInteractionAt: now - ASK_AGAIN_DELAY_MS,
+        now,
+      }),
+    ).toBe(true);
+    expect(
+      computeShouldAsk({
+        status: "denied",
+        lastInteractionAt: now - 8 * DAY_MS,
+        now,
+      }),
+    ).toBe(true);
   });
 });
 
-describe("PermissionService", () => {
-  let service: PermissionService;
-  const store = new Map<string, string>();
+describe("isPrimerEligible", () => {
+  const base = {
+    isNative: true,
+    status: "prompt" as const,
+    lastInteractionAt: null,
+    now: 1_800_000_000_000,
+    hasTransaction: true,
+    routeEligible: true,
+  };
 
-  beforeEach(() => {
-    service = new PermissionService();
-    store.clear();
-    vi.clearAllMocks();
-    native.mockReturnValue(true);
-    mockPreferences.get.mockImplementation(async ({ key }: { key: string }) => ({
-      value: store.get(key) ?? null,
-    }));
-    mockPreferences.set.mockImplementation(
-      async ({ key, value }: { key: string; value: string }) => {
-        store.set(key, value);
-      },
+  it("exige la conjonction complète (natif + bénéfice vécu + écran calme)", () => {
+    expect(isPrimerEligible(base)).toBe(true);
+    expect(isPrimerEligible({ ...base, isNative: false })).toBe(false);
+    expect(isPrimerEligible({ ...base, hasTransaction: false })).toBe(false);
+    expect(isPrimerEligible({ ...base, routeEligible: false })).toBe(false);
+    expect(isPrimerEligible({ ...base, status: "granted" })).toBe(false);
+    expect(
+      isPrimerEligible({ ...base, lastInteractionAt: base.now - DAY_MS }),
+    ).toBe(false);
+  });
+});
+
+// ─── Service (plugins simulés) ───────────────────────────────────────
+
+describe("check", () => {
+  it("retourne unavailable sur le web, sans toucher aux plugins", async () => {
+    h.native = false;
+    await expect(permissions.check("notifications")).resolves.toBe(
+      "unavailable",
     );
-    mockPush.checkPermissions.mockResolvedValue({ receive: "prompt" });
-    mockPush.requestPermissions.mockResolvedValue({ receive: "granted" });
+    expect(h.checkPermissions).not.toHaveBeenCalled();
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it("prompt natif si jamais demandé ; blocked après un refus connu", async () => {
+    h.checkPermissions.mockResolvedValue({ display: "prompt" });
+    await expect(permissions.check("notifications")).resolves.toBe("prompt");
+
+    h.prefs.set(ASKED_KEY, String(Date.now()));
+    h.checkPermissions.mockResolvedValue({ display: "denied" });
+    await expect(permissions.check("notifications")).resolves.toBe("blocked");
   });
 
-  it("hors natif : check et request renvoient `unavailable`, sans toucher au plugin", async () => {
-    native.mockReturnValue(false);
-    expect(await service.check("notifications")).toBe("unavailable");
-    expect(await service.request("notifications")).toBe("unavailable");
-    expect(mockPush.checkPermissions).not.toHaveBeenCalled();
-    expect(mockPush.requestPermissions).not.toHaveBeenCalled();
-  });
-
-  it("une permission sans objet (camera, exactAlarm) est `unavailable` — jamais demandée", async () => {
-    expect(await service.check("camera")).toBe("unavailable");
-    expect(await service.request("exactAlarm")).toBe("unavailable");
-    expect(mockPush.requestPermissions).not.toHaveBeenCalled();
-  });
-
-  it("request() renvoie `granted` et remet le compteur de refus à zéro", async () => {
-    store.set("lumina-perm-denials-notifications", "1");
-    mockPush.requestPermissions.mockResolvedValue({ receive: "granted" });
-    expect(await service.request("notifications")).toBe("granted");
-    expect(await service.denials("notifications")).toBe(0);
-  });
-
-  it("un refus incrémente le compteur ; deux refus ⇒ `blocked`", async () => {
-    mockPush.requestPermissions.mockResolvedValue({ receive: "denied" });
-    expect(await service.request("notifications")).toBe("denied");
-    expect(await service.denials("notifications")).toBe(1);
-    expect(await service.request("notifications")).toBe("blocked");
-    // Comportement Android réel : après un refus définitif, `checkPermissions`
-    // continue de renvoyer `denied` (la fenêtre ne peut plus s'afficher). C'est
-    // le compteur de refus qui promeut l'état en `blocked`.
-    mockPush.checkPermissions.mockResolvedValue({ receive: "denied" });
-    expect(await service.check("notifications")).toBe("blocked");
-  });
-
-  it("n'ouvre AUCUNE fenêtre si la permission est déjà accordée", async () => {
-    mockPush.checkPermissions.mockResolvedValue({ receive: "granted" });
-    expect(await service.request("notifications")).toBe("granted");
-    expect(mockPush.requestPermissions).not.toHaveBeenCalled();
-  });
-
-  it("`blocked` : aucune nouvelle demande système (Android ne l'afficherait pas)", async () => {
-    store.set("lumina-perm-denials-notifications", "2");
-    mockPush.checkPermissions.mockResolvedValue({ receive: "denied" });
-    expect(await service.request("notifications")).toBe("blocked");
-    expect(mockPush.requestPermissions).not.toHaveBeenCalled();
-  });
-
-  it("shouldAsk : faux si accordé, bloqué, indisponible, ou reporté", async () => {
-    mockPush.checkPermissions.mockResolvedValue({ receive: "granted" });
-    expect(await service.shouldAsk("notifications")).toBe(false);
-
-    mockPush.checkPermissions.mockResolvedValue({ receive: "prompt" });
-    expect(await service.shouldAsk("notifications")).toBe(true);
-
-    await service.snooze("notifications");
-    expect(await service.shouldAsk("notifications")).toBe(false);
-
-    store.set(
-      "lumina-perm-snooze-notifications",
-      String(Date.now() - SNOOZE_DAYS * 86_400_000),
+  it("ne rejette jamais : erreur plugin → unavailable + reportError", async () => {
+    h.checkPermissions.mockRejectedValue(new Error("plugin absent"));
+    await expect(permissions.check("notifications")).resolves.toBe(
+      "unavailable",
     );
-    expect(await service.shouldAsk("notifications")).toBe(true);
+    expect(h.reportError).toHaveBeenCalledTimes(1);
   });
+});
 
-  it("shouldAsk : faux quand Android a bloqué (2 refus)", async () => {
-    store.set("lumina-perm-denials-notifications", "2");
-    mockPush.checkPermissions.mockResolvedValue({ receive: "denied" });
-    expect(await service.shouldAsk("notifications")).toBe(false);
-  });
+describe("request", () => {
+  it("initialise OneSignal, demande, mémorise et retourne le statut frais", async () => {
+    h.requestPermissions.mockResolvedValue({ display: "granted" });
+    h.checkPermissions.mockResolvedValue({ display: "granted" });
 
-  it("signale l'absence de `openAppSettings` natif au lieu d'échouer en silence", async () => {
-    expect(await service.openAppSettings()).toBe(false);
-    expect(mockReportError).toHaveBeenCalled();
-  });
-
-  it("remonte les erreurs du plugin au lieu de les avaler", async () => {
-    mockPush.checkPermissions.mockRejectedValue(new Error("boom"));
-    expect(await service.check("notifications")).toBe("unavailable");
-    expect(mockReportError).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({ source: "permissions.check" }),
+    await expect(permissions.request("notifications")).resolves.toBe(
+      "granted",
     );
+    expect(h.initOneSignal).toHaveBeenCalledTimes(1);
+    expect(h.requestPermissions).toHaveBeenCalledTimes(1);
+    expect(h.prefs.has(ASKED_KEY)).toBe(true);
+  });
+
+  it("sur le web : unavailable, aucun appel natif", async () => {
+    h.native = false;
+    await expect(permissions.request("notifications")).resolves.toBe(
+      "unavailable",
+    );
+    expect(h.requestPermissions).not.toHaveBeenCalled();
+    expect(h.initOneSignal).not.toHaveBeenCalled();
+  });
+});
+
+describe("shouldAsk + recordDeferral", () => {
+  it("vrai à l'installation fraîche, faux juste après un « plus tard »", async () => {
+    h.checkPermissions.mockResolvedValue({ display: "prompt" });
+    await expect(permissions.shouldAsk("notifications")).resolves.toBe(true);
+
+    await permissions.recordDeferral("notifications");
+    await expect(permissions.shouldAsk("notifications")).resolves.toBe(false);
+  });
+
+  it("faux dès que la permission est accordée", async () => {
+    h.checkPermissions.mockResolvedValue({ display: "granted" });
+    await expect(permissions.shouldAsk("notifications")).resolves.toBe(false);
+  });
+});
+
+describe("openAppSettings", () => {
+  it("ouvre les réglages de l'application en natif", async () => {
+    await permissions.openAppSettings();
+    expect(h.openSettings).toHaveBeenCalledWith({
+      optionAndroid: "application_details",
+      optionIOS: "app",
+    });
+  });
+
+  it("no-op sur le web", async () => {
+    h.native = false;
+    await permissions.openAppSettings();
+    expect(h.openSettings).not.toHaveBeenCalled();
   });
 });

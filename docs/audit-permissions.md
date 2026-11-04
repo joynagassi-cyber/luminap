@@ -1,67 +1,130 @@
-# Audit permissions Android — modèle à remplir sur appareil (phase A0/A2)
+# Audit permissions Android — constat statique (A0) et décisions
 
-> **Statut** : **gabarit non exécuté**. Aucune ligne de ce document ne peut être
-> remplie sans un téléphone réel : les permissions d'exécution, la fenêtre
-> système et la livraison d'une notification ne se prouvent pas en test unitaire.
-> Compléter puis attacher `adb` (sorties brutes) — c'est la **preuve** exigée par
-> la porte de sortie de la phase A2 (`docs/lumina-ionic-capacitor-permissions.md` §5).
+> Compagnon de `docs/lumina-ionic-capacitor-permissions.md` (l'audit).
+> Ce document est la **partie statique de la phase A0** : contre-vérification
+> des affirmations de l'audit sur le code au commit `0ca588e` (après PR #403),
+> le 2026-11-04. **Rien n'a été exécuté sur appareil** (ni SDK ni téléphone
+> dans l'environnement de l'agent) — la checklist appareil en §4 reste à
+> remplir par Joy ; c'est elle qui fermera la porte A0 et validera A2.
 
-## 1. Matrice de test (4 appareils / versions)
+## 1. Vérification des affirmations (sur `0ca588e`)
 
-| # | Version Android | Modèle | `POST_NOTIFICATIONS` déclarée | `granted` | Fenêtre après explication | Notification reçue | Verdict |
-|---|---|---|---|---|---|---|---|
-| 1 | 12 (API 31) | | | n/a (accordée d'office) | | | |
-| 2 | 13 (API 33) | | | | | | |
-| 3 | 14 (API 34) | | | | | | |
-| 4 | 15 (API 35) | | | | | | |
+**Confirmé tel quel**
 
-## 2. Commandes de relevé
+- `allowBackup="true"` sans règles d'exclusion (C-07a) ; `USE_FULL_SCREEN_INTENT`
+  (P-03), `POST_NOTIFICATIONS`, `REQUEST_INSTALL_PACKAGES` déclarées ; aucun
+  `SCHEDULE_EXACT_ALARM`.
+- `capacitor.config.ts` configure `plugins.SplashScreen` et `plugins.OneSignal`
+  alors que **ni l'un ni l'autre n'est dans `package.json`** (C-01) ;
+  `loggingBehavior:'none'` et `webContentsDebuggingEnabled:false` pour tous
+  les builds (C-05) ; aucune config `Keyboard` (C-10).
+- Plugins `status-bar`, `splash-screen`, `haptics`, `device` absents (C-02/03/04).
+- OneSignal : SDK natif `com.onesignal:OneSignal:4.8.12` dans Gradle
+  (commentaire « 4.9.7 »), **aucune classe `Application`** → jamais
+  initialisé ; façade JS `capabilities/notification` → `lib/onesignal.ts` ;
+  **aucun `PushNotifications.register()`** dans le code (C-06).
+- Seul appel interface à `requestPermission()` : `SettingsNotifications.tsx:128` (P-01).
+- `Camera.requestPermissions({permissions:['camera']})` à `CameraScanner.tsx:76` (P-02).
+- `StorageAdapter` : 5 replis silencieux `catch → localStorage`, zéro journalisation (C-11).
+- `mode:"ios"` forcé (`App.tsx`) ; 0 hook `useIon*` ; insets bas compensés **à la
+  fois** nativement (`MainActivity`, padding WebView) et en CSS
+  (`env(safe-area-inset-bottom)` dans `BottomNav`) → double compensation possible (C-09).
 
-```bash
-# 1) Ce que l'application déclare et ce qui est accordé
-adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"
-adb shell dumpsys package com.lumina.mfejc | grep -A10 "runtime permissions"
+**Nuancé / corrigé**
 
-# 2) Journal de la chaîne de permission (Capacitor + plugins)
-adb logcat -c
-#   … déclencher le parcours dans l'app …
-adb logcat -d | grep -Ei "capacitor|pushnotifications|localnotification|permission"
+- `IonInfiniteScroll` : l'audit dit 0 — en réalité **4 usages** (dont `/finance`).
+- P-05 (canal) : déjà partiellement traité — le chemin local crée son canal
+  (importance 4) juste avant chaque `schedule` (`scheduleLocalNotification`).
+  Reste à le garantir systématiquement en A2.
+- P-01 : `onesignal.ts` contient un pont `createCapacitorPlugin()` dont
+  l'efficacité réelle n'est pas tranchable statiquement → §4.2 tranchera.
+- Splash : le thème natif Android 12 (`Theme.SplashScreen` + `@drawable/splash`)
+  existe déjà ; le bloc de config purgé en A1 n'avait aucun effet.
+- Écarts de comptage immatériels : `IonItem` 77 (audit 69), `<button>` 392 (393),
+  `lucide-react` 108 fichiers (107), `IonToolbar` 32 (31).
 
-# 3) Sauvegarde : ne doit contenir AUCUNE base ni préférence (C-07a)
-adb backup -f /tmp/lumina.ab -apk com.lumina.mfejc
-tar tf /tmp/lumina.ab | head -50        # attendu : aucun .db / .xml / shared_prefs
+## 2. Compteurs Ionic rejoués (balises JSX hors tests)
 
-# 4) État de la permission, indépendamment de l'app
-adb shell cmd appops get com.lumina.mfejc POST_NOTIFICATION
-```
+| Composant | Audit | Mesuré | | Composant | Audit | Mesuré |
+|---|---|---|---|---|---|---|
+| IonPage | 99 | 99 | | IonRefresher | 0 | 0 |
+| IonContent | 95 | 95 | | IonModal | 0 | 0 |
+| IonHeader/Toolbar/Title | 32/31/33 | 32/32/33 | | IonActionSheet/Popover | 0 | 0 |
+| IonBackButton | 26 | 26 | | IonItemSliding | 0 | 0 |
+| IonItem | 69 | 77 | | IonDatetime | 0 | 0 |
+| IonButton | 60 | 60 | | IonSegment/Toggle/Radio | 0 | 0 |
+| `<button>` HTML | 393 | 392 | | IonSkeletonText | 0 | 0 |
+| IonInput/Textarea | 88/13 | 88/13 | | IonSearchbar | 1 | 1 |
+| IonSelect (+Option) | 56 (113) | 56 (113) | | IonTabs/TabBar/Fab/Icon | 0 | 0 |
+| Hooks `useIon*` | 0 | 0 | | IonInfiniteScroll | 0 | **4** |
 
-## 3. Parcours à rejouer (et résultat attendu)
+Méthode : `grep -rhoP '<Composant\b' src --include='*.tsx'` hors `__tests__`
+et `*.test.tsx`. Le diagnostic §3 de l'audit est donc confirmé : Ionic sert de
+coque de pages, l'interface est construite en Tailwind/HTML.
 
-| Étape | Attendu | Observé |
+## 3. Décisions (Joy, 2026-11-04)
+
+| Sujet | Décision | Conséquence |
 |---|---|---|
-| 1. Première transaction enregistrée (`/transaction/new`, montant > 0) | après l'enregistrement, une **feuille d'explication** s'ouvre (pas au démarrage) | |
-| 2. « Autoriser les notifications » | la **fenêtre système Android** apparaît | |
-| 3. Accepter | l'interrupteur de Réglages › Notifications passe à « Notifications activées sur cet appareil » | |
-| 4. « Envoyer une notification de test » | notification visible dans le tiroir, canal « Lumina » | |
-| 5. Refuser la fenêtre système (2ᵉ appareil) | état « Refusées » ; la question n'est pas reposée au boot | |
-| 6. Refuser une 2ᵉ fois | état « Bloquées dans Android » + bouton « Ouvrir les réglages Android » | |
-| 7. Ouvrir les réglages, activer, revenir dans l'app | l'état se met à jour **sans redémarrage** (listener `resume`) | |
-| 8. « Plus tard » | aucune fenêtre ; la question ne revient pas avant 7 jours | |
-| 9. Prise de photo de preuve (`/transaction/new`) | **aucune** fenêtre de permission caméra | |
-| 10. Export (rapport/CSV) | l'écran de partage Android s'ouvre | |
-| 11. Thème clair | icônes de la barre d'état **lisibles** (sombres) | |
-| 12. Bas de l'écran (gestuelle **et** 3 boutons) | aucun vide anormal au-dessus de la barre système (C-09) | |
-| 13. Formulaire clavier ouvert | bouton « Enregistrer la transaction » visible et cliquable (C-10) | |
+| Périmètre session | **Phases A1 + A2**, une PR par phase | A3→A8 ultérieures |
+| Distribution | **APK directs** (hors store) | `REQUEST_INSTALL_PACKAGES` conservée ; SHA-256 de l'APK rendu **obligatoire** dès A1 (§1.5 « traiter proprement ») |
+| Pile notifications | **OneSignal corrigé** (option A de N-04) | A2 : branchement réel. ⚠️ Vigilance : le plugin officiel embarque le SDK 5.x dont la dépendance `bcprov-jdk18on:1.79` a déjà cassé le build (voir le commentaire dans `build.gradle`, SDK pinté 4.8.12) — voie officielle tentée, build CI arbitre, repli = pont local sur le SDK 4.8.12 éprouvé |
+| Mode Ionic | **Par plateforme** (`md` Android) | Acté pour A5, hors périmètre A1/A2 |
+| Verrou d'application | **Reporté** | A4 réduite à sauvegarde/stockage le jour venu ; `allowBackup` traité dès A1 |
 
-## 4. Ce qui est déjà prouvé hors appareil (tests unitaires)
+Sans question car sans ambiguïté : retrait de `USE_FULL_SCREEN_INTENT`
+(inutilisée), verrouillage d'`allowBackup` (P0, données financières), jamais
+de `READ/WRITE_EXTERNAL_STORAGE`, aucune demande de permission au démarrage à froid.
 
-- `src/lib/__tests__/permission-service.test.ts` (13 tests) : refus ⇒ `denied`,
-  2 refus ⇒ `blocked`, pas de nouvelle demande si `granted`/`blocked`, report
-  7 jours, web ⇒ `unavailable`, erreurs de plugin **remontées** (pas avalées).
-- `src/components/__tests__/PermissionPrimer.test.tsx` (5 tests) : l'explication
-  s'affiche **avant** toute demande ; « Plus tard » ne demande rien ; `blocked`
-  ne propose que « Ouvrir les réglages ».
-- `src/lib/__tests__/onesignal-no-native-bridge.test.ts` (3 tests) : plus aucune
-  API natif inventé n'est appelée (P-01).
-- `src/lib/__tests__/capacitor-config-plugins.test.ts` : aucun plugin configuré
-  sans être installé (C-01).
+## 4. Checklist appareil — à remplir par Joy (ferme A0, valide A2, A3, l'arbitrage A4 et A5)
+
+Sur Android 13+ de préférence (idéalement aussi 12/14/15), APK **après** la PR A5
+(les items 4.1→4.7 valident A0/A1/A2 ; 4.8→4.12 valident A3 ; 4.13 valide l'arbitrage
+A4 ; 4.14→4.16 valident A5) :
+
+- [ ] **4.1** `adb shell dumpsys package com.lumina.mfejc | grep -A40 "requested permissions"`
+      → permissions déclarées = matrice §1.2 ; `POST_NOTIFICATIONS` : `granted=false` avant la demande, `true` après accord. Résultat : …
+- [ ] **4.2** Réglages › Notifications : activer → une **fenêtre système** apparaît après
+      l'écran d'explication ; refus → l'état affiché reste cohérent ; double refus →
+      l'action devient « Ouvrir les réglages ». Résultat : …
+- [ ] **4.3** Photo de preuve (scan) : **aucune** fenêtre de permission ne doit apparaître. Résultat : …
+- [ ] **4.4** Export : l'écran de partage Android s'ouvre. Résultat : …
+- [ ] **4.5** Barre d'état en thème clair : icônes lisibles ? Résultat : …
+- [ ] **4.6** Notification de test (rappel local + push) reçue, app fermée puis ouverte. Résultat : …
+- [ ] **4.7** `adb backup` / sauvegarde Google : aucune donnée d'application récupérable
+      (`allowBackup="false"`). Résultat : …
+- [ ] **4.8** (A3) Démarrage à froid : un seul enchaînement perceptible (écran système
+      → page `/splash`), aucun écran blanc prolongé ni double logo. Résultat : …
+- [ ] **4.9** (A3) Barre d'état (suite du 4.5) : thème SOMBRE lisible aussi, fond
+      assorti à l'en-tête, bascule correcte quand le mode système change. Résultat : …
+- [ ] **4.10** (A3) Bas de l'écran : barre d'onglets ni recouverte par ◀ ● ■ ni
+      surélevée d'un vide — navigation 3 boutons ET gestuelle. Résultat : …
+- [ ] **4.11** (A3) Formulaire de transaction, clavier ouvert : le bouton
+      d'enregistrement reste visible/utilisable ; idem écran de connexion (contenu
+      pas poussé hors écran). Résultat : …
+- [ ] **4.12** (A3) Retour haptique : vibration discrète à l'enregistrement d'une
+      transaction (et pattern d'erreur si échec), et au décodage d'un QR par le
+      scanner. Résultat : …
+- [ ] **4.13** (A4) Changement de compte sur le même appareil : noter une saisie
+      hors-ligne avec le compte A, se déconnecter, se reconnecter avec un compte B
+      → aucune donnée de A (église, transactions) ne doit apparaître ; revenir au
+      compte A → sa saisie en attente est toujours là (arbitrage de l'étude C-07c
+      §6 : la réplique n'est pas purgée au changement de compte). Résultat : …
+- [ ] **4.14** (A5) Mode Material sur Android : parcourir Dashboard, Historique,
+      Nouvelle transaction, Membres, Réglages → contrôles au rendu Android attendu
+      (boutons, champs, sélecteurs, interrupteurs), ondulation au toucher,
+      transitions fluides, rien de cassé ni de tronqué. Résultat : …
+- [ ] **4.15** (A5) Fraîcheur au retour : depuis Historique, créer une transaction,
+      revenir en arrière → la liste affiche la nouvelle transaction sans relancer
+      l'application ni recharger la page. Résultat : …
+- [ ] **4.16** (A5) Palette : rester appuyé sur un bouton primaire (accent) → la
+      teinte d'appui suit l'accent du thème, sans flash bleu ; refaire après un
+      changement de thème (un clair, un sombre). Résultat : …
+
+## 5. Porte de sortie A1 (cette PR)
+
+- Build Android propre (validé par la CI : Build Application + Build Debug APK —
+  pas de SDK dans l'environnement de l'agent).
+- Liste de permissions verrouillée par `src/lib/__tests__/android-permissions-matrix.test.ts`.
+- Auto-mise à jour : `checkForUpdate` ne propose rien sans empreinte
+  (`checkForUpdate-sha256.test.ts`) et le natif rejette sans elle.

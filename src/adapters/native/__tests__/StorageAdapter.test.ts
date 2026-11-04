@@ -19,6 +19,12 @@ vi.mock("@capacitor/preferences", () => ({
   Preferences: mockStoragePlugin,
 }));
 
+const { mockReportError } = vi.hoisted(() => ({ mockReportError: vi.fn() }));
+
+vi.mock("@/lib/observability/errorReporter", () => ({
+  reportError: mockReportError,
+}));
+
 // Stub window for node environment
 vi.stubGlobal("window", globalThis);
 
@@ -80,6 +86,24 @@ describe("StorageAdapter", () => {
       const result = await adapter.get<{ ok: boolean }>("mykey");
       expect(result).toEqual({ ok: true });
       StorageAdapter.injectMockPlugin(mockStoragePlugin);
+    });
+
+    it("journals a native-store failure via reportError (C-11), once per session", async () => {
+      mockStoragePlugin.get.mockRejectedValue(new Error("native store HS"));
+      mockLocalStorageImpl.setItem("k", JSON.stringify({ v: 1 }));
+      const adapter = StorageAdapter.getInstance();
+
+      // La panne native retombe bien sur localStorage…
+      await expect(adapter.get<{ v: number }>("k")).resolves.toEqual({ v: 1 });
+      // …mais elle est journalisée, pas avalée.
+      expect(mockReportError).toHaveBeenCalledTimes(1);
+      expect(mockReportError).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({ source: "storage-adapter-fallback" }),
+      );
+      // Borné : une seconde panne dans la même session ne re-signale pas.
+      await adapter.get("k");
+      expect(mockReportError).toHaveBeenCalledTimes(1);
     });
 
     it("returns null for missing key in localStorage", async () => {

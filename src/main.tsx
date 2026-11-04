@@ -27,8 +27,7 @@ import { armBootWatchdog } from "@/lib/bootWatchdog";
 import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
 import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
 import { flushPendingReports } from "@/lib/observability/errorReporter";
-import { initStatusBar } from "@/lib/statusBar";
-import { ensureNotificationChannel } from "@/lib/nativePermissions";
+import { Capacitor } from "@capacitor/core";
 
 // Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
 // signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
@@ -70,13 +69,6 @@ applyStoredTheme();
 // already in the right state (index.html also primes it pre-bundle).
 applyStoredThemeMode();
 
-// Barre d'état Android (icônes lisibles dans les deux modes) et canal de
-// notification par défaut — tous deux idempotents et no-op hors natif.
-// Le canal est créé AVANT tout envoi (serveur compris) : une notification
-// sans canal était muette au premier lancement sur Android 8+.
-initStatusBar();
-void ensureNotificationChannel();
-
 // OneSignal est initialisé à la demande (flux déclenché par l'utilisateur,
 // ex. SettingsNotifications), jamais au boot : le plugin a
 // promptForNotifications:true, donc l'init au premier lancement demanderait
@@ -106,18 +98,21 @@ import("@ionic/core")
 // les listes de l'app retombaient sur le repli local (vide au premier
 // lancement) — la base SQLite contenait pourtant bien les lignes
 // synchronisées. Le provider était défini mais jamais monté.
+// C-09 (A3) — sur Android natif, l'inset bas est géré par MainActivity
+// (padding WindowInsets de la WebView) : cette classe force à 0 les
+// utilitaires CSS basés sur env(safe-area-inset-bottom) (App.css et
+// --ion-safe-area-bottom), interdisant toute double compensation.
+// Sur le web et iOS, env() reste la source (indicateur d'accueil,
+// encoches). Posée avant le premier rendu pour éviter tout saut visuel.
+if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+  document.documentElement.classList.add("lumina-native-android");
+}
+
 createRoot(document.getElementById("root")!).render(
   <PowerSyncProvider>
     <App />
   </PowerSyncProvider>,
 );
-
-// Signale à la CSS statique d'index.html que le root React est
-// hydraté : le splash HTML/CSS (index.html) est masqué (display:none)
-// dès que le premier rendu React a du contenu, pour ne pas laisser
-// deux écrans de splash superposés. Le splash React (route /splash)
-// prend le relais visuellement.
-document.getElementById("root")?.classList.add("is-hydrated");
 
 // Affichage fluide : dès le départ, on préchauffe (hors du chemin critique
 // de rendu, au repos du navigateur) les chunks des vues de la nav que

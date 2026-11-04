@@ -1,38 +1,32 @@
 /**
- * Retour haptique — une seule API pour toute l'application.
+ * Retour haptique (C-03, A3) — sensation tactile sur les moments qui
+ * comptent (enregistrement d'une transaction, scan décodé), via
+ * @capacitor/haptics. Avant A3, l'app n'avait aucune sensation tactile.
  *
- * `@capacitor/haptics` (installé en phase A3) fournit les vibrations natives ;
- * sur le web il n'y a rien à faire, et une erreur de vibration ne doit JAMAIS
- * empêcher une action métier (enregistrer une transaction, approuver…).
- * D'où : no-op hors natif, et `void` partout (jamais d'await bloquant).
+ * Règles : natif uniquement (no-op silencieux sur le web — Cypress et
+ * PWA inchangés) ; ne rejette JAMAIS (un retour tactile ne doit pas
+ * casser le flux métier qu'il ponctue) ; appels fire-and-forget du
+ * point de vue de l'appelant.
  */
 import { Capacitor } from "@capacitor/core";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 
-function isNative(): boolean {
-  try {
-    return Capacitor.isNativePlatform();
-  } catch {
-    return false;
-  }
+function fire(action: () => Promise<void>): void {
+  if (!Capacitor.isNativePlatform()) return;
+  void action().catch(() => {});
 }
 
-/** Succès d'une action métier (enregistrement, approbation). */
-export function hapticSuccess(): void {
-  if (!isNative()) return;
-  void Haptics.notification({ type: NotificationType.Success }).catch(() => {});
-}
-
-/** Erreur (validation refusée, échec d'enregistrement). */
-export function hapticError(): void {
-  if (!isNative()) return;
-  void Haptics.notification({ type: NotificationType.Error }).catch(() => {});
-}
-
-/** Action principale / confirmation légère (tap sur un bouton primaire). */
-export function hapticImpact(style: ImpactStyle = ImpactStyle.Light): void {
-  if (!isNative()) return;
-  void Haptics.impact({ style }).catch(() => {});
-}
-
-export { ImpactStyle, NotificationType };
+export const haptics = {
+  /** Enregistrement réussi, scan décodé… */
+  success(): void {
+    fire(() => Haptics.notification({ type: NotificationType.Success }));
+  },
+  /** Échec d'enregistrement. */
+  error(): void {
+    fire(() => Haptics.notification({ type: NotificationType.Error }));
+  },
+  /** Boutons d'action principaux. */
+  light(): void {
+    fire(() => Haptics.impact({ style: ImpactStyle.Light }));
+  },
+};

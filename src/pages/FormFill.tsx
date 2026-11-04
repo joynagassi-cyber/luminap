@@ -38,6 +38,7 @@ import {
   IonTextarea,
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { getCurrentActorId } from "@/lib/auth";
 
 function ReferenceSelect({
   field,
@@ -155,7 +156,7 @@ export default function FormFill() {
       orgId: getOrganizationId(),
       formDefinitionId: form.id,
       formVersion: form.version,
-      submittedBy: currentUser?.id ?? "local-user",
+      submittedBy: getCurrentActorId(),
       data: normalizedData,
       status: "SUBMITTED",
     });

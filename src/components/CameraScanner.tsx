@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { haptics } from '@/lib/haptics';
 
 export interface ScanResult {
   text: string;
@@ -71,16 +72,12 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       
       if (isNativePlatform()) {
         // Native platform: use Capacitor Camera.
-        //
-        // PAS de `Camera.requestPermissions({ permissions: ['camera'] })` :
-        //  - `AndroidManifest.xml` ne déclare PAS `android.permission.CAMERA` ;
-        //  - le plugin ouvre l'application caméra du SYSTÈME, qui gère sa
-        //    propre autorisation (son README : « requires no permissions »,
-        //    sauf `saveToGallery`) ;
-        //  - demander une permission non déclarée peut renvoyer `denied` et
-        //    bloquer le scan sur certains appareils (P-02 de
-        //    docs/lumina-ionic-capacitor-permissions.md §1.3).
-        // Lumina n'a donc AUCUNE permission caméra à demander.
+        // P-02 (audit A2) : aucune permission à demander — `getPhoto`
+        // délègue à l'appareil photo SYSTÈME (intent), qui prend la photo
+        // pour l'app. La permission CAMERA n'est volontairement PAS
+        // déclarée au manifeste (matrice §1.2) ; la demander quand même
+        // échouait immédiatement, sans dialogue, et rendait le scanner
+        // inutilisable en natif.
         const image = await Camera.getPhoto({
           quality: 90,
           allowEditing: false,
@@ -94,15 +91,11 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         await startWebCamera();
       }
     } catch (err: any) {
-      // Annulation par l'utilisateur : ce n'est pas une erreur. Afficher
-      // « User cancelled photos app » sur l'écran de preuve laissait croire à
-      // une panne de l'appareil photo.
-      const raw = String(err?.message ?? err ?? "");
-      if (/cancel/i.test(raw)) {
-        setError(null);
-        return;
-      }
       const msg = err?.message || 'Erreur lors du scan';
+      // Annulation par l'utilisateur (retour depuis l'appareil photo
+      // système : « User cancelled photos app ») — pas une erreur :
+      // retour silencieux, sans message (audit A2).
+      if (/cancel/i.test(msg)) return;
       setError(msg);
       onError?.(msg);
     }
@@ -132,6 +125,8 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         (result, err) => {
           if (result) {
             stopCamera();
+            // C-03 (A3) — retour haptique sur scan décodé.
+            haptics.success();
             onScan({
               text: (result as any).text,
               format: (result as any).format?.formatName || 'QR_CODE',
@@ -155,7 +150,9 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
     try {
       const codeReader = new BrowserMultiFormatReader();
       const result = await codeReader.decodeFromImageUrl(imagePath);
-      
+
+      // C-03 (A3) — retour haptique sur scan décodé.
+      haptics.success();
       onScan({
         text: (result as any).text,
         format: (result as any).format?.formatName || 'QR_CODE',

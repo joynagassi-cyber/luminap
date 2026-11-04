@@ -18,6 +18,32 @@
   --ion-color-danger: #e51332;
   --ion-color-danger-rgb: 229, 19, 50;
 
+  /* Dérivées de palette (A5) — contrast / shade / tint.
+   * La palette officielle Ionic exige ces quatre variables par couleur.
+   * Sans elles, les composants retombent sur les défauts d'Ionic (shade
+   * du primaire en BLEU #004acd : un bouton primaire activé clignotait
+   * bleu). Dérivées de la base par color-mix — conventions du générateur
+   * Ionic (shade = 88 % de la base + noir, tint = 90 % + blanc) — elles
+   * suivent donc l'accent forcé à runtime par applyTheme et les 19 thèmes
+   * sans table par thème. Le contraste du primaire suit --on-accent
+   * (#fff aujourd'hui ; garder le -rgb synchronisé si ce jeton change). */
+  --ion-color-primary-contrast: var(--on-accent);
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: color-mix(in srgb, var(--ion-color-primary) 88%, #000);
+  --ion-color-primary-tint: color-mix(in srgb, var(--ion-color-primary) 90%, #fff);
+  --ion-color-success-contrast: #fff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: color-mix(in srgb, var(--ion-color-success) 88%, #000);
+  --ion-color-success-tint: color-mix(in srgb, var(--ion-color-success) 90%, #fff);
+  --ion-color-warning-contrast: #000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: color-mix(in srgb, var(--ion-color-warning) 88%, #000);
+  --ion-color-warning-tint: color-mix(in srgb, var(--ion-color-warning) 90%, #fff);
+  --ion-color-danger-contrast: #fff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: color-mix(in srgb, var(--ion-color-danger) 88%, #000);
+  --ion-color-danger-tint: color-mix(in srgb, var(--ion-color-danger) 90%, #fff);
+
   /* Neutres — suivent le mode courant */
   --ion-color-secondary: var(--surface-hover);
   --ion-color-tertiary: var(--surface-active);

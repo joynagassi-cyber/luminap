@@ -31,6 +31,8 @@ vi.mock("../checkForUpdate", () => ({
     versionName: "9.9.9",
     changelog: "note",
     downloadUrl: "https://example.test/app.apk",
+    // Obligatoire depuis A1/§1.5 : pas d'UpdateInfo sans empreinte.
+    sha256: "ab".repeat(32),
     sizeBytes: 1024,
   })),
 }));

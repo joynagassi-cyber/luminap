@@ -8,14 +8,22 @@
 #                             l'initialisation (utile pour les streams globaux
 #                             ou partagés par toute l'organisation).
 #
-# Pattern de filtrage par organisation
+# Pattern de filtrage par organisation (double-scope, « Étape 2 »)
 #   Pour toute table qui porte une colonne `org_id` (text, pas uuid), le
-#   filtre est :
+#   filtre couvre TOUTES les organisations de l'utilisateur :
 #       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
-#   C'est `IN` — pas `=` — car les sous-requêtes sont autorisées UNIQUEMENT
-#   dans les WHERE clauses de Sync Streams (pas dans les SELECT lists ni les
-#   JOINs). Un user 1-org = 1 ligne → `IN` = `=` sémantiquement ; un user
-#   multi-org = N lignes → `IN` couvre le double-scope.
+#          OR org_id IN (SELECT org_id FROM org_memberships
+#                         WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+#          OR org_id IN (SELECT org_id FROM org_memberships
+#                         WHERE user_id = auth.user_id() AND status = 'PENDING')
+#   `profiles` ne porte qu'UNE organisation (1 profil par utilisateur) :
+#   ne filtrer que par lui (ancien pattern) rendait les organisations
+#   secondaires invisibles — après un changement d'organisation, l'app
+#   restait vide, en ligne comme hors ligne, PowerSync étant l'unique
+#   source de données. La forme à branches `OR` reprend celle, éprouvée,
+#   du stream `profiles` ci-dessous. Exceptions assumées : `invitations`
+#   et `invitation_claims` (rôles admin via memberships ACTIVE),
+#   `grants`, `org_administered`, `tag_assignments` (scope propre).
 #
 # Pattern pour les tables historiquement « liaison sans org_id »
 #   `group_memberships`, `event_budgets`, `budget_lines`, `custom_field_values`
@@ -46,18 +54,24 @@ streams:
     query: |
       SELECT * FROM categories
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   org_units:
     auto_subscribe: true
     query: |
       SELECT * FROM org_units
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   caisses:
     auto_subscribe: true
     query: |
       SELECT * FROM caisses
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Socle multi-org (Vague 1) ──────────────────────────────────────────
   # Les memberships multi-org sont créés côté client (pas auto_subscribe) :
@@ -68,6 +82,8 @@ streams:
       SELECT * FROM org_memberships
       WHERE user_id = auth.user_id()
          OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Profils visibles par l'utilisateur connecté (R80) ──────────────────
   # Miroir EXACT de la politique RLS `profiles_select`
@@ -101,21 +117,25 @@ streams:
                  AND org_id <> 'no-org'
                  AND org_id <> '')
 
-  # ── Données de l'organisation de l'utilisateur connecté ───────────────
-  # Double-scope (Vague 1, réversible) : tant que le backfill 1:1 est exact,
-  # `legacy ∪ memberships` = l'ancien jeu de données pour un user 1-org.
-  # Modèle à répliquer aux 22 autres streams en Étape 2.
+  # ── Données des organisations de l'utilisateur connecté ───────────────
+  # Double-scope généralisé (« Étape 2 », cf. en-tête) : `profiles` (org
+  # primaire) ∪ `org_memberships` ACTIVE/PENDING. Pour un utilisateur
+  # mono-org avec le backfill 1:1, le jeu de données est inchangé.
   transactions:
     auto_subscribe: true
     query: |
       SELECT * FROM transactions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   events:
     auto_subscribe: true
     query: |
       SELECT * FROM events
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Tâches & sous-tâches d'un événement (Phase 1 Feature 1 Calendrier,
   # migration 20261003000001). Scoping org identique à `events` ; l'UI
@@ -125,36 +145,48 @@ streams:
     query: |
       SELECT * FROM event_tasks
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   cotisations:
     auto_subscribe: true
     query: |
       SELECT * FROM cotisations
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   members:
     auto_subscribe: true
     query: |
       SELECT * FROM members
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   groups:
     auto_subscribe: true
     query: |
       SELECT * FROM groups
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   versements:
     auto_subscribe: true
     query: |
       SELECT * FROM versements
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   notifications:
     auto_subscribe: true
     query: |
       SELECT * FROM notifications
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Modèle canonique de comptes
   accounts:
@@ -162,6 +194,8 @@ streams:
     query: |
       SELECT * FROM accounts
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Liaisons sans org_id direct → filtre transitif via le parent
   # (Aucun alias sur la table source : PowerSync renommerait sinon la table
@@ -171,24 +205,32 @@ streams:
     query: |
       SELECT * FROM group_memberships
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   event_budgets:
     auto_subscribe: true
     query: |
       SELECT * FROM event_budgets
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   budget_lines:
     auto_subscribe: true
     query: |
       SELECT * FROM budget_lines
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   custom_field_values:
     auto_subscribe: true
     query: |
       SELECT * FROM custom_field_values
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Formulaires
   form_definitions:
@@ -196,12 +238,16 @@ streams:
     query: |
       SELECT * FROM form_definitions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   form_submissions:
     auto_subscribe: true
     query: |
       SELECT * FROM form_submissions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Champs personnalisés
   custom_field_definitions:
@@ -209,6 +255,8 @@ streams:
     query: |
       SELECT * FROM custom_field_definitions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Définitions de rapports (/reports, /report-builder). Scopées à
   # l'organisation de l'utilisateur, comme `transactions`. Sans ce stream, la
@@ -219,6 +267,8 @@ streams:
     query: |
       SELECT * FROM report_definitions
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Invitations ─────────────────────────────────────────────────────────
   # Les invitations sont créées par un admin et validées par un utilisateur.
@@ -277,6 +327,8 @@ streams:
              o.created_at, o.updated_at
       FROM organizations o
       WHERE o.id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR o.id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR o.id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Robustesse PSYNC_S2305 : ne synchroniser QUE les grants ACTIFS.
   # Un grant révoqué (status = 'REVOKED') n'ouvre aucun droit (la RLS ne lit
@@ -308,6 +360,8 @@ streams:
              created_at, updated_at
       FROM organizations
       WHERE id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Back-compat : les streams qui référenceaient le stream "organizations"
   # (CentralAdmin / Federation / Rapports) utilisent l'union des 3 streams
@@ -318,6 +372,8 @@ streams:
       SELECT * FROM org_admins
       WHERE admin_profile_id = auth.user_id()
          OR org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Rapports inter-organisations (Phase 1 Feature 2) ────────────────────
   # Un user lit les rapports (a) émis par son org (from_org_id = son org)
@@ -328,7 +384,11 @@ streams:
     query: |
       SELECT * FROM org_reports
       WHERE from_org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR from_org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR from_org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
          OR to_org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR to_org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR to_org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Modèle agnostique (Vague 2) : grants + tags ─────────────────────────
   # Streams créés explicitement côté client ; le filtrage fort passe par
@@ -352,6 +412,8 @@ streams:
     query: |
       SELECT * FROM tags
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # Réglages par organisation (PR8 maker-checker, PR13 gel de période).
   # auto_subscribe : les réglages sont peu nombreux et nécessaires dès le
@@ -361,6 +423,8 @@ streams:
     query: |
       SELECT * FROM org_settings
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   tag_assignments:
     auto_subscribe: false
@@ -375,6 +439,8 @@ streams:
     query: |
       SELECT * FROM transaction_attachments
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   # ── Tables du schéma client SANS stream (défaut mesuré 2026-11-01) ───────
   # Ces 9 tables figurent dans `src/lib/powersync/schema.ts` et sont lues via
@@ -389,51 +455,69 @@ streams:
     query: |
       SELECT * FROM audit_entries
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   documents:
     auto_subscribe: true
     query: |
       SELECT * FROM documents
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   org_budgets:
     auto_subscribe: true
     query: |
       SELECT * FROM org_budgets
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   org_budget_lines:
     auto_subscribe: true
     query: |
       SELECT * FROM org_budget_lines
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   giving_donors:
     auto_subscribe: true
     query: |
       SELECT * FROM giving_donors
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   giving_campaigns:
     auto_subscribe: true
     query: |
       SELECT * FROM giving_campaigns
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   pledges:
     auto_subscribe: true
     query: |
       SELECT * FROM pledges
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   tax_receipts:
     auto_subscribe: true
     query: |
       SELECT * FROM tax_receipts
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')
 
   transaction_giving:
     auto_subscribe: true
     query: |
       SELECT * FROM transaction_giving
       WHERE org_id IN (SELECT org_id FROM profiles WHERE id = auth.user_id())
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'ACTIVE')
+         OR org_id IN (SELECT org_id FROM org_memberships WHERE user_id = auth.user_id() AND status = 'PENDING')

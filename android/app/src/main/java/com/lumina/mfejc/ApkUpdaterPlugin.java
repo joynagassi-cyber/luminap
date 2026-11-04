@@ -91,32 +91,6 @@ public class ApkUpdaterPlugin extends Plugin {
         }
     }
 
-    /**
-     * Ouvre l'écran « Réglages de l'application » dans Android.
-     *
-     * Utilisé par `PermissionService.openAppSettings()` (voir
-     * docs/lumina-ionic-capacitor-permissions.md §1.4) : après un refus
-     * définitif, Android ne réaffiche plus la fenêtre de permission, et c'est
-     * le SEUL moyen de la réactiver. Aucune permission n'est nécessaire pour
-     * cette action ; elle vit ici plutôt que dans un nouveau plugin pour ne
-     * pas ajouter de dépendance (le plugin est déjà enregistré dans
-     * MainActivity.onCreate).
-     */
-    @PluginMethod
-    public void openAppSettings(PluginCall call) {
-        try {
-            Intent intent = new Intent(
-                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                Uri.parse("package:" + getContext().getPackageName())
-            );
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            getContext().startActivity(intent);
-            call.resolve();
-        } catch (Exception e) {
-            call.reject("Impossible d'ouvrir les réglages de l'application", e);
-        }
-    }
-
     @PluginMethod
     public void download(PluginCall call) {
         String url = call.getString("url");
@@ -124,6 +98,15 @@ public class ApkUpdaterPlugin extends Plugin {
 
         if (url == null || !url.startsWith("https://")) {
             call.reject("URL HTTPS requise");
+            return;
+        }
+
+        // A1 / §1.5 (audit permissions, canal APK direct) : aucune
+        // installation sans empreinte à vérifier. Le JS refuse déjà de
+        // proposer une mise à jour sans SHA-256 (checkForUpdate.ts) ;
+        // ce rejet natif ferme la porte à tout appelant futur distrait.
+        if (sha256 == null || sha256.isEmpty()) {
+            call.reject("SHA-256 requis");
             return;
         }
 
@@ -166,8 +149,8 @@ public class ApkUpdaterPlugin extends Plugin {
                 conn.disconnect();
 
                 String hexHash = bytesToHex(digest.digest());
-                if (sha256 != null && !sha256.isEmpty()
-                        && !sha256.toLowerCase().equals(hexHash)) {
+                // sha256 est non nul ici (rejeté plus haut si absent).
+                if (!sha256.toLowerCase().equals(hexHash)) {
                     target.delete();
                     rejectIo(call, "Hash SHA-256 invalide");
                     return;

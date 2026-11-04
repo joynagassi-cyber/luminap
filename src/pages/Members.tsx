@@ -55,8 +55,8 @@ export default function MembersPage() {
     void loadArchivedMembers();
   }, [retryArchived, loadArchivedMembers]);
 
-  // A5 — au retour sur l'écran (membre ajouté ailleurs, archivage depuis une
-  // autre page), la liste des archivés doit être relue : la page reste montée.
+  // A5 — au retour sur l'écran (membre archivé depuis une autre page), la
+  // liste doit être relue : la page reste montée dans la pile Ionic.
   useRefreshOnViewEnter(loadArchivedMembers, {
     label: "members.archived",
     onError: (error) =>

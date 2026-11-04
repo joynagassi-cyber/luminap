@@ -10,7 +10,9 @@ import { useEffect, useState } from "react";
 import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
-import { SyncUnavailableBannerGate } from "./components/SyncUnavailableBanner";
+import { SyncStatusNotifier } from "./components/SyncStatusNotifier";
+import { PermissionPrimerGate } from "./components/PermissionPrimerGate";
+import { StatusBarBridge } from "./components/StatusBarBridge";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
@@ -59,8 +61,14 @@ installChunkErrorRecovery();
 // Ici on ne fait que signaler la disponibilité de la coquille.
 
 // Initialize Ionic React (dark theme applied via setupLuminaTheme)
+// A5 — aucun mode forcé : Ionic applique alors le mode de la plateforme
+// (le mode iOS sur iOS, Material partout ailleurs — défaut vérifié dans
+// @ionic/core, ionic-global). L'application est livrée sur Android : les
+// contrôles y prennent le rendu Material attendu (ondulation, transitions),
+// et iOS gardera le sien quand il sera livré. Ne pas réintroduire de mode
+// explicite sans décision documentée (garde A5). Validation visuelle :
+// checklist appareil §4.14.
 setupIonicReact({
-  mode: "ios",
   animated: true,
   ...({ keyboardBehavior: "ion-focus", keyboardFillMode: "overlap" } as any),
 });
@@ -458,6 +466,8 @@ const App = () => {
       <IonApp style={{ backgroundColor: "var(--canvas)" }}>
         <SentryUserBridge />
         <UpdaterBridge />
+        {/* A3 (C-02) — barre d'état thématisée (natif uniquement). */}
+        <StatusBarBridge />
         {/* Lien « sauter au contenu » — premier élément focalisable, masqué
             visuellement jusqu'au focus clavier (a11y : parcours du clavier). */}
         {/* M15 — z-index nommé : --z-toast (70) / --z-skip (100) coordonnés
@@ -484,7 +494,11 @@ const App = () => {
           <ObservabilityBridge />
           <AppRouter />
           <AppProvider>
-            <SyncUnavailableBannerGate />
+            <SyncStatusNotifier />
+            {/* A2 — primer de permission notifications : natif uniquement,
+                après le premier bénéfice vécu (1ʳᵉ transaction), jamais
+                au démarrage à froid. Ne rend rien sur le web. */}
+            <PermissionPrimerGate />
             <main id="main" style={{ height: "100%" }}>
               {/*
                 Le <Routes> est OBLIGATOIRE : @ionic/react-router

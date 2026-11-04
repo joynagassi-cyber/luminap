@@ -1,6 +1,7 @@
-import { Fragment, useCallback, useState, useMemo, useEffect } from "react";
+import { Fragment, useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useCategories, useAccounts, useCaisses } from "@/lib/dataLayer";
+import { useCategories, useAccounts, useCaisses, useOrganizationRevision } from "@/lib/dataLayer";
 import { resource } from "@/capabilities/resource";
 import type { Transaction } from "@/types";
 import { formatCentsToFCFA } from "@/lib/utils";
@@ -20,7 +21,6 @@ import TopHeader from "@/components/TopHeader";
 import TransactionCard from "@/components/TransactionCard";
 import EmptyState from "@/components/EmptyState";
 import { LoadErrorBlock } from "@/components/RouteStates";
-import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import { captureClientError } from "@/lib/clientErrors";
 import { FinanceSkeleton } from "@/components/PageSkeletons";
 import {
@@ -58,9 +58,25 @@ export default function Finance() {
   const [loadError, setLoadError] = useState(false);
   const [visibleCount, setVisibleCount] = useState(FINANCE_PAGE_SIZE);
 
+  // Révision d'organisation/readiness (même mécanisme que les hooks
+  // dataLayer) : cette page interroge PowerSync via `resource.list`,
+  // scopé par `getOrganizationId()`. Sans abonnement, un montage AVANT
+  // la résolution du contexte (boot froid : `AppContext` résout le
+  // profil de façon asynchrone) interroge avec `org_id = '__no_org__'`
+  // → liste vide DÉFINITIVE alors que les données sont locales — c'est
+  // le piège documenté dans `orgContext`/`useOrganizationRevision`,
+  // auquel tous les hooks de lecture sont abonnés.
+  // On recharge donc à chaque révision (org résolue, réplique prête,
+  // borne de secours 10 s incluse dans le hook).
+  const orgRev = useOrganizationRevision();
+  const hasLoadedRef = useRef(false);
+
   // Load transactions via Resource capability.
   const loadTransactions = useCallback(() => {
-    setLoading(true);
+    // Squelette uniquement tant qu'on n'a rien à montrer (même règle
+    // que les hooks dataLayer) : un rechargement sur résolution ne
+    // doit pas faire clignoter une liste déjà affichée.
+    if (!hasLoadedRef.current) setLoading(true);
     setLoadError(false);
     resource
       .list<Transaction>("Transaction", {
@@ -70,25 +86,28 @@ export default function Finance() {
       })
       .then(({ items }) => {
         setTransactions(items as any);
+        hasLoadedRef.current = true;
         setLoading(false);
       })
       .catch((e) => {
         // R88 — ne pas avaler : sans trace, l'utilisateur voyait une liste
         // vide identique à « aucune transaction » (c'est ce qui a masqué R87).
         captureClientError(e, { message: "Échec du chargement des transactions" });
-        setLoadError(true);
+        // Écran d'erreur seulement si rien à montrer : un rechargement
+        // en échec ne doit pas effacer une liste déjà affichée.
+        if (!hasLoadedRef.current) setLoadError(true);
         setLoading(false);
       });
   }, []);
 
   useEffect(() => {
     loadTransactions();
-  }, [loadTransactions]);
+  }, [loadTransactions, orgRev]);
 
-  // A5 — Ionic garde l'écran MONTÉ : au retour (détail → retour, autre onglet,
-  // synchronisation terminée), `useEffect` ne rejoue pas et la liste restait
-  // celle de la visite précédente. `useIonViewWillEnter` recharge avant que la
-  // transition ne rende l'écran visible (pas de « flash » de données périmées).
+  // A5 — Ionic garde l'écran MONTÉ : au retour (détail → retour, autre onglet),
+  // `useEffect` ne rejoue pas et la liste restait celle de la visite précédente.
+  // `useIonViewWillEnter` recharge AVANT que la transition ne rende l'écran
+  // visible (pas de « flash » de données périmées).
   useRefreshOnViewEnter(loadTransactions, {
     label: "finance",
     onError: (error) =>
@@ -125,10 +144,24 @@ export default function Finance() {
         if (dateRange.to && tx.date > dateRange.to) return false;
         return true;
       })
-      .sort(
-        (a: any, b: any) =>
-          new Date(b.date).getTime() - new Date(a.date).getTime(),
-      );
+      .sort((a: any, b: any) => {
+        const byDate =
+          new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (byDate !== 0) return byDate;
+        // À date égale : la plus récemment créée d'abord. Sans ce
+        // départage, le tri (stable) conserve l'ordre de balayage
+        // SQLite, où une ligne saisie à l'instant — insérée APRÈS les
+        // lignes synchronisées — ferme le groupe du jour : dès qu'un
+        // jour compte plus de FINANCE_PAGE_SIZE transactions, elle
+        // sort de la première fenêtre affichée et devient
+        // « introuvable » (spec E2E R85 : 280 transactions datées du
+        // jour dans l'organisation de test). `createdAt` absent ou
+        // illisible (lignes héritées importées) compte pour 0 : pas
+        // de tête de groupe faute d'horodatage.
+        const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return (Number.isNaN(cb) ? 0 : cb) - (Number.isNaN(ca) ? 0 : ca);
+      });
   }, [
     transactions,
     searchTerm,
@@ -399,8 +432,7 @@ export default function Finance() {
                 Ouvert, il propose Entrée / Sortie EN TOUTES LETTRES. */}
             <div
               className="fixed right-5 flex flex-col items-end gap-3"
-              // C-09 : inset bas fourni par la WebView native (pas d'env()).
-              style={{ bottom: "96px" }}
+              style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}
             >
               {fabOpen && (
                 <>

@@ -1,73 +1,66 @@
-# Exceptions à la règle « Ionic d'abord »
+# Règle « Ionic d'abord » et exceptions UI
 
-> **Règle** (issue de `docs/lumina-ionic-capacitor-permissions.md` §3.2) :
-> avant d'écrire un composant, vérifier s'il existe en Ionic. Tailwind sert à la
-> **mise en page** (espacements, grilles, couleurs), **pas** à reconstruire des
-> contrôles. Chaque exception ci-dessous est **explicite, datée et associée à une
-> phase de sortie**.
+**Règle** (audit `docs/lumina-ionic-capacitor-permissions.md` §3.3, phase
+A5) : avant tout composant maison, vérifier qu'il n'existe pas en Ionic.
+Tailwind sert à la **mise en page** (espacements, grilles), pas à
+reconstruire des contrôles. Toute exception est enregistrée dans ce
+document, avec son motif et sa phase de migration. La checklist de PR
+(`.github/pull_request_template.md`) impose le contrôle à chaque revue.
 
-## 1. Comment ajouter une exception
+## Conventions Ionic de Lumina
 
-Une PR qui introduit un contrôle maison (bouton, champ, interrupteur, feuille,
-toast, sélecteur, date, liste, onglet) doit :
+### Mode (A5)
 
-1. citer dans sa description le composant Ionic équivalent **et** la raison de
-   ne pas l'utiliser ;
-2. ajouter une ligne au tableau §2 avec l'échéance de migration ;
-3. ne pas ajouter de nouvelle dépendance UI (Radix, vaul, sonner…) sans la même
-   justification.
+Aucun mode forcé : Ionic applique le mode de la plateforme (`md` Material
+sur Android et le web non-iOS, `ios` sur iOS). Ne pas réintroduire de mode
+explicite dans `setupIonicReact` sans décision documentée — garde
+automatisée dans `src/lib/__tests__/android-permissions-matrix.test.ts`.
 
-## 2. Inventaire au 3 novembre 2026 (commit `f29ebf5` + phase A2/A3)
+### Palette (A5)
 
-| Composant maison | Fichier | Équivalent Ionic | Pourquoi l'exception existe aujourd'hui | Sortie prévue |
-|---|---|---|---|---|
-| `BottomNav` | `src/components/BottomNav.tsx` | `IonTabs` / `IonTabBar` | barre d'onglets **dynamique** pilotée par `useFeatureConfig` (1 à 4 onglets), construite avant l'adoption d'Ionic | **A8** (décision go/no-go, §7 #5) |
-| `TopHeader` | `src/components/TopHeader.tsx` | `IonHeader` + `IonToolbar` | contient le sélecteur d'organisation, la cloche de notifications et le menu ; il **enveloppe déjà** `IonHeader`/`IonToolbar` — seuls les boutons internes sont bruts | A5 (remplacer les `<button>` par `IonButton fill="clear"`) |
-| `ConfirmModal` | `src/components/ConfirmModal.tsx` | `IonAlert` (ou `useIonAlert`) | gère une confirmation **avec saisie de texte** (`requiredText`), absente d'`IonAlert` | A6 |
-| `DatePicker` | `src/components/DatePicker.tsx` | `IonDatetime` dans `IonModal` | calendrier custom (react-day-picker) | A6 |
-| `BottomDrawer` | `src/components/BottomDrawer.tsx` | `IonModal` en feuille (`breakpoints`) | menu maison à base de `div` fixes, antérieur à l'usage d'`IonModal` ; pas de gestion du bouton retour Android | A6 |
-| `SegmentedTabs` | `src/components/SegmentedTabs.tsx` | `IonSegment` | styles maison très proches du besoin | A7 |
-| interrupteurs `role="switch"` | `SettingsNotifications.tsx`, réglages | `IonToggle` | construits à la main faute de `IonToggle` dans le projet | A7 |
-| toasts `sonner` / `use-toast` | `src/components/ui/*` | `useIonToast` | deux bibliothèques déjà en place, utilisées partout | A6 |
-| `Skeleton` / `Shimmer` / `LogoSpinner` | `src/components/*` | `IonSkeletonText` / `IonSpinner` | identité visuelle (logo) pour le spinner | A7 |
-| `FormField` | `src/components/FormField.tsx` | `IonItem` + `IonLabel` | label **au-dessus** du champ (correctif P0-3 : le label flottant recouvrait la valeur) | à conserver : l'exception est un choix d'accessibilité documenté |
-| `MoneyFormatPicker`, `ThemePicker`, `CapabilityBanner` | `src/components/*` | `IonSelect` / `IonToggle` | listes visuelles avec aperçu | A7 |
+Les variables `--ion-color-*` vivent dans `src/ionic/theme.css`, alimentées
+par les jetons du design system (`src/App.css`). Chaque couleur chromatique
+déclare ses quatre variables (base, `-rgb`, `-contrast(-rgb)`, `-shade`,
+`-tint`) — sans les dérivées, les composants retombent sur les défauts
+Ionic (bleus) dans leurs états activés. `applyTheme`
+(`src/ionic/themes.ts`) force `--ion-color-primary(-rgb)` à runtime selon
+le thème choisi ; les dérivées suivent automatiquement via `color-mix`.
+Particularité assumée : chez Lumina, `secondary`/`tertiary` désignent des
+**neutres** (surfaces), pas des accents.
 
-## 3. Exceptions **refusées** (à ne pas ajouter)
+### Fraîcheur des données au retour sur une page (A5)
 
-| Besoin | Composant maison refusé | Utiliser |
+Les pages à données consomment les hooks réactifs de `src/lib/dataLayer`
+(@powersync/react `useQuery`) : une page gardée montée dans la pile Ionic
+reçoit les nouvelles données par l'abonnement. `useIonViewWillEnter` n'est
+donc **pas** nécessaire sur ces pages (preuve :
+`src/lib/__tests__/data-hooks-freshness.test.ts` ; scénario complet validé
+sur appareil, item 4.15). Le hook de cycle de vie reste l'outil indiqué
+pour une page qui chargerait ses données de façon impérative ponctuelle.
+Exception connue et assumée : `CentralAdmin` charge les détails d'une
+organisation à la sélection (console d'administration — donnée
+volontairement ponctuelle).
+
+### Permissions et erreurs (rappel, phases A2/A4)
+
+Aucune demande de permission hors `PermissionService`, jamais au démarrage
+à froid, toujours après l'écran d'explication. Aucune erreur avalée :
+statuts typés et `reportError`.
+
+## Exceptions en cours (composants maison avec équivalent Ionic)
+
+| Composant maison | Équivalent Ionic | Motif / migration |
 |---|---|---|
-| Explication avant une permission système | page ou alerte maison | `PermissionPrimer` (`IonModal` en feuille) — **existe** |
-| Confirmation destructive simple (sans saisie) | `window.confirm` / nouveau modal | `IonAlert` |
-| Rafraîchir une liste | bouton « recharger » en haut de page | `IonRefresher` |
-| Champs de recherche | `<input>` + icône | `IonSearchbar` |
-| Chevron/icônes d'action | nouveau composant | `IonIcon` (à installer comme dépendance directe `ionicons`) |
+| `BottomNav` (barre d'onglets) | `IonTabs` / `IonTabBar` | Évaluation go/no-go prévue en **A8** (compatibilité routeur à prouver) |
+| Toasts maison (`@/utils/toast`) | `useIonToast` | Migration **A6** |
+| Confirmations maison | `IonAlert` / `useIonAlert` | Migration **A6** |
+| `DatePicker` (design system) | `IonDatetime` (en modale/feuille) | Migration **A6** |
+| Sélecteurs (lisibilité F-02) | `IonModal` en feuille + liste | Migration **A6** (les `IonSelect` actuels restent) |
+| Listes : recherche, actions par ligne, filtres, interrupteurs | `IonSearchbar`, `IonItemSliding`, `IonRefresher`, `IonSegment`, `IonToggle`, `IonSkeletonText` | Migration **A7** |
+| Boutons bruts `<button>` existants (~390 dans pages et composants) | `IonButton` | Héritage antérieur à la règle — pas de réécriture en masse ; tout **nouveau** contrôle suit la règle, et les écrans migrés en A6/A7 résorbent leur part |
 
-## 4. Cas particulier : `PermissionPrimer` (créé en phase A2)
+## Enregistrer une exception
 
-C'est la **première** feuille Ionic de l'application : `IonModal` avec
-`initialBreakpoint` / `breakpoints` / `handleBehavior="cycle"`, trois boutons
-`IonButton`. Il ne s'agit donc **pas** d'une exception à la règle mais de son
-application — il sert de modèle pour A6 (sélecteurs et dates).
-
----
-
-## Mise à jour A6 (4 nov. 2026) — deux exceptions RÉSORBÉES
-
-| Composant | Avant | Après |
-|---|---|---|
-| `ConfirmModal` | feuille maison (divs fixes, piège de focus réimplémenté) | **`IonAlert`** — Ionic gère Échap, le piège de focus, la restitution du focus et le `role="alertdialog"`. Contrat d'appels identique : aucun écran touché. |
-| Confirmation de récupération locale (`/settings/health`) | `window.confirm()` (modulateur **système bloquant** : gèle le thread JS, donc la synchronisation) | **`IonAlert`** |
-
-`ConfirmModal` reste un composant du dépôt, mais **uniquement comme adaptateur**
-autour d'`IonAlert` : il conserve la signature attendue par les 6 écrans qui
-l'utilisent et ne contient plus de logique d'interface.
-
-`requiredText` (saisie obligatoire) n'a pas d'équivalent IonAlert : il est
-implémenté par un champ contrôlé dont la valeur arme le bouton. C'est la seule
-partie encore écrite à la main — elle est minimale et testée.
-
-Le mock de test `IonAlert` était un `div` vide : il est désormais **fidèle**
-(titre, message, boutons cliquables, `onDidDismiss` une seule fois). Sans cela,
-un composant bâti sur IonAlert était intestable — et une régression réelle
-serait passée inaperçue.
+Ajouter une ligne au tableau (composant, équivalent Ionic, motif daté)
+dans la PR qui introduit le composant maison. Sans ligne ici, la PR doit
+utiliser le composant Ionic.

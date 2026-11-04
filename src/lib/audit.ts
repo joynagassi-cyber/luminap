@@ -2,7 +2,11 @@ import { getPowerSyncDatabase } from "@/lib/powersync";
 import { generateId } from "./utils";
 import type { AuditEntry } from "@/types";
 import { getOrganizationId } from "./orgContext";
+import { getCurrentActorId } from "./auth";
 import { get, set, invalidate } from "./cache";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Sérialise un état d'audit pour la colonne `jsonb` `audit_entries`.
@@ -37,7 +41,11 @@ const defaultAuditEntry = {
   id: "",
   orgId: getOrganizationId(),
   transactionId: null as string | null,
-  userId: "local-user",
+  // "" = acteur inconnu → coercé en NULL à l'écriture. L'ancien repli
+  // « local-user » (texte non-UUID) faisait rejeter TOUTE l'entrée
+  // d'audit à l'upload (colonne `user_id uuid`) : l'audit des acteurs
+  // non résolus ne remontait jamais au serveur.
+  userId: "",
   actorRoleAtTime: null as string | null,
   action: "CREATE" as const,
   entityType: "Transaction",
@@ -58,6 +66,14 @@ export const auditLogRepo: AuditLogRepository = {
       id: generateId(),
       createdAt: now,
     };
+    // Acteur : si l'appelant n'en fournit pas, résoudre l'acteur réel.
+    // Toute valeur non-UUID est coercée en NULL (colonne nullable) —
+    // une trace sans auteur identifiable vaut mieux qu'une trace
+    // rejetée en bloc à la synchronisation.
+    if (!fullEntry.userId) fullEntry.userId = getCurrentActorId();
+    const safeUserId = UUID_RE.test(fullEntry.userId)
+      ? fullEntry.userId
+      : null;
     await db.execute(
       `INSERT INTO audit_entries (id, org_id, transaction_id, user_id, actor_role_at_time, action, entity_type, entity_id, before_state, after_state, comment, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -65,7 +81,7 @@ export const auditLogRepo: AuditLogRepository = {
         fullEntry.id,
         fullEntry.orgId,
         fullEntry.transactionId,
-        fullEntry.userId,
+        safeUserId,
         fullEntry.actorRoleAtTime,
         fullEntry.action,
         fullEntry.entityType,
@@ -167,28 +183,26 @@ export async function writeAudit(
  * Résout l'acteur courant pour les mutations qui n'ont pas de paramètre
  * `actorId` explicite (membres, événements, cotisations, versements, groupes).
  *
- * Repli `"local-user"` identique au reste du code (`versement-service`,
- * `reporting`, `formSystem`) : une trace sans identité vaut mieux qu'aucune
- * trace. La lecture du stockage ne lève jamais (SSR / test sans storage).
+ * L'identité vient de `getCurrentActorId()` (utilisateur réel connecté).
+ * Les anciens replis — UUID de session aléatoire (`lumina-session`) puis
+ * « local-user » — inscrivaient un faux auteur et faisaient rejeter
+ * l'entrée à l'upload (colonne `uuid` + FK) : la trace « sans identité »
+ * n'existait en fait pas. Acteur inconnu → `""` → NULL à l'écriture.
+ * La lecture du stockage ne lève jamais (SSR / test sans storage).
  */
 export function resolveAuditActor(): {
   userId: string;
   actorRoleAtTime: string | null;
 } {
-  let userId = "local-user";
   let actorRoleAtTime: string | null = null;
   try {
     const rawUser = localStorage.getItem("lumina-user");
     if (rawUser) {
-      const profile = JSON.parse(rawUser) as { id?: string; role?: string };
-      if (profile.id) userId = profile.id;
+      const profile = JSON.parse(rawUser) as { role?: string };
       if (profile.role) actorRoleAtTime = profile.role;
     }
-    if (userId === "local-user") {
-      userId = localStorage.getItem("lumina-session") || "local-user";
-    }
   } catch {
-    /* stockage indisponible — repli « local-user » */
+    /* stockage indisponible — rôle inconnu */
   }
-  return { userId, actorRoleAtTime };
+  return { userId: getCurrentActorId(), actorRoleAtTime };
 }

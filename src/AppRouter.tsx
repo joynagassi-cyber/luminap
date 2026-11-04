@@ -11,10 +11,11 @@ export default function AppRouter() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // OneSignal n'est plus initialisé au boot : le SDK (plugin Cordova
-    // promptForNotifications:true) doit être branché par un flux
-    // déclenché par l'utilisateur (ex. SettingsNotifications, toggle
-    // « Notifications activées »).
+    // OneSignal (A2) : le SDK est initialisé au login (`initOneSignal`,
+    // pont local 4.8.12) — sans aucune fenêtre. La permission
+    // POST_NOTIFICATIONS n'est demandée que via PermissionService, sur
+    // geste explicite (Réglages → « Notifications push ») ou après
+    // l'écran d'explication (PermissionPrimerGate) — jamais au boot.
 
     const checkAuth = async () => {
       const session = await authService.getSession();

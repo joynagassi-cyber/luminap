@@ -27,6 +27,7 @@ import { ListSkeleton } from "@/components/Skeleton";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { getOrganizationId } from "@/lib/orgContext";
+import { getCurrentActorId } from "@/lib/auth";
 import { downloadBlob } from "@/lib/download";
 import { captureClientError } from "@/lib/clientErrors";
 import { toast } from "@/components/ui/use-toast";
@@ -81,7 +82,9 @@ export default function CsvImportPanel() {
       const builtPlan = result.ok
         ? buildTransactionImportPlan(result, {
             orgId: getOrganizationId(),
-            createdById: user?.id ?? "local-user",
+            // Acteur réel (jamais le factice « local-user » ni le repli
+            // d'affichage de useCurrentUser) — FK uuid côté serveur.
+            createdById: getCurrentActorId(),
           })
         : null;
       setParsed(result);

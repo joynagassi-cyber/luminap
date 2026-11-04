@@ -297,6 +297,24 @@ textarea:focus-visible,
   padding-top: 1.25rem;
 }
 
+/* C-09 (A3) — source UNIQUE de l'inset bas sur Android natif : c'est
+ * MainActivity qui rembourre la WebView (WindowInsets des barres
+ * système, bug P1-3). Les utilitaires ci-dessus ne servent alors qu'au
+ * navigateur/PWA ; sous `html.lumina-native-android` (posé par
+ * main.tsx), l'inset bas CSS est forcé à 0 pour qu'aucune WebView
+ * système ne double-compte en rapportant un env() non nul dans une
+ * WebView déjà rembourrée. Le HAUT reste 100 % CSS : MainActivity met
+ * le padding haut à 0 (IonToolbar / --ion-safe-area-top). */
+html.lumina-native-android {
+  --ion-safe-area-bottom: 0px;
+}
+html.lumina-native-android .pb-safe {
+  padding-bottom: 0px;
+}
+html.lumina-native-android .pb-safe-calc {
+  padding-bottom: 8rem;
+}
+
 /* ── L22 — TopHeader : classes nommées pour le bouton d'action iconique
    (44 px de hitzone tactile autour d'un cercle visuel 36 px) — remplace
    les objets style inline 25-lignes dans src/components/TopHeader.tsx. */
@@ -346,9 +364,7 @@ textarea:focus-visible,
  * Pas de transformation CSS (pas de filtres de couleur) : le trait
  * reste tel quel dans le PNG, il n'est ni récoloré ni inversé.
  */
-.splash-monochrome-logo,
-.splash-monochrome-illustration,
-.splash-monochrome-logo-small {
+.splash-monochrome-logo {
   display: block;
   /* Redesign 2026-10-19 (fix bug v1.0.2 « logo trop sombre, difficile à
      voir ») : le trait blanc du PNG reste tel quel, on n'applique AUCUN
@@ -358,17 +374,6 @@ textarea:focus-visible,
   filter: none;
   box-shadow: none;
   text-shadow: none;
-}
-/* Spinner : le bloc logo pivotote en entier (le trait lui-même ne
-   bouge pas à l'intérieur — c'est l'ensemble qui tourne, ce qui
-   donne l'impression de chargement). 1 s / linear / infini.
-   Respecte prefers-reduced-motion : dans App.css, la règle globale
-   force animation-duration à 0.01ms pour les utilisateurs qui
-   ont la préférence « réduire les animations » activée — le
-   spinner devient alors statique, ce qui est acceptable (le
-   texte « Chargement en cours… » reste visible). */
-.splash-monochrome-logo.spinner {
-  animation: spin 1s linear infinite;
 }
 
 @keyframes ping {

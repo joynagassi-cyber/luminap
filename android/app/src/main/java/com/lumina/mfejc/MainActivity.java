@@ -19,10 +19,14 @@ public class MainActivity extends BridgeActivity {
         // autonome) ne sont pas auto-enregistrés : il faut les déclarer
         // AVANT la construction du Bridge (super.onCreate).
         registerPlugin(ApkUpdaterPlugin.class);
+        registerPlugin(OneSignalBridgePlugin.class);
         super.onCreate(savedInstanceState);
 
-        // OneSignal est configuré côté web via @capacitor/push-notifications
-        // (voir src/lib/notifications) — aucun plugin Cordova natif requis.
+        // OneSignal (A2) : le SDK Android 4.8.12 (build.gradle) est relié
+        // au JS par le pont local OneSignalBridgePlugin ci-dessus — le
+        // plugin officiel 5.x casse le build (bcprov, voir le pont). Le
+        // SDK n'est pas initialisé ici : `initOneSignal()` (JS) le fait au
+        // login, pour ne rien démarrer avant la première session.
 
         applySystemBarInsetsToWebView();
 

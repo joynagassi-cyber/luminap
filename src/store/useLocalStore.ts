@@ -77,6 +77,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/lib/notification-service";
+import { getCurrentActorId } from "@/lib/auth";
 import {
   addTransactionPS,
   updateTransactionPS,
@@ -800,7 +801,7 @@ export const useLocalStore = create<LocalStoreState>()(
           membership.groupId,
           membership.memberId,
           membership.roleInGroup,
-          "local-user",
+          getCurrentActorId(),
         );
         set({
           memberships: [
@@ -811,7 +812,7 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       removeMemberFromGroup: async (id) => {
-        await relationship.removeMembership(id, "local-user");
+        await relationship.removeMembership(id, getCurrentActorId());
         set({ memberships: get().memberships.filter((m) => m.id !== id) });
       },
 
