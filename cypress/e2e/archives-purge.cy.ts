@@ -147,13 +147,13 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     // Le dialogue de confirmation s'ouvre (titre explicite). A6 : c'est
     // un `IonAlert` — titre et actions vivent dans son SHADOW DOM, que
     // les requêtes racine de Cypress ne traversent pas ; on pilote donc
-    // depuis l'hôte visible (même idiome que invitations.cy.ts).
+    // depuis l'hôte (même idiome que invitations.cy.ts — filtrer
+    // `:visible` casse la chaîne : les hôtes Ionic sont masqués tant
+    // qu'ils ne sont pas présentés).
     cy.get('ion-alert', { timeout: 20_000 })
-      .filter(':visible')
       .contains('Supprimer définitivement ?')
       .should('exist');
     cy.get('ion-alert')
-      .filter(':visible')
       .find('button')
       .contains('Annuler')
       .click({ force: true });
@@ -171,7 +171,6 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
       force: true,
     });
     cy.get('ion-alert', { timeout: 20_000 })
-      .filter(':visible')
       .find('button')
       .contains('Supprimer définitivement')
       .click({ force: true });
@@ -220,17 +219,15 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
 
     // Le déclencheur est un <button> natif de la page ; la confirmation
     // est un `IonAlert` (ConfirmModal adossé, A6) — on pilote depuis
-    // l'hôte visible pour traverser son shadow DOM.
+    // l'hôte pour traverser son shadow DOM.
     cy.get('button[aria-label="Vider la corbeille"]', { timeout: 30_000 }).click({
       force: true,
     });
     // Confirmation explicite (titre distinct).
     cy.get('ion-alert', { timeout: 20_000 })
-      .filter(':visible')
       .contains('Vider la corbeille ?')
       .should('exist');
     cy.get('ion-alert')
-      .filter(':visible')
       .find('button')
       .contains('Vider la corbeille')
       .click({ force: true });
