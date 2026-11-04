@@ -144,26 +144,11 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.get(`button[aria-label="Supprimer définitivement ${groupName}"]`).click({
       force: true,
     });
-    // ⚠️ SONDE TEMPORAIRE (diagnostic A6, à retirer) : dump l'état réel
-    // des ion-alert dans le journal CI via une erreur jetée.
-    cy.wait(3000);
-    cy.document().then((doc) => {
-      const els = Array.from(doc.querySelectorAll('ion-alert'));
-      const dump = els
-        .map((el, i) => {
-          const sh = (el as HTMLElement).shadowRoot;
-          const norm = (s: string | null | undefined) =>
-            (s ?? '').replace(/\s+/g, ' ').slice(0, 150);
-          return `[${i}] id=${el.id} class="${el.className}" shadow=${sh ? 'oui' : 'NON'} btnsOmbre=${sh ? sh.querySelectorAll('button').length : '-'} txtOmbre="${norm(sh?.textContent)}" btnsLight=${el.querySelectorAll('button').length} txtLight="${norm(el.textContent)}"`;
-        })
-        .join(' || ');
-      throw new Error(`PROBE ion-alert x${els.length} :: ${dump || 'AUCUN'}`);
-    });
     // Le dialogue de confirmation s'ouvre (titre explicite). A6 : c'est
-    // un `IonAlert` — titre et actions vivent dans son SHADOW DOM.
-    // `includeShadowDom` est REQUIS pour que find/contains y cherchent
-    // (doc Cypress) : sans lui, la traversée échoue dès que plusieurs
-    // hôtes ion-alert coexistent (deux ConfirmModal sur cette page).
+    // un `IonAlert` — titre et actions vivent dans son sous-arbre
+    // (scoped/shadow selon le build Ionic) ; on pilote depuis l'hôte,
+    // `includeShadowDom` couvrant les deux cas (les requêtes racine,
+    // elles, ne traversent pas).
     cy.get('ion-alert', { timeout: 20_000 })
       .contains('Supprimer définitivement ?', { includeShadowDom: true })
       .should('exist');
