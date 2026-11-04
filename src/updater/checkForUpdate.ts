@@ -12,7 +12,11 @@ export interface UpdateInfo {
   versionName: string;
   changelog: string;
   downloadUrl: string;
-  sha256?: string;
+  // Obligatoire (A1 / §1.5) : aucune mise à jour n'est proposée sans
+  // empreinte SHA-256 vérifiable côté natif. `checkForUpdate` renvoie
+  // null si ni l'asset `.sha256` ni la `digest` de l'API ne fournissent
+  // d'empreinte, et le plugin Java rejette tout téléchargement sans elle.
+  sha256: string;
   sizeBytes: number;
 }
 
@@ -121,11 +125,18 @@ export async function checkForUpdate(
     const digestSha256 = asset.digest?.replace(/^sha256:/, "")?.toLowerCase();
     const sha256 = companionSha256 ?? digestSha256 ?? undefined;
 
+    // A1 / §1.5 (canal APK direct) : sans empreinte vérifiable, PAS de
+    // mise à jour proposée — un APK financier installé hors store sans
+    // contrôle d'intégrité est une porte ouverte (asset remplacé,
+    // interception). Mieux vaut rester sur la version courante que
+    // d'installer un binaire non authentifié.
+    if (!sha256) return null;
+
     return {
       versionName: remoteVersion,
       changelog: release.body ?? "",
       downloadUrl: asset.browser_download_url,
-      sha256: sha256 || undefined,
+      sha256,
       sizeBytes: asset.size,
     };
   } catch {

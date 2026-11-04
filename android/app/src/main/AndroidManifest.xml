@@ -9,8 +9,13 @@
          merger n'échoue pas. -->
     <uses-sdk tools:overrideLibrary="com.onesignal,org.apache.cordova,io.ionic.libs.ionfilesystemlib" />
 
+    <!-- allowBackup="false" (A1 / C-07a) : la base SQLite locale
+         (données financières de tiers), les jetons de session et le
+         localStorage ne doivent jamais partir en sauvegarde Google /
+         `adb backup`. La sauvegarde utilisateur passe par l'export
+         manuel de l'application. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -78,7 +83,11 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- USE_FULL_SCREEN_INTENT retirée (A1 / P-03) : aucun usage plein
+         écran dans une app de gestion ; permission restreinte depuis
+         Android 14 (refus Play Store hors appels/alarmes). Ne pas
+         réintroduire sans besoin documenté (matrice §1.2 de
+         docs/lumina-ionic-capacitor-permissions.md). -->
     <!-- FCM (Firebase Cloud Messaging) — required by OneSignal for in-app
          push delivery on modern Android. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

@@ -1,0 +1,91 @@
+// @vitest-environment node
+/**
+ * A1 — Matrice de permissions Android et durcissement Capacitor.
+ *
+ * Verrouille la porte de sortie de la phase A1 de l'audit
+ * `docs/lumina-ionic-capacitor-permissions.md` (« liste de permissions
+ * conforme à la matrice §1.2 ») :
+ *
+ *  - l'ensemble EXACT des permissions déclarées : toute permission
+ *    ajoutée (ou retirée) sans passer par la matrice fait échouer ce
+ *    test — y compris `USE_FULL_SCREEN_INTENT` (P-03, retirée),
+ *    `READ/WRITE_EXTERNAL_STORAGE` (interdites par l'audit) et
+ *    `CAMERA` (le plugin caméra n'en exige pas) ;
+ *  - `allowBackup="false"` (C-07a, P0) : base SQLite financière,
+ *    jetons de session et localStorage hors sauvegarde Google/adb ;
+ *  - aucun bloc de config pour un plugin non installé (C-01) et des
+ *    défauts TOUJOURS durcis dans `capacitor.config.ts` — la variante
+ *    diagnostic (C-05) ne s'active que sous `LUMINA_DIAGNOSTIC=true`
+ *    au `cap sync`, jamais par défaut ;
+ *  - la double barrière SHA-256 de l'auto-mise à jour APK (§1.5) :
+ *    refus JS dans `checkForUpdate`, rejet natif dans le plugin Java.
+ *
+ * Non-vacuité : réintroduire une permission, repasser allowBackup à
+ * true ou réécrire les défauts en dur (« loggingBehavior: 'debug' »)
+ * fait échouer la garde correspondante.
+ */
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+const read = (p: string) => readFileSync(join(root, p), "utf8");
+
+const manifest = read("android/app/src/main/AndroidManifest.xml");
+const capConfig = read("capacitor.config.ts");
+
+describe("A1 — manifeste Android conforme à la matrice §1.2", () => {
+  it("déclare exactement les permissions justifiées, ni plus ni moins", () => {
+    const found = new Set(
+      [...manifest.matchAll(/<uses-permission\s+android:name="android\.permission\.([A-Z_]+)"/g)].map(
+        (m) => m[1],
+      ),
+    );
+    expect([...found].sort()).toEqual(
+      [
+        "ACCESS_NETWORK_STATE", // état réseau (plugin network)
+        "INTERNET", // accès réseau
+        "POST_NOTIFICATIONS", // notifications (Android 13+)
+        "RECEIVE_BOOT_COMPLETED", // replanifier les rappels après redémarrage
+        "REQUEST_INSTALL_PACKAGES", // auto-mise à jour — canal APK direct (§1.5)
+        "VIBRATE", // notifications (plugin local-notifications)
+      ].sort(),
+    );
+  });
+
+  it("interdit la sauvegarde Android des données de l'app (C-07a)", () => {
+    expect(manifest).toContain('android:allowBackup="false"');
+    expect(manifest).not.toContain('android:allowBackup="true"');
+  });
+});
+
+describe("A1 — capacitor.config.ts : aucune config fantôme, défauts durcis", () => {
+  it("ne configure aucun plugin (C-01 : pas de bloc pour plugin absent)", () => {
+    expect(capConfig).not.toMatch(/^\s*plugins\s*:/m);
+  });
+
+  it("logs et debug WebView restent coupés hors variante diagnostic (C-05)", () => {
+    expect(capConfig).toContain("LUMINA_DIAGNOSTIC");
+    expect(capConfig).toContain("loggingBehavior: diagnostic ? 'debug' : 'none'");
+    expect(capConfig).toContain("webContentsDebuggingEnabled: diagnostic");
+    // Les valeurs en dur ne doivent jamais réapparaître comme défaut.
+    expect(capConfig).not.toMatch(/loggingBehavior:\s*'(debug|production)'/);
+    expect(capConfig).not.toMatch(/webContentsDebuggingEnabled:\s*true/);
+  });
+});
+
+describe("A1 — auto-mise à jour APK : SHA-256 obligatoire (§1.5)", () => {
+  it("checkForUpdate refuse toute offre sans empreinte vérifiable", () => {
+    expect(read("src/updater/checkForUpdate.ts")).toContain(
+      "if (!sha256) return null;",
+    );
+  });
+
+  it("le plugin natif rejette tout téléchargement sans empreinte", () => {
+    const java = read(
+      "android/app/src/main/java/com/lumina/mfejc/ApkUpdaterPlugin.java",
+    );
+    expect(java).toContain('call.reject("SHA-256 requis")');
+    expect(java).toContain('MessageDigest.getInstance("SHA-256")');
+  });
+});
