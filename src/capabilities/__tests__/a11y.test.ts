@@ -57,6 +57,19 @@ function extractAriaAttrs(
         results.push({ attr, value, line: i + 1 });
       }
     }
+    // Les boutons d'IonAlert sont des OBJETS : `{ "aria-label": "Annuler" }`
+    // n'a pas de `=` et échappait donc à l'extraction ci-dessus (les labels
+    // Ionic étaient invisible à ce test).
+    // La valeur peut aussi être une EXPRESSION (`: confirmLabel`) : la forme
+    // `"clé": valeur` doit donc être capturée sans guillemets autour de la
+    // valeur, sinon les libellés dynamiques restent invisibles au test.
+    const objectAria = line.match(
+      /["'](aria-[\w-]+)["']\s*:\s*(?:"([^"]*)"|'([^']*)'|([\w$.[\]()]+))/,
+    );
+    if (objectAria) {
+      const value = objectAria[2] ?? objectAria[3] ?? objectAria[4] ?? "";
+      results.push({ attr: objectAria[1], value, line: i + 1 });
+    }
     // Match role="..."
     const roleMatch = line.match(/role\s*=\s*"([^"]+)"/);
     if (roleMatch) {
@@ -105,16 +118,19 @@ function hasEscapeKeyHandler(source: string): boolean {
 // ─── Tests: Keyboard Navigation ─────────────────────────────────────
 
 describe("a11y — keyboard navigation", () => {
-  it("ConfirmModal handles Escape key to close", () => {
+  it("ConfirmModal : la fermeture clavier est déléguée à IonAlert", () => {
     const src = readTsFile("ConfirmModal.tsx");
+    // A6 — le composant est passé de « feuille maison » à `IonAlert`. Ionic
+    // gère Échap, le piège de focus et la restitution du focus ; réimplanter
+    // un écouteur `keydown` ici produirait deux fermetures pour une touche.
+    expect(
+      src.includes("<IonAlert"),
+      "ConfirmModal doit déléguer à IonAlert (Ionic d'abord)",
+    ).toBe(true);
     expect(
       hasKeyboardHandler(src),
-      "ConfirmModal should have a keyboard event listener",
-    ).toBe(true);
-    expect(
-      hasEscapeKeyHandler(src),
-      "ConfirmModal should handle Escape key",
-    ).toBe(true);
+      "aucun écouteur clavier maison ne doit subsister",
+    ).toBe(false);
   });
 
   it("BottomNav has no keyboard trap — all items are focusable", () => {
@@ -144,17 +160,23 @@ describe("a11y — keyboard navigation", () => {
 // ─── Tests: ARIA Labels ─────────────────────────────────────────────
 
 describe("a11y — aria labels", () => {
-  it("ConfirmModal buttons have aria-label attributes", () => {
+  it("ConfirmModal : chaque action d'IonAlert porte un libellé accessible", () => {
     const src = readTsFile("ConfirmModal.tsx");
+    // IonAlert attend ses boutons sous forme d'objets : les libellés sont donc
+    // posés dans `htmlAttributes`, pas en JSX. On vérifie les DEUX, sinon une
+    // alerte sans nom accessible passerait inaperçue.
     const attrs = extractAriaAttrs(src);
-    const labels = attrs.filter((a) => a.attr.startsWith("aria-label"));
-    const labelValues = labels.map((a) => a.value);
+    const labelValues = attrs
+      .filter((a) => a.attr.startsWith("aria-label"))
+      .map((a) => a.value);
     expect(labelValues).toContain("Annuler");
     expect(
-      labelValues.some(
-        (l) => l.includes("confirmLabel") || l.includes("Confirm"),
-      ),
+      labelValues.some((l) => l.includes("confirmLabel")),
+      "le bouton de confirmation doit porter un aria-label issu de confirmLabel",
     ).toBe(true);
+    // Et le texte visible reste fourni à Ionic.
+    expect(src).toContain('text: "Annuler"');
+    expect(src).toContain("text: confirmLabel");
   });
 
   it("TopHeader action buttons have aria-labels", () => {
@@ -422,13 +444,18 @@ describe("a11y — sr-only text", () => {
 // ─── Tests: aria-hidden Correctness ────────────────────────────────
 
 describe("a11y — aria-hidden correctness", () => {
-  it('Decorative elements use aria-hidden="true"', () => {
+  it('ConfirmModal : aucun élément décoratif ne subsiste dans le DOM accessible', () => {
     const src = readTsFile("ConfirmModal.tsx");
-    // The drag handle decoration should be hidden from screen readers
-    expect(
-      src.includes('aria-hidden="true"'),
-      "Decorative modal handle should be aria-hidden",
-    ).toBe(true);
+    // La poignée de glissement maison a disparu avec la migration vers
+    // IonAlert : il n'y a plus d'élément purement décoratif à masquer. Si une
+    // décoration revient, elle devra porter aria-hidden="true".
+    const hasDecoration =
+      src.includes("w-12 h-1 rounded-full") || src.includes("drag-handle");
+    if (hasDecoration) {
+      expect(src).toContain('aria-hidden="true"');
+    }
+    // Le message d'alerte est porté par `message` : Ionic gère l'annonce.
+    expect(src.includes("<IonAlert")).toBe(true);
   });
 
   it("Navigation menu hidden items use aria-hidden", () => {

@@ -49,3 +49,25 @@ C'est la **première** feuille Ionic de l'application : `IonModal` avec
 `initialBreakpoint` / `breakpoints` / `handleBehavior="cycle"`, trois boutons
 `IonButton`. Il ne s'agit donc **pas** d'une exception à la règle mais de son
 application — il sert de modèle pour A6 (sélecteurs et dates).
+
+---
+
+## Mise à jour A6 (4 nov. 2026) — deux exceptions RÉSORBÉES
+
+| Composant | Avant | Après |
+|---|---|---|
+| `ConfirmModal` | feuille maison (divs fixes, piège de focus réimplémenté) | **`IonAlert`** — Ionic gère Échap, le piège de focus, la restitution du focus et le `role="alertdialog"`. Contrat d'appels identique : aucun écran touché. |
+| Confirmation de récupération locale (`/settings/health`) | `window.confirm()` (modulateur **système bloquant** : gèle le thread JS, donc la synchronisation) | **`IonAlert`** |
+
+`ConfirmModal` reste un composant du dépôt, mais **uniquement comme adaptateur**
+autour d'`IonAlert` : il conserve la signature attendue par les 6 écrans qui
+l'utilisent et ne contient plus de logique d'interface.
+
+`requiredText` (saisie obligatoire) n'a pas d'équivalent IonAlert : il est
+implémenté par un champ contrôlé dont la valeur arme le bouton. C'est la seule
+partie encore écrite à la main — elle est minimale et testée.
+
+Le mock de test `IonAlert` était un `div` vide : il est désormais **fidèle**
+(titre, message, boutons cliquables, `onDidDismiss` une seule fois). Sans cela,
+un composant bâti sur IonAlert était intestable — et une régression réelle
+serait passée inaperçue.

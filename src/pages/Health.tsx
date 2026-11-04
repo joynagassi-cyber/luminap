@@ -2,6 +2,7 @@ import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw,
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
+import { IonAlert } from "@ionic/react";
 import SettingsShell from "@/components/SettingsShell";
 import {
   useHealthSnapshot,
@@ -89,6 +90,10 @@ export default function Health() {
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  // A6 — la confirmation passe par IonAlert : `window.confirm` est un
+  // modulateur SYSTÈME bloquant, qui gèle le thread JS (et la synchronisation
+  // PowerSync en cours) tant que l'utilisateur n'a pas répondu.
+  const [confirmRecovery, setConfirmRecovery] = useState(false);
   // PR5 — « Signaler un problème » envoie désormais réellement le diagnostic.
   // `reportOpen` affiche la zone de saisie de la note optionnelle ; `sending`
   // verrouille le bouton le temps de l'envoi ; `lastReport` alimente la ligne
@@ -169,13 +174,8 @@ export default function Health() {
   // PM15 — récupération locale sûre : base locale corrompue/pleine → purge
   // locale + rechargement. Ne touche jamais au cloud ; confirmation obligatoire.
   const runRecovery = async () => {
-    const confirmed = window.confirm(
-      "Réinitialiser les données locales de cet appareil ?\n\n" +
-        "Les données non encore synchronisées peuvent être perdues. " +
-        "Les données déjà enregistrées côté serveur seront rechargées. " +
-        "Vous resterez connecté.",
-    );
-    if (!confirmed) return;
+    // La confirmation a eu lieu AVANT l'appel (IonAlert ci-dessous) : plus de
+    // modulateur système bloquant au milieu d'une opération asynchrone.
     setRecovering(true);
     await performLocalRecovery({
       disconnect: () => disconnectPowerSync(),
@@ -354,7 +354,7 @@ export default function Health() {
       {/* PM15 — récupération locale sûre (base locale corrompue/pleine). */}
       <button
         type="button"
-        onClick={() => void runRecovery()}
+        onClick={() => setConfirmRecovery(true)}
         disabled={recovering}
         aria-label="Réinitialiser les données locales de cet appareil"
         data-testid="health.local-recovery"
@@ -374,6 +374,24 @@ export default function Health() {
         En cas de base locale corrompue ou pleine. Les données déjà enregistrées
         côté serveur sont rechargées ; vous restez connecté.
       </p>
+
+      <IonAlert
+        isOpen={confirmRecovery}
+        onDidDismiss={() => setConfirmRecovery(false)}
+        header="Réinitialiser les données locales ?"
+        message="Les données non encore synchronisées peuvent être perdues. Les données déjà enregistrées côté serveur seront rechargées. Vous resterez connecté."
+        buttons={[
+          { text: "Annuler", role: "cancel" },
+          {
+            text: "Réinitialiser",
+            role: "destructive",
+            handler: () => {
+              setConfirmRecovery(false);
+              void runRecovery();
+            },
+          },
+        ]}
+      />
 
       {/* PR15 — Statistiques d'usage ANONYMISÉES (compteurs locaux uniquement).
           Aucune donnée personnelle : ni utilisateur, ni organisation, ni

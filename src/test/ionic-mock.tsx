@@ -164,6 +164,86 @@ export function IonModal({
   );
 }
 
+/**
+ * `IonAlert` — mock FIDÈLE (A6).
+ *
+ * L'ancien mock était un `div` vide : le titre, le message et les boutons
+ * n'existaient pas dans le DOM, donc tout composant bâti sur IonAlert devenait
+ * intestable (et une régression réelle serait passée inaperçue).
+ *
+ * Ici on reproduit ce que les tests doivent pouvoir observer :
+ *   - rien n'est rendu quand `isOpen` est faux ;
+ *   - titre, message, boutons (cliquables, avec leur `role`) et enfants sont
+ *     rendus quand il est ouvert ;
+ *   - cliquer un bouton exécute son `handler`, puis `onDidDismiss` (comme Ionic,
+ *     sauf si le handler renvoie `false`) ;
+ *   - `onDidDismiss` n'est PAS appelé deux fois pour un clic.
+ */
+type AlertButton = {
+  text?: string;
+  role?: string;
+  handler?: () => void | boolean;
+  disabled?: boolean;
+};
+
+function IonAlertMock({
+  isOpen,
+  header,
+  subHeader,
+  message,
+  buttons = [],
+  children,
+  onDidDismiss,
+  ...rest
+}: {
+  isOpen?: boolean;
+  header?: string;
+  subHeader?: string;
+  message?: string;
+  buttons?: (AlertButton | string)[];
+  children?: ReactNode;
+  onDidDismiss?: () => void;
+  [key: string]: unknown;
+}) {
+  if (!isOpen) return null;
+  const normalized: AlertButton[] = (buttons as (AlertButton | string)[]).map((b) =>
+    typeof b === "string" ? { text: b } : b,
+  );
+
+  const dismiss = (button: AlertButton) => {
+    const result = button.handler?.();
+    // Sémantique Ionic : un handler qui renvoie explicitement `false` garde
+    // l'alerte ouverte.
+    if (result === false) return;
+    onDidDismiss?.();
+  };
+
+  return (
+    <div role="alertdialog" aria-modal="true" data-testid="IonAlert" {...passthrough(rest)}>
+      {header ? <h2>{header}</h2> : null}
+      {subHeader ? <h3>{subHeader}</h3> : null}
+      {message ? <p>{message}</p> : null}
+      {children}
+      <div>
+        {normalized.map((button, index) => (
+          <button
+            key={`${button.text ?? "btn"}-${index}`}
+            type="button"
+            // Le `role` Ionic (« cancel », « destructive ») est exposé en
+            // attribut data : le poser sur `role` supprimerait le rôle bouton
+            // et rendrait les tests incapables de cibler « Annuler ».
+            data-button-role={button.role}
+            disabled={button.disabled}
+            onClick={() => dismiss(button)}
+          >
+            {button.text}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Enveloppe générique : conserve les enfants, rend un <div> avec data-testid. */
 function wrapper(tag: string) {
   return function IonWrapper({ children, ...rest }: { children?: ReactNode; [key: string]: unknown }) {
@@ -199,7 +279,6 @@ export function createIonicMock() {
     "IonSpinner",
     "IonProgressBar",
     "IonInfiniteScroll",
-    "IonAlert",
     "IonSearchbar",
     "IonTabBar",
     "IonTabButton",
@@ -221,6 +300,7 @@ export function createIonicMock() {
     IonSelectOption,
     IonButton,
     IonCheckbox,
+    IonAlert: IonAlertMock,
     IonModal,
     IonBackButton: ({ children, ...rest }: { children?: ReactNode; [key: string]: unknown }) => (
       <button type="button" data-testid="back-button" {...passthrough(rest)}>

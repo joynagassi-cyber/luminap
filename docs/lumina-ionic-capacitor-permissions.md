@@ -444,3 +444,31 @@ appareil (une ligne, `src/App.tsx`), avec la liste d'écrans à revoir visuellem
 | pages rechargeant leurs données au retour | 0 | **3** (`/finance`, `/members`, `/archives`) |
 | `catch {}` muets sur ces chargements | 1 (`Archives`) | **0** |
 | tests | 2 556 | **2 562** (+6) |
+
+---
+
+## 11. A6 — alertes et confirmations (« Ionic d'abord »)
+
+Défauts corrigés (mesurés avant travaux) :
+
+| Constat | Avant | Après |
+|---|---|---|
+| `window.confirm` dans le code applicatif | **1** (`Health.tsx`, récupération locale) | **0** |
+| `ConfirmModal` maison | 1 composant (divs fixes, focus piégé à la main) | **0** — adaptateur autour d'`IonAlert` |
+| `IonAlert` utilisés | 2 | **5** (2 existants + `ConfirmModal` + santé + confirmation de purge) |
+| mocks de test d'`IonAlert` | `div` vide (intestable) | **fidèle** (titre, message, boutons, `onDidDismiss` une fois) |
+| tests | 2 566 | **2 570** (+4) |
+
+Pourquoi c'est plus qu'un changement de composant : `window.confirm` **bloque le
+thread JS** — donc la synchronisation PowerSync en cours — tant que
+l'utilisateur n'a pas répondu. Sur un appareil lent, c'est exactement le genre
+de gel qui fait croire à une application plantée.
+
+Trois tests de la suite existante ont dû être **réécrits, pas contournés** :
+ils vérifiaient des détails d'implémentation de la feuille maison (écouteur
+`keydown` maison, poignée décorative) qui n'ont plus lieu d'être. Ils vérifient
+désormais que la fermeture clavier est bien **déléguée** à Ionic et qu'aucun
+écouteur concurrent ne subsiste. Le helper d'extraction d'ARIA a aussi été
+corrigé : il ne voyait pas les attributs déclarés sous forme d'objet (le format
+qu'Ionic attend), donc les libellés accessibles des boutons d'alerte étaient
+invisibles au test.
