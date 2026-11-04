@@ -236,14 +236,17 @@ Le présent document ne renvoie **qu'à des documents présents dans ce dépôt*
 
 ---
 
-## 7. Décisions ouvertes
+## 7. Décisions — TRANCHÉES par Joy le 4 nov. 2026
 
-1. **Distribution** : Play Store ou APK directs ? (conditionne `REQUEST_INSTALL_PACKAGES` et l'auto-mise à jour)
-2. **Pile de notifications** : `@capacitor/push-notifications` + FCM (recommandé, déjà installé) ou intégration OneSignal **officielle** ?
-3. **Mode Ionic** : `md` sur Android (recommandé) ou `ios` assumé ?
-4. **Verrou d'application** : PIN, biométrie, ou les deux ? Après quel délai ?
-5. **`IonTabs`** : migration souhaitée ou barre maison conservée ?
-6. **Chiffrement de la base locale** : requis (données financières de tiers) ou reporté ?
+| # | Question | Décision | Conséquence appliquée |
+|---|---|---|---|
+| 1 | Distribution | **APK directs** | `REQUEST_INSTALL_PACKAGES` et `ApkUpdaterPlugin` **conservés** ; pas de migration Play Store. |
+| 2 | Pile de notifications | `@capacitor/push-notifications` (déjà installé) pour la **permission** ; envoi cloud inchangé | Rien à changer : l'intégration OneSignal « officielle » n'est pas retenue. |
+| 3 | Mode Ionic | **`md`** | A5 conserve `mode: "md"` ; aucun écran à re-vérifier pour un changement de mode. |
+| 4 | Verrou d'application | **Reporté** (après A5–A7) | A4 ne livre que le chiffrement de la base (§9). Aucune dépendance biométrique ajoutée. |
+| 6 | Chiffrement base locale | **Requis maintenant** | Livré en A4 : `encryptionKey` PowerSync (ChaCha20) + clé au Keystore, avec migration sans perte (§9). |
+
+Décision #5 (`IonTabs`) : **non tranchée à ce stade** — elle ne bloque que A8, traitée en dernier.
 
 ### 7.1 Définition de « terminé »
 
@@ -278,7 +281,7 @@ Le présent document ne renvoie **qu'à des documents présents dans ce dépôt*
 
 Cette section **remplace le plan théorique par ce qui est réellement dans le
 code**. Chaque ligne renvoie au fichier qui porte le correctif ; les tests cités
-sont exécutés (2 531 tests verts (2537 collectés), `tsc -b` et `eslint .` sans erreur).
+sont exécutés (2 556 tests verts, `tsc -b` et `eslint .` sans erreur).
 
 ### 8.1 Phases A1 → A3 : fait, hors vérification appareil
 
@@ -306,7 +309,8 @@ sont exécutés (2 531 tests verts (2537 collectés), `tsc -b` et `eslint .` san
 | Point | Raison | Prochaine action |
 |---|---|---|
 | **A0 / A2 preuve sur appareil** (fenêtre système, notification reçue, `adb backup`) | **Aucun appareil Android dans cet environnement** ; aucun SDK/émulateur installé. Déclarer « fait » sans preuve est explicitement interdit par la procédure §5.1. | Remplir `docs/audit-permissions.md` sur Android 12/13/14/15. |
-| **A4** verrou d'application, stockage sécurisé, chiffrement SQLite | Dépend de **décisions ouvertes** (§7 : #4 et #6) et d'un plugin biométrique dont la compatibilité Capacitor 7 n'est pas vérifiée dans ce dépôt. | Trancher §7, puis phase A4. |
+| **A4 — verrou d'application** (PIN / biométrie) | Décision §7 #4 : **reporté** par Joy. Aucun plugin biométrique n'est ajouté tant que la décision n'est pas prise (la compatibilité Capacitor 7 d'une dépendance non retenue ne se devine pas). | Reprendre après A5–A7. |
+| **A4 — preuve appareil** (base chiffrée réellement illisible sans clé) | Aucun appareil ni émulateur ici. La preuve *statique* est faite (§9.2) : la clé est appliquée par `PRAGMA key` et le module WASM « mc » est chargé. | Section « chiffrement » de `docs/audit-permissions.md`. |
 | **A5→A8** migration Ionic (mode `md`, `IonRefresher`, `IonActionSheet`, `IonToast`, `IonTabs`…) | Le mode Ionic (`md` vs `ios`) est une **décision de Joy** (§7 #3) : changer le mode global change tous les écrans à la fois. Les migrations d'écran doivent être faites et **vérifiées visuellement sur appareil**, phase par phase. | Décider §7 #3 et #5, puis A5. |
 | **Suppression de `REQUEST_INSTALL_PACKAGES` / `ApkUpdaterPlugin`** | Conditionnée à la **décision de distribution** (§1.5, §7 #1). | Trancher #1. |
 | **Pile de notifications définitive (FCM vs OneSignal officiel)** | Décision §7 #2. Le code fonctionne aujourd'hui avec `@capacitor/push-notifications` pour **la permission** ; l'envoi cloud reste `src/lib/cloudPush.ts`. | Trancher #2. |
@@ -326,3 +330,58 @@ sont exécutés (2 531 tests verts (2537 collectés), `tsc -b` et `eslint .` san
 | permissions Android déclarées | 6 | **5** (`USE_FULL_SCREEN_INTENT` retirée) |
 | `allowBackup` | `true`, sans règles | `false` + règles d'exclusion |
 | sources CSS de l'inset bas | 6 (natif **et** `env()`) | **0** `env()` — source unique : le natif (`MainActivity`) |
+
+---
+
+## 9. A4 — chiffrement de la base locale (livré)
+
+Décision §7 #6 : **requis**. La réplique contient des montants nominatifs ; un
+`lumina.db` en clair sur un appareil perdu est une fuite de données de tiers.
+
+### 9.1 Ce qui est fait
+
+| Point | Statut | Où |
+|---|---|---|
+| Base chiffrée (ChaCha20, SQLite3MultipleCiphers) | ✅ | `database.encryptionKey` dans `src/lib/powersync/index.ts` |
+| Clé de 256 bits issue d'un générateur cryptographique | ✅ | `src/lib/powersync/encryptionKey.ts` (`crypto.getRandomValues`) |
+| Clé conservée au **Keystore Android** (EncryptedSharedPreferences) | ✅ | `@aparajita/capacitor-secure-storage@7.1.6` |
+| Repli `localStorage` **journalisé** comme incident | ✅ | `initPowerSync` → `reportError(…, { source: "db-encryption-key" })` |
+| Aucune ouverture en clair silencieuse | ✅ | `prepareDatabaseBoot` renvoie un motif qualifié ; les cas 3/4 passent par `reportError` |
+| Migration d'une base existante **sans perte** | ✅ | base historique conservée tant que la file d'upload n'est pas prouvée vide (`hasNothingLeftToUpload`) |
+| Base chiffrée orpheline (clé perdue) supprimée, jamais laissée illisible | ✅ | `prepareDatabaseBoot` (`orphanedEncryptedDbRemoved`) |
+| Tests | ✅ | `src/lib/__tests__/db-encryption-key.test.ts` (9), `db-encryption-boot.test.ts` (8), `power-sync-provider-boot.test.tsx` (2) |
+
+### 9.2 Ce qui est PROUVÉ, et ce qui ne l'est pas
+
+**Prouvé (lecture des sources installées, pas hypothèse)** :
+- `@powersync/web@2.3.0` expose `encryptionKey` dans `WebSpecificOpenOptions`
+  (`lib/db/adapters/options.d.ts` : « *the database will be encrypted using
+  ChaCha20* ») ;
+- à l'ouverture, `RawSqliteConnection.initWithModule()` échoue franchement si
+  le VFS « multiple cipher » ne se crée pas, puis exécute
+  `PRAGMA key = '<clé échappée>'` ;
+- le module WASM chargé est alors `mc-wa-sqlite*.mjs` (présent dans
+  `@journeyapps/wa-sqlite@2.0.3`) au lieu du module standard.
+
+**Non prouvé ici** : que l'application démarre encore sur un appareil réel avec
+une base chiffrée (aucun appareil disponible). À vérifier dans
+`docs/audit-permissions.md`, section « chiffrement ».
+
+### 9.3 Limites assumées
+
+| Limite | Pourquoi c'est acceptable (ou pas) |
+|---|---|
+| Sur le **web**, la clé est dans `localStorage` (le plugin n'a pas de coffre côté navigateur). | Le canal web est déjà celui du cloud ; la protection visée est l'appareil Android. C'est **documenté**, pas passé sous silence. |
+| La clé n'est **pas** liée au matériel (TEE/StrongBox). | Le Keystore la chiffre au repos avec la clé maître de l'appareil : un dump du profil applicatif ne suffit pas. Un attaquant avec l'appareil déverrouillé et rooté peut encore extraire la clé — c'est le modèle de menace Android standard. |
+| Rotation de clé non implémentée. | Aucun besoin produit exprimé. `PRAGMA rekey` exige de rouvrir la base avec l'ancienne clé ; le faire à moitié serait pire que ne pas le faire. |
+| `lumina.db` en clair survit une session après la mise à jour. | Nécessaire pour ne pas perdre les écritures hors-ligne non synchronisées ; supprimée au démarrage suivant, une fois la file prouvée vide. |
+
+### 9.4 Compteurs A4
+
+| Mesure | Avant | Après |
+|---|---|---|
+| bases locales chiffrées | 0 | **1** (`lumina-enc.db`) |
+| secrets stockés hors Keystore sur natif | — | **0** (repli seulement en cas d'échec, journalisé) |
+| plugins Capacitor installés | 12 | **13** (`@aparajita/capacitor-secure-storage` 7.1.6) |
+| plugins configurés non installés | 0 | **0** |
+| tests | 2 531 | **2 556** (+25) |

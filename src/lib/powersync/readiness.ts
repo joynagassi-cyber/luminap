@@ -13,6 +13,13 @@
  */
 
 let _psReady = false;
+// Le HANDLE de base existe-t-il (indépendamment du premier sync) ? Depuis A4,
+// la création de la base est asynchrone (lecture de la clé de chiffrement) :
+// `<PowerSyncProvider>` était monté avant que le handle existe et levait
+// « Database not initialized ». Ce drapeau permet de re-rendre le provider dès
+// que le handle apparaît, sans bloquer le montage React.
+let _dbCreated = false;
+const _dbCreatedListeners = new Set<() => void>();
 // Vrai quand la réplique n'est PAS devenue prête dans le délai imparti (auth
 // PowerSync refusée, réseau coupé). Sort l'app du chargement perpétuel muet en
 // exposant un état explicite « synchronisation indisponible » (P0).
@@ -40,6 +47,26 @@ export function setPowerSyncReady(ready: boolean): void {
   if (ready && wasUnavailable) {
     _unavailableListeners.forEach((l) => l());
   }
+}
+
+/** Le handle de base existe (créé par `initPowerSync`). */
+export function markPowerSyncDatabaseCreated(): void {
+  if (_dbCreated) return;
+  _dbCreated = true;
+  _dbCreatedListeners.forEach((l) => l());
+}
+
+/** État courant : `getPowerSyncDatabaseOrNull()` renverra-t-il une base ? */
+export function isPowerSyncDatabaseCreatedNow(): boolean {
+  return _dbCreated;
+}
+
+/** S'abonner à la création du handle de base (état one-shot). */
+export function subscribePowerSyncDatabaseCreated(listener: () => void): () => void {
+  _dbCreatedListeners.add(listener);
+  return () => {
+    _dbCreatedListeners.delete(listener);
+  };
 }
 
 /** À appeler une fois la réplique initialisée (depuis `initPowerSync`). */
