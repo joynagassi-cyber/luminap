@@ -108,7 +108,7 @@ inertie, retour visuel).
 | Composant | Décision | Raison vérifiable |
 |---|---|---|
 | `IonRefresher` | **adopté** — `/finance`, `/members` | geste natif, aucune alternative maison n'existait |
-| `IonSegment` | **reporté** — voir « pourquoi `/balance` est revenu en arrière » | deux boutons `aria-pressed` faits main conservés |
+| `IonSegment` | **adopté** — `/balance` (Mois/Année) | remplace deux boutons `aria-pressed` faits main |
 | `IonToggle` | **adopté** — `/settings/features` | remplace un `<button role="switch">` imitant un interrupteur |
 | `IonSearchbar` | **adopté** — `/archives` | la page assemblait une icône + un `IonInput` à la main |
 | `IonSkeletonText` | **refusé** | voir ci-dessous |
@@ -134,7 +134,30 @@ exposent leurs actions directement (boutons visibles ou menu). En ajouter
 créerait une affordance supplémentaire à découvrir, au détriment des actions
 principales. Aucun écran n'a exprimé ce besoin.
 
-### Pourquoi `/balance` est revenu à ses boutons (IonSegment reporté)
+### `IonSegment` : d'abord reporté, finalement adopté
+
+Historique utile, parce que le premier diagnostic était faux.
+
+`IonSegment` a été implémenté puis **retiré** : `IonSegmentButton` est en
+**shadow DOM**, les specs Cypress de `/balance` le cherchaient en light DOM, et
+le nombre d'échecs E2E est monté de 3 à 4 puis 5. Les logs Cypress étant
+inaccessibles depuis l'environnement de travail, je ne pouvais pas distinguer
+une régression de ma part d'une instabilité préexistante — j'ai donc retiré le
+changement plutôt que de fusionner à l'aveugle.
+
+Le retrait a fait revenir le compte à 3… mais **`main` est ensuite passé à 0
+échec** sans que je touche à rien. Le diagnostic « instabilité préexistante à
+3 échecs » était donc incomplet : les 3 échecs venaient d'une base trop
+ancienne (antérieure au correctif `ConfirmModal inputs={[]}`), pas du bruit.
+
+Une fois `main` verte, `IonSegment` a été réappliqué, avec les deux specs
+adaptées au shadow DOM (`includeShadowDom`, puis assertion sur `aria-selected`
+de l'hôte plutôt que sur le `<button>` interne).
+
+Leçon retenue : « la CI est instable » est une conclusion qu'il faut
+démontrer, pas supposer. Ici elle était fausse, et elle a coûté un aller-retour.
+
+## Pourquoi `/balance` est revenu à ses boutons (IonSegment reporté)
 
 `IonSegment` a été implémenté, testé unitairement (le choix de période refait
 bien le calcul), puis **retiré**. Raison : `IonSegmentButton` est en **shadow

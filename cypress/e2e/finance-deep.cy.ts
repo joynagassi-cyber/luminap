@@ -56,8 +56,15 @@ describe('Lumina — Finance deep flow', () => {
     cy.ensureAuth();
     cy.visit('/balance');
     cy.get('h1, h2, h3, header').contains('Bilan financier', { timeout: 90_000 }).should('exist');
-    cy.contains('button, ion-button', 'Année').should('exist');
-    cy.contains('button, ion-button', 'Mois').should('exist');
+    // A7 — sélecteur de période = `IonSegment`, dont les `IonSegmentButton`
+    // sont en SHADOW DOM : `cy.contains` ne les voit qu'avec l'option.
+    cy.contains('ion-segment-button', 'Année', { includeShadowDom: true }).should('exist');
+    cy.contains('ion-segment-button', 'Mois', { includeShadowDom: true }).should('exist');
+    // « Mois » est la période par défaut : l'hôte porte la classe d'état.
+    cy.contains('ion-segment-button', 'Mois', { includeShadowDom: true }).should(
+      'have.class',
+      'segment-button-checked',
+    );
   });
 
   it('navigates to the first transaction detail and edit pages', function () {
