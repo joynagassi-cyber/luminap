@@ -1,12 +1,12 @@
-import { toastController } from "@ionic/core";
 import { reportError } from "@/lib/observability/errorReporter";
+import { loadIonicCore } from "@/utils/load-ionic-core";
 
 /**
  * Façade de retour utilisateur éphémère (A6) — adossée au `IonToast`
  * d'Ionic via son contrôleur impératif.
  *
- * Avant A6, DEUX moteurs web cohabitaient (sonner via ce module, Radix
- * via `use-toast`) et deux hôtes étaient montés dans `App`. Il n'en reste
+ * Avant A6, DEUX moteurs de toast web tiers cohabitaient (dont un via
+ * `use-toast`) et deux hôtes étaient montés dans `App`. Il n'en reste
  * qu'un : le toast Ionic (rendu Material sur Android grâce au mode par
  * plateforme A5, couleurs de la palette A5). L'API `show*` est conservée
  * à l'identique pour les appelants historiques ; `header` sert le cas
@@ -28,6 +28,7 @@ async function presentToast(
   opts?: ToastOptions,
 ): Promise<void> {
   try {
+    const { toastController } = await loadIonicCore();
     const toast = await toastController.create({
       header: opts?.header,
       message,

@@ -4,6 +4,8 @@
  * Vérifie le mapping sémantique (couleurs de la palette A5, durées,
  * header) et le contrat « un retour utilisateur ne casse jamais le flux »
  * (panne du contrôleur → journalisée via reportError, jamais propagée).
+ * Le contrôleur est chargé en import dynamique (budget premier rendu) :
+ * les assertions attendent donc explicitement les appels (vi.waitFor).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -21,8 +23,6 @@ vi.mock("@/lib/observability/errorReporter", () => ({
 
 import { showSuccess, showError, showWarning, showInfo } from "@/utils/toast";
 
-const flush = () => new Promise((r) => setTimeout(r, 0));
-
 beforeEach(() => {
   vi.clearAllMocks();
   mockCreate.mockResolvedValue({
@@ -33,7 +33,7 @@ beforeEach(() => {
 describe("A6 — façade toast Ionic", () => {
   it("succès : couleur success, 3 s, position basse", async () => {
     showSuccess("Enregistré");
-    await flush();
+    await vi.waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         message: "Enregistré",
@@ -48,7 +48,7 @@ describe("A6 — façade toast Ionic", () => {
     showError("Le fichier n'a pas pu être lu.", {
       header: "Lecture impossible",
     });
-    await flush();
+    await vi.waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         header: "Lecture impossible",
@@ -62,7 +62,7 @@ describe("A6 — façade toast Ionic", () => {
   it("warning/info : couleurs et durée personnalisée", async () => {
     showWarning("Synchronisation en attente", { durationMs: 8000 });
     showInfo("Vous êtes à jour");
-    await flush();
+    await vi.waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(2));
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({ color: "warning", duration: 8000 }),
     );
@@ -74,7 +74,7 @@ describe("A6 — façade toast Ionic", () => {
   it("panne du contrôleur : journalisée, jamais propagée", async () => {
     mockCreate.mockRejectedValueOnce(new Error("contrôleur HS"));
     showSuccess("x");
-    await flush();
+    await vi.waitFor(() => expect(mockReportError).toHaveBeenCalledTimes(1));
     expect(mockReportError).toHaveBeenCalledWith(
       expect.any(Error),
       expect.objectContaining({ source: "toast-present" }),
