@@ -278,7 +278,7 @@ Le présent document ne renvoie **qu'à des documents présents dans ce dépôt*
 
 Cette section **remplace le plan théorique par ce qui est réellement dans le
 code**. Chaque ligne renvoie au fichier qui porte le correctif ; les tests cités
-sont exécutés (2 531 tests verts, `tsc -b` et `eslint .` sans erreur).
+sont exécutés (2 531 tests verts (2537 collectés), `tsc -b` et `eslint .` sans erreur).
 
 ### 8.1 Phases A1 → A3 : fait, hors vérification appareil
 

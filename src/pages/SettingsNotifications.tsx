@@ -139,6 +139,10 @@ export default function SettingsNotifications() {
    */
   const handleTogglePush = async () => {
     if (pushPending) return;
+    // Web / permission sans objet : il n'y a aucune fenêtre système à ouvrir.
+    // Sans cette sortie, la feuille s'ouvrait pour annoncer une fonctionnalité
+    // qui n'existe pas sur cet appareil.
+    if (notif.status === null || notif.status === "unavailable") return;
     if (pushEnabled) {
       await notif.openSettings();
       return;
