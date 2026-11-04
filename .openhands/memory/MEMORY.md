@@ -1388,3 +1388,24 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   Déterministe (rerun inutile). **Toujours comparer un rouge Cypress au `main`
   courant** (`GET /commits/<main-sha>/check-runs`) avant de conclure à une
   régression de la PR.
+
+## Offline — boot local-first + reprise session (2026-11-04)
+- **Lenteur/déconnexion offline = `supabase.auth.getSession()`** : quand
+  `expires_at` est dépassé (durée de vie access token ~1 h = cas NORMAL), il
+  fait un **POST /token réseau SANS timeout** (`_recoverAndRefresh`). Appelé au
+  montage par RouteGuard + Splash ⇒ boot bloqué sur le réseau. Fix : dans
+  `authService.getSession()` (src/lib/auth.ts) **rendre `readStoredSession()`
+  d'abord** (local-first), refresh réseau en arrière-plan borné
+  (`SESSION_REFRESH_BOOT_TIMEOUT_MS`). Un refresh qui réussit côté serveur mais
+  dont la réponse se perd ⇒ refresh token tourné ⇒ `Invalid Refresh Token` ⇒
+  `signOut`.
+- **Reprise au retour** : `AppLifecycleBridge` (App.tsx) écoute
+  `appStateChange` (natif) + `visibilitychange` (web) → `resumeSession()` +
+  `resumePowerSync()` (src/lib/powersync/index.ts, reconnecte **seulement** si
+  `!connected && !connecting`). `resumeSession()` ne déconnecte JAMAIS et
+  n'auto-restaure PAS le backup soft-session (sinon ressuscite un compte
+  volontairement quitté).
+- **`@powersync/capacitor@0.10.0` IGNORE `encryptionKey`** :
+  `createConnection(..., 'no-encryption', ...)` (TODO SDK). Base non chiffrée
+  en pratique sur natif ; le mode chiffré (`lumina-enc.db`) est sans effet.
+- `src/lib/offline/` (OfflineService/conflicts) = **code mort supprimé**.
