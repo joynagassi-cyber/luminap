@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe("A6 — façade toast Ionic", () => {
-  it("succès : couleur success, 3 s, position basse", async () => {
+  it("succès : couleur success, 3 s, position haute", async () => {
     showSuccess("Enregistré");
     await vi.waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
     expect(mockCreate).toHaveBeenCalledWith(
@@ -39,7 +39,7 @@ describe("A6 — façade toast Ionic", () => {
         message: "Enregistré",
         color: "success",
         duration: 3000,
-        position: "bottom",
+        position: "top",
       }),
     );
   });

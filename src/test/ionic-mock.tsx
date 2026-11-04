@@ -283,6 +283,10 @@ export function createIonicMock() {
     "IonTabBar",
     "IonTabButton",
     "IonRouterOutlet",
+    // A7 — rafraîchissement par geste : enveloppes neutres (le comportement
+    // réel est testé via `usePullToSync`, indépendamment d'Ionic).
+    "IonRefresher",
+    "IonRefresherContent",
     "IonApp",
   ] as const;
 

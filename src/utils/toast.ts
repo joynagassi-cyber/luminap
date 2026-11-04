@@ -34,7 +34,10 @@ async function presentToast(
       message,
       color,
       duration: opts?.durationMs ?? (color === "danger" ? 4500 : 3000),
-      position: "bottom",
+      // En haut : en bas, le toast recouvrait la barre d'onglets et
+      // masquait la navigation (rejet documenté par #412) — la leçon
+      // vaut pour l'IonToast natif comme pour l'ancien toaster web.
+      position: "top",
     });
     await toast.present();
   } catch (error) {

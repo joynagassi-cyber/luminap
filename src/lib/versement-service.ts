@@ -10,6 +10,7 @@ import { getCurrentActorId } from "./auth";
 import { DEFAULT_CATEGORY_ID } from "./canonicalCategories";
 import { generateId } from "./utils";
 import { executeWrite, assertTransactionWritable } from "./dataLayer";
+import { reportError } from "./observability/errorReporter";
 import { writeAudit } from "./audit";
 import type { Transaction } from "@/types";
 
@@ -66,7 +67,14 @@ export async function createVersement(
       ],
     );
   } catch (error) {
-    // Persist failure is non-fatal; offline queue will retry
+    // Écriture LOCALE (PowerSync/SQLite) : pas de file de reprise derrière.
+    // Signaler + relancer pour ne pas annoncer un versement jamais persisté.
+    reportError(error, {
+      type: "database",
+      source: "persist-versement-record",
+      context: { versementId },
+    });
+    throw error;
   }
 
   // Create paired transactions
@@ -178,7 +186,12 @@ export async function createVersement(
       ],
     );
   } catch (error) {
-    // Persist failure is non-fatal; offline queue will retry
+    reportError(error, {
+      type: "database",
+      source: "persist-versement-transactions",
+      context: { versementId },
+    });
+    throw error;
   }
 
   // NeverBreak #6 — un versement déplace de l'argent entre caisses : création

@@ -24,12 +24,16 @@ import type { Member } from "@/types";
 import {
   IonPage,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonInfiniteScroll,
   IonInput,
 } from "@ionic/react";
 import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
+import { usePullToSync } from "@/hooks/usePullToSync";
+import { getPowerSyncDatabase } from "@/lib/powersync";
 import EmptyState from "@/components/EmptyState";
-import { showError } from "@/utils/toast";
+import { showError, showSuccess } from "@/utils/toast";
 
 export default function MembersPage() {
   const navigate = useNavigate();
@@ -57,6 +61,19 @@ export default function MembersPage() {
 
   // A5 — au retour sur l'écran (membre archivé depuis une autre page), la
   // liste doit être relue : la page reste montée dans la pile Ionic.
+  // A7 — tirer pour synchroniser : geste standard, résultat explicite.
+  const pull = usePullToSync({
+    getDatabase: () => {
+      try {
+        return getPowerSyncDatabase();
+      } catch {
+        return null;
+      }
+    },
+    notify: (message, kind) =>
+      kind === "success" ? showSuccess(message) : showError(message),
+  });
+
   useRefreshOnViewEnter(loadArchivedMembers, {
     label: "members.archived",
     onError: (error) =>
@@ -184,6 +201,10 @@ export default function MembersPage() {
   return (
     <IonPage>
       <IonContent fullscreen>
+        {/* A7 — IonRefresher : tirer pour synchroniser. */}
+        <IonRefresher slot="fixed" onIonRefresh={pull.onIonRefresh}>
+          <IonRefresherContent pullingText="Tirer pour synchroniser" refreshingSpinner="crescent" />
+        </IonRefresher>
         <div data-screen-state="ready" className="min-h-dvh">
           <TopHeader title="Membres" />
           <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">

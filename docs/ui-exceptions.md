@@ -81,3 +81,24 @@ les 44+ `IonSelect` en popover sont le canon, F-02 clos sur preuves).
 Ajouter une ligne au tableau (composant, équivalent Ionic, motif daté)
 dans la PR qui introduit le composant maison. Sans ligne ici, la PR doit
 utiliser le composant Ionic.
+
+---
+
+## Mise à jour A6/A7 (4 nov. 2026)
+
+| Sujet | Avant | Après |
+|---|---|---|
+| Toasts applicatifs | **deux** toasters Sonner montés (dont un via `next-themes`, dépendance Next.js inutilisée ailleurs) | façade `show*` adossée à **`IonToast`** (contrôleur Ionic, aucun hôte DOM) ; sonner et Radix Toast **retirés** |
+| Position des toasts | `top-center` (web) puis essai en bas **rejeté** (masquait la barre d'onglets) | `top` — la leçon vaut pour l'IonToast natif : ne jamais recouvrir la navigation |
+| Rafraîchissement manuel | aucun | `IonRefresher` (tirer pour synchroniser) sur `/finance` et `/members` |
+
+Cheminement, pour mémoire : #412 avait d'abord consolidé **un seul**
+toaster Sonner thématisé (corrigeant le double montage et le thème ignoré),
+puis la bascule vers `IonToast` a été arbitrée à l'intégration de #411 —
+règle « Ionic d'abord » (thème/mode/safe-areas natifs, zéro moteur web).
+Les points d'appel passaient déjà par la façade `show*` : seuls les
+importateurs directs de sonner ont été repris.
+
+`IonRefresher` est bien un composant Ionic natif : c'est la règle
+« Ionic d'abord » appliquée là où elle apporte quelque chose (geste natif,
+inertie, retour visuel).
