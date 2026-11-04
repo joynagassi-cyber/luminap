@@ -89,7 +89,7 @@ inertie, retour visuel).
 | Composant | Décision | Raison vérifiable |
 |---|---|---|
 | `IonRefresher` | **adopté** — `/finance`, `/members` | geste natif, aucune alternative maison n'existait |
-| `IonSegment` | **adopté** — `/balance` (Mois/Année) | remplace deux boutons `aria-pressed` faits main |
+| `IonSegment` | **reporté** — voir « pourquoi `/balance` est revenu en arrière » | deux boutons `aria-pressed` faits main conservés |
 | `IonToggle` | **adopté** — `/settings/features` | remplace un `<button role="switch">` imitant un interrupteur |
 | `IonSearchbar` | **adopté** — `/archives` | la page assemblait une icône + un `IonInput` à la main |
 | `IonSkeletonText` | **refusé** | voir ci-dessous |
@@ -114,3 +114,25 @@ Il sert à révéler des actions secondaires par glissement latéral. Nos listes
 exposent leurs actions directement (boutons visibles ou menu). En ajouter
 créerait une affordance supplémentaire à découvrir, au détriment des actions
 principales. Aucun écran n'a exprimé ce besoin.
+
+### Pourquoi `/balance` est revenu à ses boutons (IonSegment reporté)
+
+`IonSegment` a été implémenté, testé unitairement (le choix de période refait
+bien le calcul), puis **retiré**. Raison : `IonSegmentButton` est en **shadow
+DOM** (`encapsulation: "shadow"`). Les specs Cypress de `/balance` cherchaient
+« Mois »/« Année » en light DOM : je les ai corrigées (`includeShadowDom`),
+mais le nombre d'échecs E2E a continué de varier entre 3 et 5 sans jamais
+revenir à la référence, **et les logs Cypress sont inaccessibles depuis cet
+environnement** — impossible de distinguer une instabilité préexistante d'une
+régression de ma part.
+
+Décision : ne pas fusionner un changement dont l'effet E2E n'est pas mesurable
+ici. Le gain (deux boutons faits main → un composant natif) ne justifie pas de
+laisser la CI dans un état inconnu. **Reporté jusqu'à ce que les logs Cypress
+soient lisibles** ; le code et le test unitaire existent dans l'historique de
+la branche `arena/fde9a031-luminap` (commit `f74b46b`) et peuvent être repris
+tel quel.
+
+Les trois autres migrations (`IonToggle`, `IonSearchbar`, `IonRefresher`) ne
+sont pas dans le shadow DOM et touchent des écrans qu'aucune spec ne pilote par
+libellé : elles sont conservées.

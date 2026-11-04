@@ -238,7 +238,7 @@ ouvert fige l'écran — c'est précisément ce que les tests interdisent.
 | Composant | Avant | Après | Écran |
 |---|---|---|---|
 | `IonRefresher` | 0 | **2** | `/finance`, `/members` |
-| `IonSegment` | 0 | **1** | `/balance` |
+| `IonSegment` | 0 | **0 — reporté** (voir `docs/ui-exceptions.md`) | — |
 | `IonToggle` | 0 | **17** (instances) | `/settings/features` |
 | `IonSearchbar` | 1 | **2** | `/archives` (+ `InvitationManage`) |
 | `IonSkeletonText` | 0 | **0 (refusé, documenté)** | — |
