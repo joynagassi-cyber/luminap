@@ -61,9 +61,15 @@ describe('Lumina — comprehensive navigation & finance flow', () => {
   const clickPeriod = (label: string) =>
     cy
       .contains('ion-segment-button', label, { includeShadowDom: true, timeout: 30_000 })
-      .shadow()
-      .find('button')
       .click({ force: true });
+
+  /** Vérifie que la période sélectionnée est bien celle attendue. */
+  const periodSelected = (label: string) =>
+    cy
+      .contains('ion-segment-button', label, { includeShadowDom: true })
+      .should(($el) => {
+        expect($el[0].getAttribute("aria-selected")).to.equal("true");
+      });
 
   /** Bouton « Ouvrir le menu » de la page ACTIVE. */
   const openMenu = () =>
@@ -104,11 +110,9 @@ it('navigates Settings, Balance, History, Events, and Transaction edit', functio
     // visibles (`checkVisibility()`) à cause des pages Ionic empilées :
     // `force` — les assertions d'état qui suivent restent strictes.
     clickPeriod('Année');
+    periodSelected('Année');
     clickPeriod('Mois');
-    cy.contains('ion-segment-button', 'Mois', {
-      includeShadowDom: true,
-      timeout: 30_000,
-    }).should('exist');
+    periodSelected('Mois');
 
     // Summary stat cards
     // « Entrées » / « Sorties » sont des libellés de cartes de statistiques
