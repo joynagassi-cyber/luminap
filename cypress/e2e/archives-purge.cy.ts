@@ -217,11 +217,12 @@ describe('Lumina — PR3 corbeille : purge définitive', () => {
     cy.contains(groupName, { timeout: 60_000 }).should('be.visible');
 
     // Le déclencheur est un <button> natif de la page ; la confirmation
-    // est un `IonAlert` (ConfirmModal adossé, A6) — on pilote depuis
-    // l'hôte pour traverser son shadow DOM.
-    cy.get('button[aria-label="Vider la corbeille"]', { timeout: 30_000 }).click({
-      force: true,
-    });
+    // est un `IonAlert` (ConfirmModal adossé, A6) dont le CTA porte le
+    // MÊME aria-label — `:not(.alert-button)` désambiguïse par
+    // construction (le bouton d'alerte est rendu même fermé).
+    cy.get('button[aria-label="Vider la corbeille"]:not(.alert-button)', {
+      timeout: 30_000,
+    }).click({ force: true });
     // Confirmation explicite (titre distinct).
     cy.get('ion-alert', { timeout: 20_000 })
       .contains('Vider la corbeille ?', { includeShadowDom: true })
