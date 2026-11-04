@@ -92,11 +92,20 @@ describe('Lumina — offline dashboard shell (no cloud)', () => {
     // Boot une première fois (établit la fenêtre + l'origine).
     cy.visit('/dashboard');
 
+    // Rend le refresh du token INJOIGNABLE quel que soit l'hôte Supabase
+    // (agnostique au projectRef) et le fait échouer comme une PANNE RÉSEAU
+    // (`ECONNABORTED` ⇒ `AuthRetryableFetchError`) : c'est le seul cas où
+    // supabase-js PRÉSERVE la session. Un rejet auth réel (« Invalid Refresh
+    // Token ») tuerait la session — à raison. `interceptCloud()` (before) ne
+    // matche que l'hôte de repli ; cette interception-ci est host-agnostique.
+    cy.intercept({ method: 'POST', url: '**/auth/v1/token**' }, (req) => {
+      req.reply({ errorCode: 'ECONNABORTED', body: 'offline' });
+    });
+
     // Reproduit le cas réel : le token d'accès a expiré (durée de vie ~1 h).
     // AVANT le correctif local-first, `getSession()` attendait un refresh
     // réseau NON borné avant de retomber sur la session persistée → boot
-    // bloqué hors ligne. On rend donc le token expiré PUIS on recharge, cloud
-    // coupé (interceptCloud, posé en `before`).
+    // bloqué hors ligne. On rend donc le token expiré PUIS on recharge.
     cy.window().then((win) => {
       const key = Object.keys(win.localStorage).find((k) =>
         /-auth-token$/.test(k),
