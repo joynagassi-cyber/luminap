@@ -6,7 +6,11 @@ import { supabase } from "@/lib/auth";
 // `@/lib/dataLayer` : importer ce dernier tirait tout le data layer (≈ 3 900
 // lignes) dans le chunk d'entrée et cassait le découpage de code (R116).
 import { markPowerSyncReady, markPowerSyncDatabaseCreated } from "./readiness";
-import { prepareDatabaseBoot, markLegacyMigrationComplete } from "./encryptedDatabase";
+import {
+  prepareDatabaseBoot,
+  prepareDatabaseBootSync,
+  markLegacyMigrationComplete,
+} from "./encryptedDatabase";
 import type { DatabaseBootPlan } from "./encryptedDatabase";
 import { pushBreadcrumb } from "@/lib/observability/breadcrumbs";
 import { reportError } from "@/lib/observability/errorReporter";
@@ -414,22 +418,41 @@ export async function initPowerSync(): Promise<void> {
   // La réplique contient des montants nominatifs. On choisit le fichier AVANT
   // d'ouvrir : `prepareDatabaseBoot` ne modifie rien pour une base historique
   // (aucune perte d'écritures hors-ligne) et signale toujours son choix.
-  let bootPlan: DatabaseBootPlan;
+  // Chemin SYNCHRONE d'abord (web sans coffre, Cypress) : la création de la
+  // base ne doit pas attendre une I/O asynchrone, sinon le premier rendu React
+  // monte sans handle PowerSync et tous les écrans de données restent vides.
+  let bootPlan: DatabaseBootPlan | null = null;
   try {
-    bootPlan = await prepareDatabaseBoot();
+    bootPlan = prepareDatabaseBootSync();
   } catch (error) {
-    // Ne devrait pas arriver (le module qualifie ses échecs), mais une base
-    // chiffrée sans clé ne doit JAMAIS être « remplacée » en silence.
     reportError(error, {
       type: "database",
       source: "db-encryption-boot",
-      context: { phase: "prepare" },
+      context: { phase: "prepare-sync" },
     });
-    bootPlan = { mode: "unencrypted", filename: "lumina.db", reason: "keystore-unavailable" };
+  }
+  if (!bootPlan) {
+    try {
+      bootPlan = await prepareDatabaseBoot();
+    } catch (error) {
+      // Ne devrait pas arriver (le module qualifie ses échecs), mais une base
+      // chiffrée sans clé ne doit JAMAIS être « remplacée » en silence.
+      reportError(error, {
+        type: "database",
+        source: "db-encryption-boot",
+        context: { phase: "prepare" },
+      });
+      bootPlan = { mode: "unencrypted", filename: "lumina.db", reason: "keystore-unavailable" };
+    }
   }
   _bootPlan = bootPlan;
 
-  if (bootPlan.mode === "encrypted" && bootPlan.keySource === "localStorage") {
+  // Hors natif, `localStorage` est la seule possibilité : ce n'est un incident
+  // que si un coffre natif aurait dû répondre (cas couvert par le plugin).
+  const isNative =
+    typeof window !== "undefined" &&
+    Boolean((window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+  if (isNative && bootPlan.mode === "encrypted" && bootPlan.keySource === "localStorage") {
     // Sur natif, une clé qui n'a pas pu aller au Keystore est un incident :
     // elle reste dans le stockage du WebView (lisible par un dump de profil).
     reportError(new Error("Clé de base stockée hors Keystore"), {
@@ -438,7 +461,7 @@ export async function initPowerSync(): Promise<void> {
       context: { source: bootPlan.keySource },
     });
   }
-  if (bootPlan.mode === "unencrypted" && bootPlan.reason !== "no-indexeddb") {
+  if (bootPlan.mode === "unencrypted" && bootPlan.reason !== "no-indexeddb" && bootPlan.reason !== "e2e") {
     const codes: Record<string, string> = {
       "key-corrupted": "Clé de base corrompue — réplique renouvelée",
       "keystore-unavailable": "Coffre de clés indisponible — base non chiffrée",

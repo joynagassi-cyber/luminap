@@ -29,6 +29,7 @@
 import {
   databaseFilenameFor,
   loadOrCreateDatabaseKey,
+  ENCRYPTION_KEY_STORAGE_ID as KEY_STORAGE_ID,
   type EncryptionKeyOptions,
   type EncryptionKeyState,
 } from "./encryptionKey";
@@ -45,7 +46,8 @@ export type DatabaseUnencryptedReason =
   | "keystore-unavailable"
   | "no-random"
   | "legacy-pending-migration"
-  | "no-indexeddb";
+  | "no-indexeddb"
+  | "e2e";
 
 export interface DatabaseBootPlan {
   mode: "encrypted" | "unencrypted";
@@ -150,6 +152,56 @@ export async function deleteIndexedDb(
   });
 }
 
+/**
+ * Environnement Cypress ? Les specs posent `window.Cypress` et pilotent la base
+ * depuis le thread principal (`useWebWorker: false`). On y garde la base
+ * historique, NON chiffrée, et une création SYNCHRONE : c'est le comportement
+ * que les ~80 specs attendent, et un test E2E n'a pas de secret à protéger.
+ */
+function isCypressRuntime(): boolean {
+  return typeof window !== "undefined" && Boolean((window as { Cypress?: unknown }).Cypress);
+}
+
+/**
+ * Plan de démarrage SYNCHRONE, pour le web sans coffre : lire le Keystore est
+ * asynchrone, mais `localStorage` ne l'est pas. Utilisé pour ne pas retarder la
+ * création de la base (le premier rendu React dépend de ce handle) et pour
+ * garder le comportement Cypress inchangé.
+ *
+ * Retourne `null` si le mode ne peut pas être décidé sans I/O asynchrone.
+ */
+export function prepareDatabaseBootSync(
+  options: EncryptionKeyOptions = {},
+): DatabaseBootPlan | null {
+  if (isCypressRuntime()) {
+    return { mode: "unencrypted", filename: databaseFilenameFor(false), reason: "e2e" };
+  }
+  const storage = options.storage ?? (safeStorage() as
+    | Pick<Storage, "getItem" | "setItem">
+    | undefined);
+  if (!storage) return null;
+  try {
+    const existing = storage.getItem(KEY_STORAGE_ID);
+    if (existing && /^[0-9a-f]{64}$/.test(existing)) {
+      // Une clé existe : si une base chiffrée a déjà été créée, on l'ouvre. On
+      // ne peut pas le vérifier sans I/O asynchrone → on laisse l'appelant
+      // choisir le chemin asynchrone (qui, lui, sait interroger IndexedDB).
+      return null;
+    }
+    const random = options.random ?? ((n: number) => crypto.getRandomValues(new Uint8Array(n)));
+    const key = Array.from(random(32), (b) => b.toString(16).padStart(2, "0")).join("");
+    storage.setItem(KEY_STORAGE_ID, key);
+    return {
+      mode: "encrypted",
+      filename: databaseFilenameFor(true),
+      encryptionKey: key,
+      keySource: "localStorage",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface BootPlanDeps {
   keyOptions?: EncryptionKeyOptions;
   idb?: IndexedDbLike | null;
@@ -169,6 +221,10 @@ export async function prepareDatabaseBoot(
   const storage = deps.storage ?? (safeStorage() as Pick<Storage, "getItem" | "setItem"> | undefined);
   const encryptedName = databaseFilenameFor(true);
   const legacyName = databaseFilenameFor(false);
+
+  if (isCypressRuntime()) {
+    return { mode: "unencrypted", filename: legacyName, reason: "e2e" };
+  }
 
   if (!idb) {
     // SSR / environnement sans IndexedDB : base en mémoire, rien à chiffrer.

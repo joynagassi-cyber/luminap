@@ -26,6 +26,7 @@ vi.mock("@/lib/observability/errorReporter", () => ({ reportError: vi.fn() }));
 import {
   DB_MIGRATION_MARKER,
   indexedDbExists,
+  prepareDatabaseBootSync,
   markLegacyMigrationComplete,
   prepareDatabaseBoot,
   type IndexedDbLike,
@@ -228,5 +229,54 @@ describe("A4 — plan de démarrage de la base", () => {
 
     expect(await indexedDbExists("lumina.db", idb)).toBe(true);
     expect(await indexedDbExists("absent.db", idb)).toBe(false);
+  });
+});
+
+/**
+ * Régression CI (constatée : 41 puis 80 specs Cypress en échec) — la création
+ * de la base ne doit PAS devenir asynchrone sur le web.
+ *
+ * Cause : `initPowerSync` attendait la lecture du Keystore avant de créer la
+ * base ; `PowerSyncProvider` montait alors sans handle et TOUS les écrans de
+ * données restaient vides dans Cypress.
+ *
+ * NON-VACUITÉ : supprimer le chemin synchrone (`prepareDatabaseBootSync`
+ * renvoyant toujours `null`) ⇒ le premier test échoue.
+ */
+describe("A4 — plan de démarrage synchrone (web / E2E)", () => {
+  it("web sans clé existante : base chiffrée décidée SANS attendre d'I/O", () => {
+    const storage = memoryStorage();
+    const plan = prepareDatabaseBootSync({
+      storage,
+      store: null,
+      random: () => new Uint8Array(32).fill(0x11),
+    });
+
+    expect(plan).toMatchObject({ mode: "encrypted", filename: "lumina-enc.db" });
+    expect(plan?.encryptionKey).toHaveLength(64);
+    expect(storage.getItem(ENCRYPTION_KEY_STORAGE_ID)).toBe(plan?.encryptionKey);
+  });
+
+  it("clé déjà présente : on laisse la voie asynchrone vérifier IndexedDB", () => {
+    const storage = memoryStorage({ [ENCRYPTION_KEY_STORAGE_ID]: KEY });
+    expect(prepareDatabaseBootSync({ storage, store: null })).toBeNull();
+  });
+
+  it("sans stockage disponible : voie asynchrone", () => {
+    expect(prepareDatabaseBootSync({ store: null })).toBeNull();
+  });
+
+  it("sous Cypress : base historique, non chiffrée, jamais de clé générée", () => {
+    const storage = memoryStorage();
+    const win = globalThis as unknown as { window?: unknown };
+    const previous = win.window;
+    win.window = { ...(previous as object), Cypress: {} };
+    try {
+      const plan = prepareDatabaseBootSync({ storage, store: null });
+      expect(plan).toEqual({ mode: "unencrypted", filename: "lumina.db", reason: "e2e" });
+      expect(storage.data.size).toBe(0);
+    } finally {
+      win.window = previous;
+    }
   });
 });
