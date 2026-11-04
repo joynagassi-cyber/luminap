@@ -35,10 +35,29 @@ export class NotificationCapability {
   /**
    * Initialize the OneSignal SDK with the configured app ID.
    * Safe to call multiple times — subsequent calls are no-ops.
+   *
+   * P-05 (audit A2) : crée aussi le canal Android par défaut dès
+   * l'initialisation — Android 8+ n'affiche aucune notification locale
+   * sans canal. La création est idempotente côté plugin, et
+   * `scheduleLocalNotification` la répète juste-à-temps par sécurité.
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     await initOneSignal();
+    try {
+      const local = LocalNotificationAdapter.getInstance();
+      if (local.isNative()) {
+        await local.createChannel({
+          id: LOCAL_NOTIFICATION_CHANNEL_ID,
+          name: "Lumina",
+          description: "Notifications Lumina",
+          importance: 4,
+        });
+      }
+    } catch {
+      // Best-effort : le canal est recréé juste-à-temps avant chaque
+      // planification locale (scheduleLocalNotification).
+    }
     this.isInitialized = true;
   }
 
@@ -170,15 +189,15 @@ export class NotificationCapability {
    */
   async subscribeToTopic(topic: string): Promise<void> {
     if (!this.isInitialized) await this.initialize();
-    const service = getOneSignalService() as any;
+    const service = getOneSignalService();
 
     // Retrieve existing topics, append new one, write back
-    const tags = (await service.User?.getTags?.()) ?? {};
+    const tags = await service.getTags();
     const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     if (!existing.includes(topic)) {
       existing.push(topic);
     }
-    await service.User?.addTag("topics", JSON.stringify(existing));
+    await service.setTag("topics", JSON.stringify(existing));
   }
 
   /**
@@ -186,12 +205,12 @@ export class NotificationCapability {
    */
   async unsubscribeFromTopic(topic: string): Promise<void> {
     if (!this.isInitialized) await this.initialize();
-    const service = getOneSignalService() as any;
+    const service = getOneSignalService();
 
-    const tags = (await service.User?.getTags?.()) ?? {};
+    const tags = await service.getTags();
     const existing: string[] = tags["topics"] ? JSON.parse(tags["topics"]) : [];
     const filtered = existing.filter((t) => t !== topic);
-    await service.User?.addTag("topics", JSON.stringify(filtered));
+    await service.setTag("topics", JSON.stringify(filtered));
   }
 
   /**
