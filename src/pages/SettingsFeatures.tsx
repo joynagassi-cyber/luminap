@@ -16,7 +16,7 @@ import {
   prefetchNavViews,
 } from "@/lib/features";
 import { useEffect } from "react";
-import { IonSelect, IonSelectOption } from "@ionic/react";
+import { IonSelect, IonSelectOption, IonToggle, IonItem, IonLabel, IonNote } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 export default function SettingsFeatures() {
@@ -157,55 +157,37 @@ export default function SettingsFeatures() {
             const pinned = navTabs.includes(f.id);
             const on = pinned || featureVisible[f.id];
             return (
-              <button
-                key={f.id}
-                onClick={() => {
-                  if (!pinned) setFeatureVisible(f.id, !featureVisible[f.id]);
-                }}
-                disabled={pinned}
-                className="flex items-center gap-3 w-full px-3 py-2 rounded-xl transition-transform active:scale-95 disabled:opacity-50 text-left"
-                style={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                }}
-                role="switch"
-                aria-checked={on}
-                aria-label={
-                  pinned ? `${f.label} (épinglée dans la barre)` : `Afficher ${f.label}`
-                }
-              >
+              <IonItem key={f.id} lines="none">
                 <Icon
+                  slot="start"
                   className="w-4 h-4 flex-shrink-0"
                   style={{
                     color: on ? "var(--accent-primary)" : "var(--text-tertiary)",
                   }}
                 />
-                <span
-                  className="text-sm flex-1"
+                <IonLabel
                   style={{
                     color: on ? "var(--text-primary)" : "var(--text-tertiary)",
                   }}
                 >
                   {f.label}
-                </span>
+                </IonLabel>
                 {pinned ? (
-                  <Lock className="w-3.5 h-3.5 text-text-tertiary" />
+                  <IonNote slot="end" aria-label={`${f.label} (épinglée dans la barre)`}>
+                    <Lock className="w-3.5 h-3.5 text-text-tertiary" />
+                  </IonNote>
                 ) : (
-                  <span
-                    className="w-10 h-6 rounded-full relative flex-shrink-0"
-                    style={{
-                      backgroundColor: on
-                        ? "var(--accent-primary)"
-                        : "var(--surface-hover)",
-                    }}
-                  >
-                    <span
-                      className="absolute top-0.5 w-5 h-5 rounded-full bg-white"
-                      style={{ left: on ? "22px" : "2px" }}
-                    />
-                  </span>
+                  // A7 — IonToggle : interrupteur natif (cible tactile et
+                  // annonce lecteur d'écran gérées par Ionic) au lieu d'un
+                  // bouton maison imitant un interrupteur.
+                  <IonToggle
+                    slot="end"
+                    checked={on}
+                    aria-label={`Afficher ${f.label}`}
+                    onIonChange={(e) => setFeatureVisible(f.id, e.detail.checked)}
+                  />
                 )}
-              </button>
+              </IonItem>
             );
           })}
         </div>

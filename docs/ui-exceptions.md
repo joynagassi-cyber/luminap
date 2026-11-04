@@ -83,3 +83,34 @@ réécrire tous ces appels sans gain fonctionnel mesurable. L'exception est donc
 `IonRefresher` en revanche est bien un composant Ionic natif : c'est la règle
 « Ionic d'abord » appliquée là où elle apporte quelque chose (geste natif,
 inertie, retour visuel).
+
+## A7 — ce qui est adopté, ce qui est refusé (4 nov. 2026)
+
+| Composant | Décision | Raison vérifiable |
+|---|---|---|
+| `IonRefresher` | **adopté** — `/finance`, `/members` | geste natif, aucune alternative maison n'existait |
+| `IonSegment` | **adopté** — `/balance` (Mois/Année) | remplace deux boutons `aria-pressed` faits main |
+| `IonToggle` | **adopté** — `/settings/features` | remplace un `<button role="switch">` imitant un interrupteur |
+| `IonSearchbar` | **adopté** — `/archives` | la page assemblait une icône + un `IonInput` à la main |
+| `IonSkeletonText` | **refusé** | voir ci-dessous |
+| `IonItemSliding` | **non adopté** | aucun écran n'a d'action secondaire cachée à révéler |
+
+### Pourquoi `IonSkeletonText` est refusé
+
+Le CSS du composant Ionic (`@ionic/core/.../skeleton-text.css`) contient
+**zéro** occurrence de `prefers-reduced-motion` : l'animation `shimmer` y est
+inconditionnelle. Notre primitive `Shimmer` (`src/components/Shimmer.tsx`,
+`.shimmer` dans `App.css`) désactive explicitement le balayage pour les
+utilisateurs ayant demandé une réduction des animations.
+
+Adopter `IonSkeletonText` remplacerait donc un squelette accessible par un
+squelette animé en boucle **subi** par ces utilisateurs. La règle « Ionic
+d'abord » vise à réduire le code maison, pas à dégrader l'accessibilité — c'est
+le seul motif pour lequel elle est écartée ici.
+
+### Pourquoi `IonItemSliding` n'est pas adopté
+
+Il sert à révéler des actions secondaires par glissement latéral. Nos listes
+exposent leurs actions directement (boutons visibles ou menu). En ajouter
+créerait une affordance supplémentaire à découvrir, au détriment des actions
+principales. Aucun écran n'a exprimé ce besoin.
