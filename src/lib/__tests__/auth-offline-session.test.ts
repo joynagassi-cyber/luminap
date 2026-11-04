@@ -203,3 +203,98 @@ describe("validateCurrentSession — ne jamais déconnecter hors ligne", () => {
     expect(authService.getState().session).toBeNull();
   });
 });
+
+describe("getSession — local-first (boot hors ligne instantané)", () => {
+  it("rend la session persistée SANS appeler le SDK (aucun réseau bloquant)", async () => {
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    // Le SDK ne résout JAMAIS : s'il était attendu, getSession resterait
+    // bloqué. C'est précisément la cause du splash long hors ligne.
+    sb.getSession.mockImplementation(() => new Promise(() => {}));
+    sb.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "Failed to fetch", name: "AuthRetryableFetchError" },
+    });
+    setOnline(true);
+
+    const session = await authService.getSession();
+
+    expect(session?.user?.id).toBe("user-1");
+    expect(sb.getSession).not.toHaveBeenCalled();
+  });
+
+  it("sans session persistée : borne l'attente réseau du SDK (ne bloque pas le boot)", async () => {
+    vi.useFakeTimers();
+    try {
+      sb.getSession.mockImplementation(() => new Promise(() => {})); // ne résout jamais
+      const p = authService.getSession();
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(await p).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("resumeSession — retour au premier plan sans déconnexion", () => {
+  afterEach(() => {
+    (authService as any).stopSessionValidation();
+  });
+
+  it("session en mémoire : conserve la session (aucun signOut)", async () => {
+    (authService as any).state.session = {
+      ...STORED_SESSION,
+      expires_at: Math.floor(Date.now() / 1000) + 60,
+    };
+    sb.refreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "Failed to fetch", name: "AuthRetryableFetchError" },
+    });
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(authService.getState().session).not.toBeNull();
+  });
+
+  it("état mémoire perdu + session persistée : restaure sans signOut", async () => {
+    (authService as any).state.session = null;
+    localStorage.setItem("sb-stub-auth-token", JSON.stringify(STORED_SESSION));
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(authService.getState().session?.user?.id).toBe("user-1");
+  });
+
+  it("hors ligne : ne tente rien et ne déconnecte pas", async () => {
+    (authService as any).state.session = null;
+    setOnline(false);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+  });
+
+  it("ne ressuscite PAS un compte volontairement quitté (backup ignoré)", async () => {
+    (authService as any).state.session = null;
+    // Backup soft-session présent (compte quitté via « Mes comptes ») mais
+    // AUCUNE session active persistée : la reprise ne doit pas reconnecter.
+    localStorage.setItem(
+      "lumina-session-backup",
+      JSON.stringify({
+        userId: "user-1",
+        access_token: "backup-access",
+        refresh_token: "backup-refresh",
+      }),
+    );
+    setOnline(true);
+
+    await authService.resumeSession();
+
+    expect(sb.signOut).not.toHaveBeenCalled();
+    expect(sb.refreshSession).not.toHaveBeenCalled();
+    expect(authService.getState().session).toBeNull();
+  });
+});
