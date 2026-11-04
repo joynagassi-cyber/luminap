@@ -23,13 +23,26 @@
  * Non-vacuité : réintroduire une permission, repasser allowBackup à
  * true ou réécrire les défauts en dur (« loggingBehavior: 'debug' »)
  * fait échouer la garde correspondante.
+ *
+ * A2 (même fichier) — verrouille la porte unique des permissions
+ * (§1.4) et le transport push réel : réintroduire un appel
+ * `requestPermissions(` dans une page/un composant, résusciter le
+ * faux proxy `OneSignalPush` ou désenregistrer le pont/le plugin de
+ * réglages fait échouer la garde A2 correspondante.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
 const read = (p: string) => readFileSync(join(root, p), "utf8");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : [full];
+  });
+}
 
 const manifest = read("android/app/src/main/AndroidManifest.xml");
 const capConfig = read("capacitor.config.ts");
@@ -87,5 +100,61 @@ describe("A1 — auto-mise à jour APK : SHA-256 obligatoire (§1.5)", () => {
     );
     expect(java).toContain('call.reject("SHA-256 requis")');
     expect(java).toContain('MessageDigest.getInstance("SHA-256")');
+  });
+});
+
+describe("A2 — porte unique des permissions et transport push réel", () => {
+  it("OneSignal passe par le pont local enregistré, plus par le plugin absent", () => {
+    const oneSignalTs = read("src/lib/onesignal.ts");
+    expect(oneSignalTs).toContain(
+      'registerPlugin<OneSignalBridgePlugin>("OneSignalBridge")',
+    );
+    // L'ancien transport appelait un plugin Cordova jamais installé.
+    expect(oneSignalTs).not.toContain('nativeCallback("OneSignalPush"');
+    const bridge = read(
+      "android/app/src/main/java/com/lumina/mfejc/OneSignalBridgePlugin.java",
+    );
+    expect(bridge).toContain('@CapacitorPlugin(name = "OneSignalBridge")');
+    expect(
+      read("android/app/src/main/java/com/lumina/mfejc/MainActivity.java"),
+    ).toContain("registerPlugin(OneSignalBridgePlugin.class)");
+  });
+
+  it("PermissionService expose la façade et l'ouverture des réglages", () => {
+    const permService = read("src/lib/permissionService.ts");
+    expect(permService).toContain("export const permissions");
+    expect(permService).toContain("AndroidSettings.ApplicationDetails");
+  });
+
+  it("aucune demande de permission dans les couches UI (pages/composants)", () => {
+    const offenders: string[] = [];
+    for (const dir of ["src/pages", "src/components"]) {
+      for (const file of walk(join(root, dir))) {
+        if (!/\.tsx?$/.test(file) || file.includes("__tests__")) continue;
+        const source = readFileSync(file, "utf8");
+        if (/requestPermissions\(|\.requestPermission\(/.test(source)) {
+          offenders.push(file);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("SettingsNotifications passe par PermissionService", () => {
+    expect(read("src/pages/SettingsNotifications.tsx")).toContain(
+      'from "@/lib/permissionService"',
+    );
+  });
+
+  it("P-02 : le scanner ne demande plus la permission caméra", () => {
+    expect(read("src/components/CameraScanner.tsx")).not.toContain(
+      "requestPermissions",
+    );
+  });
+
+  it("capacitor-native-settings est enregistré côté Android", () => {
+    expect(read("android/capacitor.settings.gradle")).toContain(
+      "capacitor-native-settings",
+    );
   });
 });

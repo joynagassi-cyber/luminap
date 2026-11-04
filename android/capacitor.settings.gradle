@@ -31,3 +31,6 @@ project(':capacitor-push-notifications').projectDir = new File('../node_modules/
 
 include ':capacitor-share'
 project(':capacitor-share').projectDir = new File('../node_modules/.pnpm/@capacitor+share@7.0.4_@capacitor+core@7.6.9/node_modules/@capacitor/share/android')
+
+include ':capacitor-native-settings'
+project(':capacitor-native-settings').projectDir = new File('../node_modules/.pnpm/capacitor-native-settings@7.0.2_@capacitor+core@7.6.9/node_modules/capacitor-native-settings/android')

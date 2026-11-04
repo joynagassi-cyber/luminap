@@ -167,6 +167,9 @@ importers:
       '@zxing/library':
         specifier: ^0.23.0
         version: 0.23.0
+      capacitor-native-settings:
+        specifier: 7.0.2
+        version: 7.0.2(@capacitor/core@7.6.9)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -3093,6 +3096,11 @@ packages:
   canvg@3.0.11:
     resolution: {integrity: sha512-5ON+q7jCTgMp9cjpu4Jo6XbvfYwSB2Ow3kzHKfIyJfaCAOHLbdKPQqGKgfED/R5B+3TFFfe8pegYA+b423SRyA==}
     engines: {node: '>=10.0.0'}
+
+  capacitor-native-settings@7.0.2:
+    resolution: {integrity: sha512-s6xsLW0mJ6tywPgGtPXMgfDGTH5UqdSry1ZRlqh9T124IEIuPQyA35zpBaCywfHkmDKEZYdBik3/8Mdncjbniw==}
+    peerDependencies:
+      '@capacitor/core': '>=7.0.0'
 
   caseless@0.12.0:
     resolution: {integrity: sha512-4tYFyifaFfGacoiObjJegolkwSU4xQNGbVgUiNYVUxbQ2x2lUsFvY4hVgVzGiIe6WLOPqycWXA40l+PWsxthUw==}
@@ -8306,6 +8314,10 @@ snapshots:
       stackblur-canvas: 2.7.0
       svg-pathdata: 6.0.3
     optional: true
+
+  capacitor-native-settings@7.0.2(@capacitor/core@7.6.9):
+    dependencies:
+      '@capacitor/core': 7.6.9
 
   caseless@0.12.0: {}
 

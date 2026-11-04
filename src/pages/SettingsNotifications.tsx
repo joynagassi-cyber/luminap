@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -17,6 +17,11 @@ import SettingsShell from "@/components/SettingsShell";
 import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { useLocalStore } from "@/store/useLocalStore";
 import { notification } from "@/capabilities/notification";
+import { App } from "@capacitor/app";
+import {
+  permissions,
+  type PermissionStatus,
+} from "@/lib/permissionService";
 
 interface NotifPrefs {
   transactions: boolean;
@@ -81,9 +86,12 @@ export default function SettingsNotifications() {
   const navigate = useNavigate();
   const [prefs, setPrefs] = useState<NotifPrefs>(loadPrefs);
   const [marked, setMarked] = useState(false);
-  // Permission push : demandée à la demande (just-in-time), jamais au boot.
-  const [pushEnabled, setPushEnabled] = useState(false);
+  // État SYSTÈME de la permission notifications (A2) : lu via
+  // PermissionService à l'ouverture de l'écran et au retour des réglages
+  // Android — jamais supposé. `null` = première lecture en cours.
+  const [permStatus, setPermStatus] = useState<PermissionStatus | null>(null);
   const [pushPending, setPushPending] = useState(false);
+  const pushEnabled = permStatus === "granted";
   // Envoi d'une notification de test (locale + cloud) — diagnostic « ça marche ? ».
   const [testSent, setTestSent] = useState(false);
   const [testPending, setTestPending] = useState(false);
@@ -105,6 +113,27 @@ export default function SettingsNotifications() {
     localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
   }, [prefs]);
 
+  // Lecture du statut système réel, puis relecture au retour au premier
+  // plan (retour des réglages Android après un cas « bloqué », ou
+  // changement fait hors de l'app). Sur le web : statut « unavailable »,
+  // l'interrupteur reste désactivé (rien à gérer dans le navigateur).
+  const refreshPermStatus = useCallback(() => {
+    void permissions.check("notifications").then(setPermStatus);
+  }, []);
+
+  useEffect(() => {
+    refreshPermStatus();
+    const handlePromise = App.addListener(
+      "appStateChange",
+      ({ isActive }) => {
+        if (isActive) refreshPermStatus();
+      },
+    );
+    return () => {
+      void handlePromise.then((handle) => handle.remove());
+    };
+  }, [refreshPermStatus]);
+
   const toggle = (k: keyof NotifPrefs) =>
     setPrefs((p) => ({ ...p, [k]: !p[k] }));
 
@@ -114,19 +143,21 @@ export default function SettingsNotifications() {
     setTimeout(() => setMarked(false), 2000);
   };
 
-  // Activer / désactiver les notifications push : c'est ici (flux déclenché
-  // par l'utilisateur) que le SDK OneSignal est initialisé et que la
-  // permission push est demandée — plus jamais au boot de l'app.
+  // Interrupteur push = miroir du statut SYSTÈME (A2). Android ne permet
+  // pas à l'app de révoquer la permission : selon l'état, le geste
+  // demande la fenêtre système (prompt/denied) ou ouvre les réglages
+  // (granted → pour couper, blocked → pour réactiver). Toute la logique
+  // vit dans PermissionService — aucun autre chemin de demande n'existe.
   const handleTogglePush = async () => {
-    if (pushPending) return;
+    if (pushPending || permStatus === null || permStatus === "unavailable") {
+      return;
+    }
     setPushPending(true);
     try {
-      if (pushEnabled) {
-        setPushEnabled(false);
+      if (permStatus === "prompt" || permStatus === "denied") {
+        setPermStatus(await permissions.request("notifications"));
       } else {
-        await notification.initialize();
-        const granted = await notification.requestPermission();
-        setPushEnabled(granted);
+        await permissions.openAppSettings();
       }
     } finally {
       setPushPending(false);
@@ -221,19 +252,27 @@ export default function SettingsNotifications() {
         <div className="flex items-center gap-3 min-w-0">
           <BellOff className="w-4 h-4 flex-shrink-0" style={{ color: pushEnabled ? "var(--accent-primary)" : "var(--text-tertiary)" }} />
           <div className="min-w-0">
-            <p className="text-text-primary text-sm font-semibold">Notifications activées</p>
+            <p className="text-text-primary text-sm font-semibold">Notifications push</p>
             <p className="text-text-tertiary text-xs">
-              {pushEnabled ? "Notifications push activées sur cet appareil." : "Activez pour recevoir des notifications push."}
+              {permStatus === null
+                ? "Lecture de l'état système…"
+                : permStatus === "granted"
+                  ? "Activées sur cet appareil. Touchez pour gérer dans Android."
+                  : permStatus === "blocked"
+                    ? "Bloquées dans les réglages Android. Touchez pour ouvrir les réglages."
+                    : permStatus === "unavailable"
+                      ? "Disponible sur l'application mobile."
+                      : "Activez pour recevoir des notifications push."}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={handleTogglePush}
-          disabled={pushPending}
+          disabled={pushPending || permStatus === null || permStatus === "unavailable"}
           role="switch"
           aria-checked={pushEnabled}
-          aria-label="Notifications activées"
+          aria-label="Notifications push"
           className="relative flex-shrink-0 w-10 h-6 rounded-full transition-colors disabled:opacity-40"
           style={{ backgroundColor: pushEnabled ? "var(--accent-primary)" : "var(--surface-hover)" }}
         >

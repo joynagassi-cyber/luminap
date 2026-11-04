@@ -11,6 +11,7 @@ import { authService } from "@/lib/auth";
 import { useAppUrlOpen, LUMINA_DEEPLINK_EVENT } from "@/hooks/useAppUrlOpen";
 import { AppProvider } from "./context/AppContext";
 import { SyncStatusNotifier } from "./components/SyncStatusNotifier";
+import { PermissionPrimerGate } from "./components/PermissionPrimerGate";
 import AppRouter from "./AppRouter";
 import { luminaRoutes } from "./ionic/routing";
 import { ErrorBoundary, withScope } from "@sentry/react";
@@ -485,6 +486,10 @@ const App = () => {
           <AppRouter />
           <AppProvider>
             <SyncStatusNotifier />
+            {/* A2 — primer de permission notifications : natif uniquement,
+                après le premier bénéfice vécu (1ʳᵉ transaction), jamais
+                au démarrage à froid. Ne rend rien sur le web. */}
+            <PermissionPrimerGate />
             <main id="main" style={{ height: "100%" }}>
               {/*
                 Le <Routes> est OBLIGATOIRE : @ionic/react-router
