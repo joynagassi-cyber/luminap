@@ -27,6 +27,7 @@ import { armBootWatchdog } from "@/lib/bootWatchdog";
 import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
 import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
 import { flushPendingReports } from "@/lib/observability/errorReporter";
+import { Capacitor } from "@capacitor/core";
 
 // Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
 // signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
@@ -97,6 +98,16 @@ import("@ionic/core")
 // les listes de l'app retombaient sur le repli local (vide au premier
 // lancement) — la base SQLite contenait pourtant bien les lignes
 // synchronisées. Le provider était défini mais jamais monté.
+// C-09 (A3) — sur Android natif, l'inset bas est géré par MainActivity
+// (padding WindowInsets de la WebView) : cette classe force à 0 les
+// utilitaires CSS basés sur env(safe-area-inset-bottom) (App.css et
+// --ion-safe-area-bottom), interdisant toute double compensation.
+// Sur le web et iOS, env() reste la source (indicateur d'accueil,
+// encoches). Posée avant le premier rendu pour éviter tout saut visuel.
+if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
+  document.documentElement.classList.add("lumina-native-android");
+}
+
 createRoot(document.getElementById("root")!).render(
   <PowerSyncProvider>
     <App />

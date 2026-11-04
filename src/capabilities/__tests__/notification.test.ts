@@ -21,6 +21,9 @@ function createMockPlugin() {
       Object.assign(mockTags, tags);
     }),
     removeTag: vi.fn(),
+    // A2 — le service relit les tags via son miroir local (getTags),
+    // plus via l'ancien proxy `User.getTags` du plugin absent.
+    getTags: vi.fn(() => Promise.resolve({ ...mockTags })),
     addTags: vi.fn(), // alias, delegates to setTags in the service
     getOnesignalId: vi.fn().mockResolvedValue("mock-player-id"),
     getExternalId: vi.fn().mockResolvedValue(null),

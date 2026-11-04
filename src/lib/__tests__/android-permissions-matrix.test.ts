@@ -23,13 +23,32 @@
  * Non-vacuité : réintroduire une permission, repasser allowBackup à
  * true ou réécrire les défauts en dur (« loggingBehavior: 'debug' »)
  * fait échouer la garde correspondante.
+ *
+ * A2 (même fichier) — verrouille la porte unique des permissions
+ * (§1.4) et le transport push réel : réintroduire un appel
+ * `requestPermissions(` dans une page/un composant, résusciter le
+ * faux proxy `OneSignalPush` ou désenregistrer le pont/le plugin de
+ * réglages fait échouer la garde A2 correspondante.
+ *
+ * A3 (même fichier) — verrouille les plugins essentiels et le contrat
+ * insets/clavier : configurer un plugin désinstallé, retirer le
+ * rembourrage natif bas (MainActivity) ou réintroduire un
+ * env(safe-area-inset-bottom) en dur dans BottomNav fait échouer la
+ * garde A3 correspondante.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
 const read = (p: string) => readFileSync(join(root, p), "utf8");
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = join(dir, entry.name);
+    return entry.isDirectory() ? walk(full) : [full];
+  });
+}
 
 const manifest = read("android/app/src/main/AndroidManifest.xml");
 const capConfig = read("capacitor.config.ts");
@@ -60,8 +79,21 @@ describe("A1 — manifeste Android conforme à la matrice §1.2", () => {
 });
 
 describe("A1 — capacitor.config.ts : aucune config fantôme, défauts durcis", () => {
-  it("ne configure aucun plugin (C-01 : pas de bloc pour plugin absent)", () => {
-    expect(capConfig).not.toMatch(/^\s*plugins\s*:/m);
+  it("ne configure que des plugins installés — ensemble exact (C-01, liste blanche A3)", () => {
+    const block = capConfig.match(/plugins:\s*\{([\s\S]*?)\n {2}\},/);
+    if (!block) {
+      throw new Error("bloc plugins introuvable dans capacitor.config.ts");
+    }
+    const keys = [...block[1].matchAll(/^\s+([A-Z][A-Za-z]*):\s*\{/gm)].map(
+      (m) => m[1],
+    );
+    expect(keys.sort()).toEqual(["Keyboard", "SplashScreen"]);
+
+    // Chaque clé configurée correspond à un paquet réellement installé :
+    // une config pour un plugin absent serait ignorée en silence (C-01).
+    const pkg = read("package.json");
+    expect(pkg).toContain('"@capacitor/keyboard"');
+    expect(pkg).toContain('"@capacitor/splash-screen"');
   });
 
   it("logs et debug WebView restent coupés hors variante diagnostic (C-05)", () => {
@@ -87,5 +119,152 @@ describe("A1 — auto-mise à jour APK : SHA-256 obligatoire (§1.5)", () => {
     );
     expect(java).toContain('call.reject("SHA-256 requis")');
     expect(java).toContain('MessageDigest.getInstance("SHA-256")');
+  });
+});
+
+describe("A2 — porte unique des permissions et transport push réel", () => {
+  it("OneSignal passe par le pont local enregistré, plus par le plugin absent", () => {
+    const oneSignalTs = read("src/lib/onesignal.ts");
+    expect(oneSignalTs).toContain(
+      'registerPlugin<OneSignalBridgePlugin>("OneSignalBridge")',
+    );
+    // L'ancien transport appelait un plugin Cordova jamais installé.
+    expect(oneSignalTs).not.toContain('nativeCallback("OneSignalPush"');
+    const bridge = read(
+      "android/app/src/main/java/com/lumina/mfejc/OneSignalBridgePlugin.java",
+    );
+    expect(bridge).toContain('@CapacitorPlugin(name = "OneSignalBridge")');
+    expect(
+      read("android/app/src/main/java/com/lumina/mfejc/MainActivity.java"),
+    ).toContain("registerPlugin(OneSignalBridgePlugin.class)");
+  });
+
+  it("PermissionService expose la façade et l'ouverture des réglages", () => {
+    const permService = read("src/lib/permissionService.ts");
+    expect(permService).toContain("export const permissions");
+    expect(permService).toContain("AndroidSettings.ApplicationDetails");
+  });
+
+  it("aucune demande de permission dans les couches UI (pages/composants)", () => {
+    const offenders: string[] = [];
+    for (const dir of ["src/pages", "src/components"]) {
+      for (const file of walk(join(root, dir))) {
+        if (!/\.tsx?$/.test(file) || file.includes("__tests__")) continue;
+        const source = readFileSync(file, "utf8");
+        if (/requestPermissions\(|\.requestPermission\(/.test(source)) {
+          offenders.push(file);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("SettingsNotifications passe par PermissionService", () => {
+    expect(read("src/pages/SettingsNotifications.tsx")).toContain(
+      'from "@/lib/permissionService"',
+    );
+  });
+
+  it("P-02 : le scanner ne demande plus la permission caméra", () => {
+    expect(read("src/components/CameraScanner.tsx")).not.toContain(
+      "requestPermissions",
+    );
+  });
+
+  it("capacitor-native-settings est enregistré côté Android", () => {
+    expect(read("android/capacitor.settings.gradle")).toContain(
+      "capacitor-native-settings",
+    );
+  });
+});
+
+describe("A3 — plugins essentiels, insets et clavier (C-01/C-02/C-03/C-09/C-10)", () => {
+  it("status-bar, splash-screen et haptics sont installés ET enregistrés Android", () => {
+    const pkg = read("package.json");
+    const settingsGradle = read("android/capacitor.settings.gradle");
+    for (const name of ["status-bar", "splash-screen", "haptics"]) {
+      expect(pkg).toContain(`"@capacitor/${name}"`);
+      expect(settingsGradle).toContain(`:capacitor-${name}`);
+    }
+  });
+
+  it("la config porte la stratégie clavier et la fin de splash (C-10/C-01)", () => {
+    expect(capConfig).toContain("resize: 'native'");
+    expect(capConfig).toContain("resizeOnFullScreen: true");
+    expect(capConfig).toContain("launchShowDuration: 0");
+  });
+
+  it("C-09 : bas = rembourrage natif seul, CSS neutralisable sur Android", () => {
+    // Le correctif natif du bug P1-3 (onglets sous la navigation
+    // système) est LA source pour le bas — ne pas le retirer.
+    const java = read(
+      "android/app/src/main/java/com/lumina/mfejc/MainActivity.java",
+    );
+    expect(java).toContain(
+      "view.setPadding(bars.left, 0, bars.right, bars.bottom)",
+    );
+    // Côté CSS : neutralisation explicite sous la classe plateforme,
+    // et BottomNav consomme la variable (jamais env() en dur).
+    expect(read("src/App.css")).toContain("html.lumina-native-android");
+    const bottomNav = read("src/components/BottomNav.tsx");
+    expect(bottomNav).toContain("var(--ion-safe-area-bottom");
+    expect(bottomNav).not.toContain("env(safe-area-inset-bottom");
+    expect(read("src/main.tsx")).toContain('"lumina-native-android"');
+  });
+
+  it("barre d'état, splash et haptique sont branchés (C-02/C-01/C-03)", () => {
+    expect(read("src/App.tsx")).toContain("StatusBarBridge");
+    const bridge = read("src/components/StatusBarBridge.tsx");
+    expect(bridge).toContain("setOverlaysWebView({ overlay: false })");
+    expect(bridge).toContain("dataset.theme");
+    expect(read("src/pages/Splash.tsx")).toContain("SplashScreen.hide()");
+    expect(read("src/lib/haptics.ts")).toContain("@capacitor/haptics");
+    const txNew = read("src/pages/TransactionNew.tsx");
+    expect(txNew).toContain("haptics.success()");
+    expect(txNew).toContain("haptics.error()");
+  });
+});
+
+/**
+ * A4 — Sécurité du stockage (étape C-11 + inventaire C-07c).
+ *
+ * L'étude `docs/etude-c07c-stockage-securise.md` documente où vivent les
+ * jetons aujourd'hui. Ces gardes sont des fils-pièges : elles n'empêchent
+ * pas la migration future vers un coffre natif, elles forcent à mettre
+ * l'étude à jour quand la topologie des secrets change.
+ */
+describe("A4 — stockage : repli journalisé et copies de jetons bornées", () => {
+  it("le repli localStorage du StorageAdapter est journalisé (C-11)", () => {
+    const adapter = read("src/adapters/native/StorageAdapter.ts");
+    expect(adapter).toContain("reportError");
+    expect(adapter).toContain("storage-adapter-fallback");
+  });
+
+  it("le refresh_token n'est manipulé que par les modules d'auth/sync connus (C-07c)", () => {
+    const ALLOWED = new Set([
+      "src/lib/auth.ts",
+      "src/lib/powersync/SupabaseConnector.ts",
+      "src/lib/powersync/index.ts",
+    ]);
+    const offenders: string[] = [];
+    const walk = (rel: string): void => {
+      for (const entry of readdirSync(join(process.cwd(), rel), {
+        withFileTypes: true,
+      })) {
+        const child = `${rel}/${entry.name}`;
+        if (entry.isDirectory()) {
+          if (entry.name !== "__tests__") walk(child);
+        } else if (
+          /\.(ts|tsx)$/.test(entry.name) &&
+          !entry.name.includes(".test.") &&
+          !ALLOWED.has(child) &&
+          read(child).includes("refresh_token")
+        ) {
+          offenders.push(child);
+        }
+      }
+    };
+    walk("src");
+    expect(offenders).toEqual([]);
   });
 });

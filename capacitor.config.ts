@@ -41,17 +41,29 @@ const config: CapacitorConfig = {
     scrollEnabled: true,
     contentInset: 'never',
   },
-  // Aucun bloc `plugins` (A1 / C-01) : ne JAMAIS configurer ici un
-  // plugin absent de package.json — la config est silencieusement
-  // ignorée et simule un branchement inexistant.
-  // - Splash : le mécanisme retenu est le thème natif Android 12+
-  //   (`AppTheme.NoActionBarLaunch` + `@drawable/splash`, fond
-  //   #121212) suivi de l'unique page React `/splash` ;
-  //   `@capacitor/splash-screen` n'est volontairement PAS installé
-  //   (l'ancien bloc `launchShowDuration: 0` n'a jamais eu d'effet).
-  // - Notifications push (OneSignal) : branchement réel en phase A2 ;
-  //   l'appId vit dans le `resValue` Gradle et l'initialisation
-  //   logicielle — le plugin ne lit pas ce fichier.
+  // Blocs `plugins` (A1→A3 / C-01) : ne configurer QUE des plugins
+  // installés — sinon la config est ignorée en silence et simule un
+  // branchement inexistant. L'ensemble EXACT des clés est verrouillé
+  // par la garde android-permissions-matrix.test.ts :
+  // - Keyboard (C-10) : stratégie explicite — redimensionnement natif
+  //   de la WebView, y compris en plein écran edge-to-edge (Android
+  //   15), faute de quoi le CTA collé des formulaires reste sous le
+  //   clavier. `useKeyboardAvoidance` ne compense alors que le
+  //   reliquat non redimensionné (anti double-compensation).
+  // - SplashScreen (C-01, plugin installé en A3) : durée 0 — le thème
+  //   natif Android 12+ (`AppTheme.NoActionBarLaunch` + fond #121212)
+  //   couvre le chargement, puis l'unique page React `/splash` prend
+  //   la main et appelle `SplashScreen.hide()`. L'ancien
+  //   `launchShowDuration: 0`, mort faute de plugin, devient réel.
+  plugins: {
+    Keyboard: {
+      resize: 'native',
+      resizeOnFullScreen: true,
+    },
+    SplashScreen: {
+      launchShowDuration: 0,
+    },
+  },
 };
 
 export default config;

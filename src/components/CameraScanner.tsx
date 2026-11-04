@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { haptics } from '@/lib/haptics';
 
 export interface ScanResult {
   text: string;
@@ -71,18 +72,12 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       
       if (isNativePlatform()) {
         // Native platform: use Capacitor Camera.
-        // Permission just-in-time (jamais demandée au boot) — API v6 :
-        // requestPermissions({ permissions: [...] }) renvoie par clé.
-        const perms = await Camera.requestPermissions({
-          permissions: ['camera'],
-        });
-        if (perms.camera === 'denied') {
-          const msg = "Accès à la caméra refusé";
-          setError(msg);
-          onError?.(msg);
-          return;
-        }
-
+        // P-02 (audit A2) : aucune permission à demander — `getPhoto`
+        // délègue à l'appareil photo SYSTÈME (intent), qui prend la photo
+        // pour l'app. La permission CAMERA n'est volontairement PAS
+        // déclarée au manifeste (matrice §1.2) ; la demander quand même
+        // échouait immédiatement, sans dialogue, et rendait le scanner
+        // inutilisable en natif.
         const image = await Camera.getPhoto({
           quality: 90,
           allowEditing: false,
@@ -97,6 +92,10 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
       }
     } catch (err: any) {
       const msg = err?.message || 'Erreur lors du scan';
+      // Annulation par l'utilisateur (retour depuis l'appareil photo
+      // système : « User cancelled photos app ») — pas une erreur :
+      // retour silencieux, sans message (audit A2).
+      if (/cancel/i.test(msg)) return;
       setError(msg);
       onError?.(msg);
     }
@@ -126,6 +125,8 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
         (result, err) => {
           if (result) {
             stopCamera();
+            // C-03 (A3) — retour haptique sur scan décodé.
+            haptics.success();
             onScan({
               text: (result as any).text,
               format: (result as any).format?.formatName || 'QR_CODE',
@@ -149,7 +150,9 @@ export function CameraScanner({ onScan, onError, enabled = true }: CameraScanner
     try {
       const codeReader = new BrowserMultiFormatReader();
       const result = await codeReader.decodeFromImageUrl(imagePath);
-      
+
+      // C-03 (A3) — retour haptique sur scan décodé.
+      haptics.success();
       onScan({
         text: (result as any).text,
         format: (result as any).format?.formatName || 'QR_CODE',
