@@ -9,7 +9,7 @@ const path = require('path');
 
 const APP_ID = 'com.lumina.mfejc';
 const KEY_ALIAS = 'lumina-release';
-const KEYSTORE_PASSWORD = 'lumina1234';
+const KEYSTORE_PASSWORD = process.env.LUMINA_KEYSTORE_PASSWORD || 'lumina1234';
 const DURATION_DAYS = 10000;
 const KEYSTORE_FILE = 'android/app/release.keystore';
 

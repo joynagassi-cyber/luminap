@@ -16,8 +16,8 @@ set -e
 APP_ID="com.lumina.mfejc"
 KEYSTORE_FILE="android/app/release.keystore"
 KEY_ALIAS="lumina-release"
-KEY_PASSWORD="lumina1234"
-KEYSTORE_PASSWORD="lumina1234"
+KEY_PASSWORD="${LUMINA_KEYSTORE_PASSWORD:-lumina1234}"
+KEYSTORE_PASSWORD="${LUMINA_KEYSTORE_PASSWORD:-lumina1234}"
 DURATION_DAYS=10000
 
 echo "=========================================="

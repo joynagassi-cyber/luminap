@@ -4,6 +4,7 @@ Générateur de keystore et empreintes pour Lumina Android
 Package: com.lumina.mfejc
 """
 
+import os
 import hashlib
 import struct
 import base64
@@ -23,7 +24,7 @@ except ImportError:
 # Configuration
 APP_ID = "com.lumina.mfejc"
 KEY_ALIAS = "lumina-release"
-KEYSTORE_PASSWORD = "lumina1234"
+KEYSTORE_PASSWORD = os.environ.get("LUMINA_KEYSTORE_PASSWORD", "lumina1234")
 DURATION_DAYS = 10000
 KEYSTORE_FILE = "android/app/release.keystore"
 

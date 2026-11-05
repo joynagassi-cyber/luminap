@@ -311,20 +311,32 @@
 
 ## Gravité FAIBLE
 
-### R8 — Mot de passe de test en clair dans le dépôt
-- **Défaut** : `cypress/support/orgCreds.ts` contient `E2e-Lumina!1` en clair.
+### R8 — Mot de passe de test en clair dans le dépôt — ✅ CORRIGÉ (R-B)
+- **Défaut** : `cypress/support/orgCreds.ts` contenait `E2e-Lumina!1` en clair.
 - **Analyse** : comptes de test sur un environnement de test ; risque limité
   mais à ne pas confondre avec un secret de production.
-- **Statut** : documenté, non modifié (changement de mot de passe invaliderait
-  les specs). Proposé : PROPOSITIONS.md P3.
+- **✅ CORRIGÉ (R-B)** : les mots de passe ont été ROTÉS en base (bcrypt) puis
+  retirés du dépôt ; ils sont désormais lus depuis `CYPRESS_ORG_PASSWORD` /
+  `CYPRESS_ORG_UNCONFIGURED_PASSWORD` (env ou `.env.local` gitignoré). Garde
+  anti-réintroduction : `src/lib/__tests__/e2e-credentials-rb.test.ts` (scanne
+  `cypress/`, `scripts/`, `cypress.config.ts` et bannit les littéraux).
 
-### R9 — Mot de passe de keystore Android codé en dur (`lumina1234`)
-- **Défaut** : `scripts/generate-keystore*.{sh,js,py}` codent le mot de passe
-  du keystore de signature Android en clair.
-- **Analyse** : aucun keystore n'est suivi par git ; les scripts sont des
-  générateurs. Si un keystore de release est un jour généré avec ce mot de
-  passe, la clé de signature est compromise.
-- **Statut** : documenté. Proposé : PROPOSITIONS.md P4.
+### R9 — Mot de passe de keystore Android codé en dur (`lumina1234`) — ✅ CORRIGÉ
+- **Défaut** : 10 scripts (`scripts/generate-keystore*.{sh,js,py}`,
+  `GetFingerprints.{sh,py,js}`, `show-fingerprints.sh`, `generate-and-show.sh`)
+  codaient `lumina1234` comme mot de passe du keystore de signature Android.
+- **Analyse** : aucun keystore n'est suivi par git ; ces scripts sont des
+  générateurs **dev-only** (le workflow de release utilise les secrets GitHub
+  `ANDROID_KEYSTORE_*`). Si un keystore de release était généré avec ce mot de
+  passe, la clé de signature serait compromise.
+- **✅ CORRIGÉ (2026-11-04)** : les 10 scripts lisent désormais le mot de passe
+  depuis `LUMINA_KEYSTORE_PASSWORD` (variable d'environnement), avec un repli
+  de développement `lumina1234` explicitement conservé (comportement des
+  scripts dev inchangé si la variable est absente). Syntaxe revérifiée
+  (`bash -n`, `py_compile`, `node --check`). Garde anti-réintroduction :
+  `src/lib/__tests__/keystore-password-r9.test.ts` — tout script de `scripts/`
+  qui cite le littéral DOIT référencer la variable d'environnement (le littéral
+  ne peut plus être une valeur autonome).
 
 ### R10 — 47 profils orphelins (`org_id = '__no_org__'`)
 - **Défaut** : 47 profils portent la sentinelle `__no_org__` (avant onboarding),
@@ -3169,7 +3181,7 @@ sauvegarde disponible).
   risque documenté.
 - **Statut** : ouvert, escalade (non bloquant pour le code).
 
-### R105 — Garde de route RBAC déclarée mais INERTE + permissions `invitation:*` orphelines — CORRIGÉ (partiel)
+### R105 — Garde de route RBAC déclarée mais INERTE + permissions `invitation:*` orphelines — ✅ CORRIGÉ (câblage via R142)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade directe car les pages et la RLS filtrent déjà).
 - **Défaut (2 volets)** :
   1. `resolveRoute()` implémente bien une garde de permission par route
@@ -3209,6 +3221,13 @@ sauvegarde disponible).
   accompagné d'un test E2E par rôle.
 - **Statut** : vocabulaire réconcilié (corrigé + verrouillé) ; câblage de la
   garde = dépendance de PR18 (ouvert).
+- **✅ CÂBLAGE EFFECTUÉ (2026-10-31, R142)** — `App.tsx` alimente désormais
+  `hasPermission: (p) => roleHasPermission(userRole, p)` dans `resolveRoute()`,
+  et `route-state-wiring.test.ts` n'a plus AUCUN champ dans `PENDING_WIRING`
+  (`hasPermission` retiré). Les prérequis de R142 ont été traités : `ADMIN` est
+  le 15ᵉ rôle canonique (R109) et le mapping des routes `/admin/reports*` a été
+  ajusté. **R105 est donc entièrement résolu** — la garde de permission est
+  vivante (défense en profondeur ; la RLS reste la barrière serveur).
 
 ### R106 — Écran « mise à jour requise » (PR6) déclaré mais INERTE (aucune source de version de schéma) — CORRIGÉ (2026-10-27)
 - **Gravité** : FAIBLE (aucun écran noir ; mais le garde-fou de compatibilité APK est absent).

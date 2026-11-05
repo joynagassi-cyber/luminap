@@ -36,6 +36,22 @@ python3 scripts/GetFingerprints.py
 
 ---
 
+## 🔐 Mot de passe du keystore (R9)
+
+Les scripts lisent le mot de passe depuis la variable d'environnement
+**`LUMINA_KEYSTORE_PASSWORD`**. En son absence, ils retombent sur un mot de
+passe de **développement** (`lumina1234`) — jamais à utiliser pour un keystore
+de release. Pour un keystore de production :
+
+```bash
+LUMINA_KEYSTORE_PASSWORD='<mot-de-passe-fort>' bash scripts/generate-keystore.sh
+```
+
+Le workflow de release (`release.yml`) n'appelle AUCUN de ces scripts : il
+décode le keystore depuis les secrets GitHub `ANDROID_KEYSTORE_*`.
+
+---
+
 ## 📋 Résultat attendu
 
 ```
@@ -46,7 +62,7 @@ python3 scripts/GetFingerprints.py
   📦 Package      : com.lumina.mfejc
   📁 Keystore     : android/app/release.keystore
   🔑 Alias        : lumina-release
-  🔐 Password     : lumina1234
+  🔐 Password     : $LUMINA_KEYSTORE_PASSWORD (dev par défaut)
 
   ─────────────────────────────────────────────────────────────────
   🔐 SHA1 (Release)   : XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX:XX

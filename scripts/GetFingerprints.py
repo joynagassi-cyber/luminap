@@ -5,6 +5,7 @@ Générateur de keystore et empreintes SHA1/SHA256
 Usage: python3 scripts/GetFingerprints.py
 """
 
+import os
 import hashlib
 import struct
 import base64
@@ -14,7 +15,7 @@ from pathlib import Path
 # Configuration
 APP_ID = "com.lumina.mfejc"
 KEY_ALIAS = "lumina-release"
-KEYSTORE_PASSWORD = "lumina1234"
+KEYSTORE_PASSWORD = os.environ.get("LUMINA_KEYSTORE_PASSWORD", "lumina1234")
 DURATION_DAYS = 10000
 KEYSTORE_FILE = "android/app/release.keystore"
 
