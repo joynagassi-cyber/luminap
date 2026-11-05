@@ -4847,3 +4847,32 @@ partagée par les deux plateformes et couverte par 3 tests.
   n'existe).
 - **Statut** : corrigé, appliqué à la base (via MCP `apply_migration`), vérifié
   (UPDATE APPROVED → 23514 ; transition DRAFT→APPROVED → OK ; données intactes).
+
+### Audit backend — RLS écriture / Storage / RPC / edge `create_org` (2026-11-04) — CONFORME
+- **RLS écriture (INSERT/UPDATE/DELETE)** : TOUTES les tables `public` sont
+  gardées par `is_org_member(initplan_uid(), org_id) AND has_permission(…)`,
+  sauf exceptions VOLONTAIRES et documentées : `audit_entries_insert`
+  (`is_org_member`, append-only — R140), `notifications_update`
+  (`is_org_member` + `GRANT UPDATE(is_read)` colonne seule — R148),
+  `profiles_update/delete` (`initplan_uid() = id`, self), `org_reports_emitter`
+  (`from_org_id = current_org_id()`), `invitation_claims_insert` (claim par un
+  gestionnaire ou self non-ACTIVE). Aucune table financière sans `has_permission`.
+- **Storage** : 4 buckets. `archives`/`expense_proofs` scoping
+  `foldername[1]` = org (convention d'upload `uploadLuminaFile` = `${orgId}/…`) ;
+  `org_reports` scoping `foldername[2]` (chemin `org_reports/<from_org>/…`,
+  cohérent) + lecture conditionnée à l'appartenance émetteur/destinataire ;
+  `logos` public (non sensible). Aucune fuite cross-org détectée.
+- **Surface RPC SECURITY DEFINER** exécutable par `authenticated` : prédicats
+  d'aide (`is_org_member`, `is_org_admin`, `has_permission`, `can_manage_invitations`,
+  `current_org_id`, `org_descendants`) — prennent `p_uid` en paramètre (motif
+  Postgres RLS) → divulgation d'appartenance à une org pour un uid ARBITRAIRE
+  (fuite d'information MINEURE, non exploitable pour escalader : les policies
+  utilisent `initplan_uid()`, pas le paramètre) ; `upsert_profile` DURCI
+  (`p_user_id = auth.uid()` + `is_org_admin` pour rôle/org) ; `keep_alive_ping`
+  anon (by design).
+- **Edge `create_org` (v11)** : gardé — self-serve borné au premier org (profil
+  sans org), chemin admin vérifié (grant `org_admins` ACTIVE OU `role='ADMIN'`),
+  appartenance admin de l'org PARENTE vérifiée, rollback org+grant en cas
+  d'échec. Observation mineure : un admin d'org peut créer une org RACINE
+  (`parentOrgId=null`) — cohérent avec la RLS `orgs_insert_merged` (déjà permise),
+  pas une nouvelle faille ; pas de rate-limit (abus = spam d'orgs, LOW).

@@ -1768,3 +1768,26 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   correspondant ; **delta d'objets = 0**. Pas de régularisation de l'historique
   tracker (cosmétique, risque de casser le tracking). Fichiers horodatés =
   artefact de référence.
+
+## Audit backend Lumina — round triggers/RLS/Storage/RPC (2026-11-04)
+- **R164 (CORRIGÉ)** : « transaction APPROVED immuable » n'était appliqué qu'en
+  CLIENT (`updateTransactionPS`) et, en base, QUE pour le DELETE (R102). Un
+  `UPDATE transactions SET amount=…` sur une pièce APPROVED passait (PowerSync
+  service_role contourne la RLS). Migration `20261104000007` : trigger BEFORE
+  UPDATE `guard_approved_transaction_update` qui refuse TOUTE modif d'une ligne
+  `OLD.status='APPROVED'` (transition VERS APPROVED permise). **PIÈGE** : la 1re
+  version (`… AND NEW.status IS DISTINCT FROM 'APPROVED'`) laissait passer une
+  édition de MONTANT seul → toujours tester par un `DO $$` auto-annulant.
+- **Code d'erreur PowerSync** : le connecteur ne JETTE (discard) que les classes
+  `22xxx`/`23xxx`/`42501` (`FATAL_RESPONSE_CODES`). Un `P0001` tombe en retry
+  INFINI et bloque la file d'upload. ⇒ toute garde de trigger destinée à
+  PowerSync doit lever `23514` (ou 23xxx), pas `P0001`.
+- **Invariant R115** : toute NOUVELLE fonction de trigger `SECURITY DEFINER`
+  doit être `REVOKE ALL … FROM PUBLIC, anon, authenticated` APRÈS le CREATE —
+  sinon `revoke-trigger-functions.test.ts` échoue (garde qui a correctement
+  détecté ma fonction non révoquée).
+- **Audit confirmé conforme** : RLS écriture partout `is_org_member + has_permission`
+  (exceptions volontaires documentées) ; Storage 4 buckets cloisonnés par org
+  (foldername[1] ou [2]) ; `upsert_profile` durci ; `create_org` gardé.
+- **R16/R107/R109** : la doc `SECURITY.md` avait 3 lignes en retard (déjà
+  résolus dans le code) — re-mesurer via MCP/le code, jamais la doc seule.
