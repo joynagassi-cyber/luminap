@@ -264,6 +264,7 @@ describe("notification capability", () => {
       await notif.initialize();
       await notif.sendNotification({
         ...baseData,
+        actionType: "TRANSACTION_PENDING",
         targetRole: "TREASURIER",
         targetUserId: "user-42",
       });
@@ -273,7 +274,7 @@ describe("notification capability", () => {
       expect(insert).toBeDefined();
       expect(insert!.params).toEqual([
         "org-test-1",
-        "TREASURIER",
+        "TRANSACTION_PENDING",
         "Hello",
         expect.stringContaining('"targetUserId":"user-42"'),
         "user-42",
@@ -283,13 +284,24 @@ describe("notification capability", () => {
       expect(mockPlugin.setTags).toHaveBeenCalled();
     });
 
-    it("stamps action_type PUSH when no targetRole is given", async () => {
+    it("stamps action_type PUSH when no actionType is given", async () => {
       await notif.initialize();
       await notif.sendNotification(baseData);
       const insert = mockExecutions.find((e) =>
         /INSERT INTO notifications/i.test(e.sql),
       );
       expect(insert!.params[1]).toBe("PUSH");
+    });
+
+    it("R74 — un targetRole SEUL n'écrit JAMAIS le rôle dans action_type", async () => {
+      await notif.initialize();
+      await notif.sendNotification({ ...baseData, targetRole: "TREASURIER" });
+      const insert = mockExecutions.find((e) =>
+        /INSERT INTO notifications/i.test(e.sql),
+      );
+      // action_type reste un type d'événement, pas le rôle destinataire.
+      expect(insert!.params[1]).toBe("PUSH");
+      expect(insert!.params[1]).not.toBe("TREASURIER");
     });
 
     // GAP FERMÉ : avant ce correctif, `sendNotification` ne faisait QUE
@@ -305,6 +317,7 @@ describe("notification capability", () => {
       });
       expect(mockSendCloudPush).toHaveBeenCalledTimes(1);
       expect(mockSendCloudPush).toHaveBeenCalledWith({
+        actionType: "PUSH",
         title: "Hello",
         message: "World",
         targetRole: "TREASURIER",

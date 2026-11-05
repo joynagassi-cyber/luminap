@@ -1699,7 +1699,7 @@ Supabase (action propriétaire, cf. RUNBOOK).
   « corrige » pas ces fonctions et ne rouvre pas la faille.
 
 
-### R74 — Ciblage des notifications : `action_type` détourné en « rôle » — OUVERT (moyenne)
+### R74 — Ciblage des notifications : `action_type` détourné en « rôle » — CORRIGÉ (2026-11-04)
 
 **Origine** : en corrigeant R70 (erreur de type `targetRole: "ADMIN"`), une
 vérification plus poussée a montré que la correction de type ne suffisait pas
@@ -1782,6 +1782,26 @@ réel était une **erreur de type** (`"ADMIN"` n'appartient pas à `Role`) que
 `as any` masquait, et une **incohérence sémantique** de la colonne
 `action_type`. La correction de type reste valable ; l'interprétation
 fonctionnelle était fausse. Le présent rectificatif fait foi.
+
+**✅ CORRIGÉ (2026-11-04)** : séparation propre « type d'événement » vs
+« destinataire ».
+- `NotificationSendData` (et `ReminderNotificationData`) exposent désormais un
+  champ `actionType?: string` (type d'événement) **distinct** de `targetRole`
+  (ciblage). `sendNotification` écrit `data.actionType ?? "PUSH"` dans
+  `notifications.action_type` — **plus jamais** le rôle.
+- `cloudPush` transmet `payload.actionType` (et non `payload.targetRole`) dans
+  le champ `actionType` de l'edge function.
+- Les 11 sites d'appel (TransactionDetail ×4, TransactionNew, EventNew,
+  GivingCampaign ×2, FormFill, InvitationEmit, InvitationClaim, Versement,
+  SettingsNotifications, reportReminders) posent un **type d'événement** :
+  `TRANSACTION_{PENDING,APPROVED,REJECTED,DELETED,REVERSED}`, `EVENT_CREATED`,
+  `GIVING_PLEDGE`, `TAX_RECEIPT`, `FORM_SUBMITTED`, `INVITATION_SENT`,
+  `INVITATION_RECEIVED`, `VERSEMENT_RECORDED`, `REPORT_REMINDER`, `TEST`.
+- `notifIconKey` reconnaît ces types (icônes existantes réutilisées, aucune
+  icône nouvelle) → l'icône distingue enfin les notifications.
+- Garde : `src/lib/__tests__/notification-action-type-r74.test.ts` (3) +
+  `Notifications-icon.test.tsx` étendu ; `notification.test.ts` verrouille
+  « targetRole seul → action_type = PUSH ».
 
 ### R75 — Colonne « Soumetteur » : UUID brut au lieu du nom — CORRIGÉ (moyenne)
 

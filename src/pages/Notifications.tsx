@@ -32,6 +32,7 @@ export function notifIconKey(
     case "EVENT_CREATED":
       return "event";
     case "INVITATION_RECEIVED":
+    case "INVITATION_SENT":
       return "invitation";
     case "FORM_SUBMITTED":
       return "form";
@@ -41,6 +42,19 @@ export function notifIconKey(
       return "approved";
     case "BUDGET_EXCEEDED":
       return "exceeded";
+    // R74 — types d'événement désormais écrits par le client (au lieu d'un
+    // rôle). Rattachés aux icônes existantes (aucune icône nouvelle).
+    case "TRANSACTION_REJECTED":
+    case "TRANSACTION_DELETED":
+      return "exceeded"; // action destructive/refus → alerte rouge
+    case "TRANSACTION_REVERSED":
+    case "REPORT_REMINDER":
+      return "pending"; // action à surveiller → alerte orange
+    case "GIVING_PLEDGE":
+    case "VERSEMENT_RECORDED":
+      return "approved"; // entrée d'argent → vert
+    case "TAX_RECEIPT":
+      return "form"; // document généré
     default:
       return "default";
   }

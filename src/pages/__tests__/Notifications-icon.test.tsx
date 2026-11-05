@@ -20,6 +20,17 @@ describe("notifIconKey — icône des notifications", () => {
     expect(notifIconKey("BUDGET_EXCEEDED")).toBe("exceeded");
   });
 
+  it("R74 — mappe les types d'événement désormais écrits par le client", () => {
+    expect(notifIconKey("TRANSACTION_REJECTED")).toBe("exceeded");
+    expect(notifIconKey("TRANSACTION_DELETED")).toBe("exceeded");
+    expect(notifIconKey("TRANSACTION_REVERSED")).toBe("pending");
+    expect(notifIconKey("REPORT_REMINDER")).toBe("pending");
+    expect(notifIconKey("GIVING_PLEDGE")).toBe("approved");
+    expect(notifIconKey("VERSEMENT_RECORDED")).toBe("approved");
+    expect(notifIconKey("TAX_RECEIPT")).toBe("form");
+    expect(notifIconKey("INVITATION_SENT")).toBe("invitation");
+  });
+
   it("retombe sur l'icône générique pour un type inconnu ou vide", () => {
     expect(notifIconKey("PUSH")).toBe("default");
     expect(notifIconKey("")).toBe("default");

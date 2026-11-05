@@ -172,6 +172,7 @@ export default function SettingsNotifications() {
     setTestPending(true);
     try {
       const payload = {
+        actionType: "TEST",
         title: "Notification de test",
         message: "Si vous voyez ceci, les notifications fonctionnent.",
         targetUserId: undefined,

@@ -269,6 +269,7 @@ export default function TransactionNew() {
     // Notify the treasurers that a transaction is pending approval
     if (isExpense && status === "PENDING") {
       notification.sendNotification({
+        actionType: "TRANSACTION_PENDING",
         title: "Transaction en attente d'approbation",
         message: `Nouvelle dépense de ${trimmedAmount} FCFA — ${safeDescription}`,
         targetRole: "TREASURIER",

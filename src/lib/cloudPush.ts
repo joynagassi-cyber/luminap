@@ -17,6 +17,11 @@
  */
 
 export interface CloudPushPayload {
+  /**
+   * Type d'ÉVÉNEMENT transmis à l'edge function (champ `actionType`, journalisé).
+   * Défaut `"PUSH"`. NE PAS y mettre le rôle destinataire (R74).
+   */
+  actionType?: string;
   title: string;
   message: string;
   targetRole?: string;
@@ -66,7 +71,7 @@ export async function sendCloudPush(
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        actionType: payload.targetRole ?? "PUSH",
+        actionType: payload.actionType ?? "PUSH",
         title: payload.title,
         message: payload.message,
         targetRole: payload.targetRole,

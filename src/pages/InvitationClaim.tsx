@@ -208,6 +208,7 @@ export default function InvitationClaim() {
 
       // Notify the org admin that an invitation was claimed (in-app + tags)
       notification.sendNotification({
+        actionType: "INVITATION_RECEIVED",
         title: "Invitation acceptée",
         message: `Nouveau membre : ${parsedPayload.role ?? "membre"} a rejoint l'organisation`,
         targetRole: "ADMIN",

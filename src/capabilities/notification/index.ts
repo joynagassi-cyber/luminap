@@ -19,6 +19,17 @@ import type { Role } from "@/types";
 export interface NotificationSendData {
   title: string;
   message: string;
+  /**
+   * Type d'ÉVÉNEMENT persisté dans `notifications.action_type` (ex.
+   * `TRANSACTION_PENDING`, `EVENT_CREATED`). C'est ce que lit l'UI pour
+   * choisir l'icône. NE PAS confondre avec `targetRole` (destinataire).
+   * Défaut `"PUSH"` pour un envoi sans catégorie.
+   */
+  actionType?: string;
+  /**
+   * Destinataire visé (rôle) — sert au CIBLAGE OneSignal (tag `target_role`),
+   * JAMAIS écrit dans `action_type` (R74).
+   */
   targetRole?: Role;
   targetUserId?: string;
   extraData?: Record<string, string>;
@@ -136,7 +147,7 @@ export class NotificationCapability {
          VALUES (?, ?, ?, ?, 0, ?, ?)`,
         [
           getOrganizationId(),
-          data.targetRole ?? "PUSH",
+          data.actionType ?? "PUSH",
           data.title,
           data.message + (Object.keys(payload).length ? ` ${JSON.stringify(payload)}` : ""),
           data.targetUserId ?? null,
@@ -174,6 +185,7 @@ export class NotificationCapability {
     //    landed, so the user still sees the notification).
     const { sendCloudPush } = await import("@/lib/cloudPush");
     await sendCloudPush({
+      actionType: data.actionType ?? "PUSH",
       title: data.title,
       message: data.message,
       targetRole: data.targetRole,
