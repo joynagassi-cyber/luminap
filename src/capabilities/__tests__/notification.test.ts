@@ -273,6 +273,7 @@ describe("notification capability", () => {
       );
       expect(insert).toBeDefined();
       expect(insert!.params).toEqual([
+        expect.any(String), // id (uuid généré côté client — cf. R161)
         "org-test-1",
         "TRANSACTION_PENDING",
         "Hello",
@@ -290,7 +291,7 @@ describe("notification capability", () => {
       const insert = mockExecutions.find((e) =>
         /INSERT INTO notifications/i.test(e.sql),
       );
-      expect(insert!.params[1]).toBe("PUSH");
+      expect(insert!.params[2]).toBe("PUSH");
     });
 
     it("R74 — un targetRole SEUL n'écrit JAMAIS le rôle dans action_type", async () => {
@@ -300,8 +301,8 @@ describe("notification capability", () => {
         /INSERT INTO notifications/i.test(e.sql),
       );
       // action_type reste un type d'événement, pas le rôle destinataire.
-      expect(insert!.params[1]).toBe("PUSH");
-      expect(insert!.params[1]).not.toBe("TREASURIER");
+      expect(insert!.params[2]).toBe("PUSH");
+      expect(insert!.params[2]).not.toBe("TREASURIER");
     });
 
     // GAP FERMÉ : avant ce correctif, `sendNotification` ne faisait QUE

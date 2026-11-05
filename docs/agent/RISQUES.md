@@ -4730,3 +4730,20 @@ partagée par les deux plateformes et couverte par 3 tests.
   étaient soit morte, soit désormais corrigée). Toute nouvelle occurrence échoue.
 - **Preuve** : 112 tests (organization, e2e-organization, e2e, invitation,
   garde) verts ; mocks de test alignés sur le nouveau SQL.
+
+### R161 — `INSERT` PowerSync sans `id` (« id is required ») — ✅ CORRIGÉ
+- **Classe** : PowerSync n'attribue PAS d'`id` sur un `INSERT` explicite (il
+  l'ajoute au schéma mais ne le génère pas). Un `INSERT` sans colonne `id` échoue
+  avec « id is required » — silencieusement si l'appelant avale l'erreur.
+- **Occurrence vivante** : `sendNotification` (`capabilities/notification/index.ts`)
+  insérait `notifications` (org_id, action_type, …) **sans `id`**, dans un
+  `try/catch` qui ne fait qu'un `console.warn` → **aucune notification n'était
+  jamais persistée** dans l'historique in-app. Appelé par `GivingCampaign.tsx`,
+  `FormFill.tsx`, `TransactionNew.tsx`, `Versement.tsx`, `reportReminders.ts`.
+  (`notifications.id` est un `uuid` PostgreSQL → UUID client valide.)
+- **Correctif** : génération de `crypto.randomUUID()` et ajout de `id` à l'INSERT.
+- **Garde** : `ps-view-upsert-guard.test.ts` échoue désormais sur tout `INSERT`
+  (vers une table du schéma) qui ne déclare pas la colonne `id`. Balayage dépôt :
+  plus aucune occurrence.
+- **Preuve** : tests notification 16/16 + garde, verts (params d'INSERT indexés
+  en conséquence).
