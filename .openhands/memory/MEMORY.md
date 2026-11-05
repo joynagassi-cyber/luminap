@@ -1516,3 +1516,37 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   Suite : 274 fichiers / 2654 tests OK ; tsc 0 ; eslint 0.
 - Dérive : 86 ts / 63 seq / 149 total ; hash noms
   `fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2`.
+
+## R-A — isolation CI/prod + purge artefacts E2E (2026-11-04, commit 2ad6739d)
+- **Défaut** : `cypress.yml`/`ci.yml` injectaient les secrets **prod**
+  (`SUPABASE_URL`/`POWERSYNC_URL`) dans les jobs E2E → la prod servait de bac à
+  sable. `cy.cleanupTestArtifacts` est **non fatal** et n'efface ni orgs ni
+  `auth.users` ⇒ pollution illimitée (mesuré : 267 orgs / 101 comptes).
+- **Purge prod (exécutée)** : bloc `DO` atomique. `267→5` orgs, `101→4` comptes,
+  `ss-e2e-*`=0. Conservés : `lumina-org-e2e@` + `lumina-org-unconfigured@`
+  (persistants partagés), 2 églises réelles, `org-central`. **Danger** :
+  supprimer un dernier admin d'org déclenche `org_assert_not_last_admin`
+  (`trg_org_admins_not_last`) → il faut `alter table ... disable trigger` puis
+  `enable` dans la MÊME transaction. `org_family`/`org_federation` sont des
+  **VUES** (non supprimables). `org_admins.admin_profile_id`/`granted_by` sont
+  `text` (≠ `auth.users.id` uuid) → comparer en `::text`.
+- **Outillage** : `scripts/e2e-purge.sql` (idempotent), `scripts/e2e-purge.sh`
+  (API Management `SUPABASE_ACCESS_TOKEN`), workflow `e2e-purge.yml` (post-run
+  Cypress `workflow_run` + cron 04:30 UTC), `pnpm e2e:purge`.
+- **Durcissement** : `cypress.yml`+`ci.yml` préfèrent `TEST_SUPABASE_URL`/
+  `TEST_SUPABASE_ANON_KEY`/`TEST_POWERSYNC_URL` (repli prod). **Blocage** :
+  créer le projet de TEST exige un token Management rattaché à une **org** —
+  `GET /v1/organizations` → `[]` avec le token actuel. À faire par le
+  propriétaire.
+- **Endpoint SQL Management** (clé du script) :
+  `POST https://api.supabase.com/v1/projects/<ref>/database/query` body
+  `{"query":"..."}` (Bearer `$SUPABASE_ACCESS_TOKEN`) → renvoie du JSON.
+- **PIÈGE tsc** : `npx tsc --noEmit` ne vérifie RIEN (tsconfig racine
+  `files:[]`) ; **toujours `npx tsc -b`**. Il a révélé un `TS2538` dans
+  `a11y-screens.test.tsx` (index `symbol` du Proxy) introduit par le commit
+  précédent → corriger en typant `(t, p: PropertyKey)`.
+- **PIÈGE garde** : ne pas scanner les **commentaires** d'un fichier SQL/doc qui
+  CITENT les motifs interdits (`not.toMatch` matcherait sa propre doc) → filtrer
+  les lignes `--`.
+- Garde : `src/lib/__tests__/ci-e2e-isolation-ra.test.ts` (5). Suite : 275
+  fichiers / 2659 tests OK ; tsc -b 0 ; eslint 0.
