@@ -4876,3 +4876,24 @@ partagée par les deux plateformes et couverte par 3 tests.
   d'échec. Observation mineure : un admin d'org peut créer une org RACINE
   (`parentOrgId=null`) — cohérent avec la RLS `orgs_insert_merged` (déjà permise),
   pas une nouvelle faille ; pas de rate-limit (abus = spam d'orgs, LOW).
+
+### R165 — Stream `invitations` : ADMIN exclu des gestionnaires d'invitations — ✅ CORRIGÉ
+- **Classe** : dérive entre le modèle de permissions (`src/lib/rbac.ts`) et le
+  filtre de rôle EN DUR d'un stream PowerSync.
+- **Défaut** : les streams `invitations` et `invitation_claims`
+  (`powersync/sync-config.yaml`) filtraient
+  `role IN ('PASTEUR_PRINCIPAL','ANCIEN','TREASURIER')` — **ADMIN absent**. Or
+  ADMIN porte `invitation:manage` (rbac.ts) et `can_manage_invitations` (SQL)
+  l'inclut, et la route `/invitation/manage` est gardée par `invitation:manage`.
+  Conséquence : un **ADMIN** ouvrait l'écran de gestion des invitations mais
+  **aucune invitation n'était synchronisée** (liste vide, en ligne comme hors
+  ligne — PowerSync est l'unique source de données de l'app).
+- **Correctif** : ajout de `'ADMIN'` aux 4 listes de rôles des 2 streams ;
+  `powersync validate` ✓ ; **redéployé** (`powersync deploy sync-config`,
+  instance Production `6a9dd96302481fb31b945823`) ; `deployed == dépôt` (0 diff).
+- **Garde** : `sync-stream-invitation-roles-r165.test.ts` verrouille l'égalité
+  entre les rôles `invitation:manage` de `rbac.ts` et les littéraux des 2
+  streams (non-vacuité : retirer ADMIN fait échouer).
+- **Note d'outillage** : la CLI est le package npm `powersync` (pas
+  `@powersync/cli`) ; auth via `PS_ADMIN_TOKEN` (ici `$POWERSYNC_TOKEN`).
+  `powersync deploy sync-config --dry-run` montre le diff avant déploiement.

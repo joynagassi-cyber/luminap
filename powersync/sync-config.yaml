@@ -288,12 +288,12 @@ streams:
       WHERE org_id IN (
         SELECT org_id FROM org_memberships
         WHERE user_id = auth.user_id() AND status = 'ACTIVE'
-          AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
+          AND (role = 'ADMIN' OR role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
       )
       OR org_id IN (
         SELECT org_id FROM profiles
         WHERE id = auth.user_id()
-          AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
+          AND (role = 'ADMIN' OR role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
       )
 
   invitation_claims:
@@ -305,12 +305,12 @@ streams:
         WHERE org_id IN (
           SELECT org_id FROM org_memberships
           WHERE user_id = auth.user_id() AND status = 'ACTIVE'
-            AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
+            AND (role = 'ADMIN' OR role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
         )
         OR org_id IN (
           SELECT org_id FROM profiles
           WHERE id = auth.user_id()
-            AND (role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
+            AND (role = 'ADMIN' OR role = 'PASTEUR_PRINCIPAL' OR role = 'ANCIEN' OR role = 'TREASURIER')
         )
       )
 
