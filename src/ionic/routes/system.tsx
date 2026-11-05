@@ -25,7 +25,32 @@ const SettingsAbout = lazy(() => import("@/pages/SettingsAbout"));
 const Health = lazy(() => import("@/pages/Health"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+/** Chemin du Design Lab (route dev-only, voir `devRoutes` ci-dessous). */
+const DESIGN_LAB_PATH = "/dev/design-lab";
+
+/**
+ * Routes de développement, compilées HORS des builds de production :
+ * `import.meta.env.DEV` est remplacé statiquement par `false` en prod, donc
+ * le corps (et son import dynamique) sont éliminés du bundle.
+ */
+function devRoutes(): ReactElement[] {
+  if (!import.meta.env.DEV) return [];
+  const DesignLab = lazy(() => import("@/pages/DesignLab"));
+  return [
+    // Le chemin passe par une constante : les gardes anti-dérive extraient
+    // les chemins littéraux des fichiers de routes pour comparer registre ↔
+    // routes montées ↔ crawler E2E de PROD. Cette route étant compilée hors du
+    // build prod, elle ne doit pas apparaître dans ces listes.
+    <Route
+      key={DESIGN_LAB_PATH}
+      path={DESIGN_LAB_PATH}
+      element={<LazyRoute component={DesignLab} />}
+    />,
+  ];
+}
+
 export const systemRoutes: ReactElement[] = [
+  ...devRoutes(),
   <Route
     key="/trace"
     path="/trace"
