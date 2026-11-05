@@ -192,3 +192,7 @@ tranchée : pile unique, BottomNav maison).
   généré au build ; application du seuil C6 sur les surfaces historiques.
   Violet est préparé mais pas encore sélectionnable ; raccordement Ionic,
   Provider, `custom` interactif et contrôle AA global restent à faire.
+- P1 lot 3 en cours : Provider/hook sur les préférences existantes, transitions
+  avec respect du mouvement réduit, détection et choix des effets. Le réglage
+  `lite` agit sur les jetons de verre ; il ne retouche pas les écrans anciens.
+  Le raccordement du violet, `custom`, le pont Ionic et Design Lab restent dus.

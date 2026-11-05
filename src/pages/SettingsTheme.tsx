@@ -2,6 +2,7 @@ import { useState } from "react";
 import SettingsShell from "@/components/SettingsShell";
 import ThemeToggle from "@/components/ThemeToggle";
 import ThemePicker from "@/components/ThemePicker";
+import { EffectsToggle } from "@/components/EffectsToggle";
 import BadgeGallery from "@/components/BadgeGallery";
 import MoneyFormatPicker from "@/components/MoneyFormatPicker";
 import { getStoredThemeId, type ThemeId } from "@/ionic/themes";
@@ -27,6 +28,15 @@ export default function SettingsTheme() {
         <p className="text-text-tertiary text-xs mt-3">
           « Système » suit le réglage clair/sombre de votre appareil. Le choix
           se conserve entre les sessions et s'applique à toute l'application.
+        </p>
+      </div>
+
+      <div className="rounded-xl p-4 mb-4"
+        style={{ backgroundColor: "var(--lu-surface)", border: "1px solid var(--lu-border)" }}>
+        <p className="text-text-primary font-semibold text-sm mb-3">Effets visuels</p>
+        <EffectsToggle />
+        <p className="text-text-tertiary text-xs mt-3">
+          Les effets allégés réduisent le flou des nouveaux composants ; ce choix peut améliorer la fluidité.
         </p>
       </div>
 

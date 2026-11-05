@@ -7,6 +7,7 @@
  */
 
 import { Check } from "lucide-react";
+import { withThemeTransition } from "@/design-system/theme/transition";
 import {
   LUMINA_THEMES,
   applyTheme,
@@ -40,7 +41,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
               type="button"
               onClick={() => {
                 onChange(t.id);
-                applyTheme(t);
+                withThemeTransition(() => applyTheme(t));
               }}
               aria-label={t.name}
               aria-pressed={selected}
