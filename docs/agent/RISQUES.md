@@ -4649,3 +4649,27 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Statut** : conforme. La capacité `powersync deploy sync-config` étant
   désormais disponible, les correctifs futurs touchant les streams sont
   déployables depuis cet environnement (lève le blocage historique).
+
+### R148 — `notifications_update` re-évaluait `auth.uid()` par ligne (WARN initplan) — ✅ CORRIGÉ
+- **Défaut (advisor `auth_rls_initplan`, LIVE 2026-11-04)** : la policy
+  `notifications_update` appelait `is_org_member(auth.uid(), org_id)` alors que
+  **toutes** les autres policies du projet passent `initplan_uid()` (wrapper
+  STABLE de `request.jwt.claims->>'sub'`). `current_setting()` était donc
+  ré-évalué pour chaque ligne → WARN performance.
+- **Cause** : introduit par la migration R-H `20261104000002_notifications_read_policy`
+  (même jour) — la seule migration à utiliser `auth.uid()` dans une policy.
+- **Correctif** : migration `20261104000006_notifications_update_initplan.sql`
+  (`ALTER POLICY … USING/WITH CHECK (is_org_member(initplan_uid(), org_id))`).
+  Sémantique **identique** (même identité, tout membre de l'org ; la borne
+  d'écriture reste le privilège colonne `GRANT UPDATE (is_read)`). Rollback
+  fourni (`rollback/20261104000006_rollback.sql`).
+- **Preuve** : advisor `auth_rls_initplan` **disparu** après application ;
+  `pg_policies` confirme `initplan_uid()` ; tests notifications verts
+  (`r-h-notification-read`, `r141d-write-permission-guard`,
+  `pr18-write-permission-guard` = 16).
+- **Statut** : **CORRIGÉ** (appliqué en base live + migration versionnée).
+- **Restes perf (INFO/WARN non bloquants)** : 34 index « jamais utilisés »
+  (heuristique bruitée par les index alimentant les requêtes PowerSync —
+  **ne pas dropper** sans analyse par index) ; `multiple_permissive_policies`
+  sur `organizations` (2 policies SELECT volontaires : fédération + membre) et
+  `org_reports` (émetteur/récepteur — fusionnables en OR, non prioritaire).

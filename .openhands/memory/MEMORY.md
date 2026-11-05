@@ -64,6 +64,16 @@
   connectée (lag 0) ; couverture des streams complète (seule table locale
   `config` sans stream). Le blocage « PS_ADMIN_TOKEN absent » est levé.
 
+## Règles RLS / migrations (2026-11-04)
+- **Toute policy RLS utilise `initplan_uid()`**, jamais `auth.uid()` (sinon
+  advisor `auth_rls_initplan` : ré-évaluation par ligne). Piège : la migration
+  R-H `20261104000002` l'avait fait → corrigé par `20261104000006`.
+- **Advisors perf** : 34 index « jamais utilisés » = heuristique bruitée par
+  les index d'alimentation PowerSync → NE PAS dropper sans analyse par index.
+  `multiple_permissive_policies` sur `organizations`/`org_reports` = voulu.
+- **R6/R104** : voir bloc « Config Auth GoTrue ». **R146/R147/R148** = audits
+  LIVE conformes/corrigés (advisors security, PowerSync, perf).
+
 ## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
 - **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
   `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒
