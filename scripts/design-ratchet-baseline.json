@@ -1,0 +1,661 @@
+{
+  "version": 1,
+  "files": {
+    "src/App.tsx": [
+      "style.boxShadow:none"
+    ],
+    "src/adapters/CaisseAdapter.ts": [
+      "#FF6B00"
+    ],
+    "src/components/CameraScanner.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--data-alert) 12%, transparent)",
+      "style.borderColor:color-mix(in srgb, var(--data-alert) 35%, transparent)"
+    ],
+    "src/components/CsvImportPanel.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 18%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, transparent)"
+    ],
+    "src/components/DashboardOnboarding.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/components/DatePicker.tsx": [
+      "style.color:inherit"
+    ],
+    "src/components/DocumentPicker.tsx": [
+      "style.backgroundColor:transparent"
+    ],
+    "src/components/EventTasks.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--text-tertiary) 12%, transparent)"
+    ],
+    "src/components/FeatureSidebar.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 16%, var(--card))",
+      "style.background:transparent",
+      "style.background:transparent",
+      "style.background:transparent",
+      "style.background:transparent"
+    ],
+    "src/components/FederationGraph.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 14%, transparent)",
+      "style.background:transparent"
+    ],
+    "src/components/GoogleButton.tsx": [
+      "#1976D2",
+      "#4CAF50",
+      "#FF3D00",
+      "#FFC107"
+    ],
+    "src/components/HomeIndicator.tsx": [
+      "style.boxShadow:0 -12px 40px var(--shadow-pop)",
+      "style.boxShadow:0 1px 4px var(--shadow-card)"
+    ],
+    "src/components/LogoSpinner.tsx": [
+      "#FF8533",
+      "#FFB800",
+      "radial-gradient(circle, rgba(255,107,0,0.15) 0%, transparent 70%)",
+      "rgba(255,255,255,0.4)",
+      "rgba(255,255,255,0.4)",
+      "style.background:radial-gradient(circle, rgba(255,107,0,0.15) 0%, transparent 70%)"
+    ],
+    "src/components/LuminaLogo.tsx": [
+      "#CC5500",
+      "#FF8533",
+      "#FFB800",
+      "#FFB800",
+      "rgba(255,255,255,0.3)",
+      "rgba(255,255,255,0.3)"
+    ],
+    "src/components/OrgChildren.tsx": [
+      "style.background:transparent",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/components/PageSkeletons.tsx": [
+      "var(--shadow-card, 0 4px 12px rgba(0,0,0,0.3))"
+    ],
+    "src/components/PdfPreview.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+      "style.backgroundColor:transparent"
+    ],
+    "src/components/PeriodLockCard.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+    ],
+    "src/components/ReportReminderBanner.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, var(--surface))",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 18%, transparent)"
+    ],
+    "src/components/RouteStates.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:transparent"
+    ],
+    "src/components/SegmentedTabs.tsx": [
+      "style.backgroundColor:transparent"
+    ],
+    "src/components/SettingsShell.tsx": [
+      "style.background:none"
+    ],
+    "src/components/TransactionCard.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%,  transparent)"
+    ],
+    "src/components/ui/chart.tsx": [
+      "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-none [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-none [&_.recharts-surface]:outline-none"
+    ],
+    "src/ionic/routes/lazy-route.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, transparent)",
+      "style.backgroundColor:transparent"
+    ],
+    "src/ionic/theme.ts": [
+      "#0F0F10",
+      "#166534",
+      "#18181B",
+      "#1A1A1C",
+      "#232326",
+      "#2C2C30",
+      "#2C2C30",
+      "#4ADE80",
+      "#52525B",
+      "#535353",
+      "#70757D",
+      "#898991",
+      "#92400E",
+      "#9AA0A8",
+      "#A1A1AA",
+      "#B91C1C",
+      "#CC5500",
+      "#E4E4E7",
+      "#E4E6E9",
+      "#EEF0F2",
+      "#F4F4F5",
+      "#F7F7F8",
+      "#F87171",
+      "#FBBF24",
+      "#FF6B00",
+      "#FF8533",
+      "#FFFFFF"
+    ],
+    "src/ionic/themes.ts": [
+      "#064E3B",
+      "#065F46",
+      "#0D9488",
+      "#10B981",
+      "#1E1B4B",
+      "#1E40AF",
+      "#2563EB",
+      "#4C1D95",
+      "#4F46E5",
+      "#5EEAD4",
+      "#6EE7B7",
+      "#78350F",
+      "#7C3AED",
+      "#92400E",
+      "#93C5FD",
+      "#991B1B",
+      "#9D174D",
+      "#A5B4FC",
+      "#A78BFA",
+      "#B45309",
+      "#CC5500",
+      "#D97706",
+      "#DB2777",
+      "#DC2626",
+      "#F9A8D4",
+      "#FCA5A5",
+      "#FCD34D",
+      "#FDE68A",
+      "#FF6B00",
+      "#FF8533"
+    ],
+    "src/lib/auth.ts": [
+      "#FF6B00"
+    ],
+    "src/lib/bootWatchdog.ts": [
+      "color:var(--text-primary,#fff);font-family:var(--font-sans,system-ui,sans-serif)",
+      "font-weight:600;cursor:pointer;background:var(--accent-primary,#6366f1);color:#fff",
+      "text-align:center;background:var(--canvas,#0b0b0c);"
+    ],
+    "src/lib/cotisation-logic.ts": [
+      "#10B981",
+      "#3B82F6",
+      "#808080",
+      "#EF4444"
+    ],
+    "src/lib/dataLayer.ts": [
+      "#FF6B00",
+      "#FF6B00",
+      "INSERT INTO caisses (id, name, description, type, color, org_id, created_at, updated_at)\n     VALUES (?, ?, ?, 'GROUP', '#FF6B00', ?, ?, ?)"
+    ],
+    "src/lib/export.ts": [
+      "#1E1E1E",
+      "#1E1E1E",
+      "#4ADE80",
+      "#646464",
+      "#646464",
+      "#CCCCCC",
+      "#F5F5F5",
+      "#F87171",
+      "#FF6B00"
+    ],
+    "src/lib/group-service.ts": [
+      "#06B6D4",
+      "#14B8A6",
+      "#22C55E",
+      "#3B82F6",
+      "#6366F1",
+      "#8B5CF6",
+      "#EC4899",
+      "#EF4444",
+      "#F59E0B",
+      "#F97316"
+    ],
+    "src/manifest/compiler.ts": [
+      "#4ADE80",
+      "#FF6B00"
+    ],
+    "src/packs/church/index.ts": [
+      "#FF6B00",
+      "#FF6B00",
+      "#FF6B00"
+    ],
+    "src/pages/Archives.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/AuthPage.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Balance.tsx": [
+      "style.background:linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-planified) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/CentralAdmin.tsx": [
+      "style.background:transparent",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Cotisations.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+    ],
+    "src/pages/CustomFields.tsx": [
+      "style.background:linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/Dashboard.tsx": [
+      "style.background:linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 10%, var(--surface)) 0%, var(--surface) 100%)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 16%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
+      "style.backgroundColor:color-mix(in srgb, var(--data-advance) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-advance) 16%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 14%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 14%, transparent)"
+    ],
+    "src/pages/EventDetail.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--text-tertiary) 12%, transparent)"
+    ],
+    "src/pages/EventEdit.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/EventNew.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Federation.tsx": [
+      "style.background:transparent",
+      "style.background:transparent",
+      "style.background:transparent",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 10%, transparent)"
+    ],
+    "src/pages/Finance.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/FormBuilder.tsx": [
+      "style.background:linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/FormFill.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Giving.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, transparent)"
+    ],
+    "src/pages/GroupCotisation.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--data-planified) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/GroupDetail.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--text-tertiary) 12%, transparent)"
+    ],
+    "src/pages/Groups.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-planified) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Health.tsx": [
+      "#f59e0b",
+      "#fff",
+      "#fff",
+      "style.color:#fff",
+      "style.color:#fff",
+      "var(--in, #22c55e)",
+      "var(--out, #ef4444)",
+      "var(--out, #ef4444)"
+    ],
+    "src/pages/Help.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/InvitationClaim.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--data-alert) 10%, transparent)",
+      "style.borderColor:color-mix(in srgb, var(--data-alert) 30%, transparent)"
+    ],
+    "src/pages/InvitationEmit.tsx": [
+      "#000000",
+      "#fff",
+      "#ffffff",
+      "style.backgroundColor:#fff"
+    ],
+    "src/pages/InvitationManage.tsx": [
+      "style.background:transparent",
+      "style.background:transparent"
+    ],
+    "src/pages/Members.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/MembreDetail.tsx": [
+      "style.background:linear-gradient(135deg, var(--data-planified), var(--accent-light))",
+      "style.background:linear-gradient(135deg, var(--surface) 0%, var(--card) 60%)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%,  transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-success) 9%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--text-tertiary) 15%, transparent)"
+    ],
+    "src/pages/MembresEnAvance.tsx": [
+      "style.background:linear-gradient(135deg, var(--surface) 0%, var(--canvas) 100%)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/Notifications.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Onboarding.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 20%, transparent)",
+      "style.background:color-mix(in srgb, var(--accent-primary) 20%, transparent)"
+    ],
+    "src/pages/OrgReportDetail.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 10%, transparent)"
+    ],
+    "src/pages/OrgReportSend.tsx": [
+      "style.background:transparent",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/OrgReportsReceived.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 14%, transparent)",
+      "style.backgroundColor:transparent"
+    ],
+    "src/pages/OrgRoles.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/OrgSetup.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 10%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-alert) 10%, transparent)"
+    ],
+    "src/pages/OrgUnits.tsx": [
+      "style.background:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.background:transparent",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/ReportBuilder.tsx": [
+      "style.background:linear-gradient(135deg, var(--accent-light), var(--accent-primary))"
+    ],
+    "src/pages/Reports.tsx": [
+      "style.background:linear-gradient(135deg, var(--accent-light), var(--accent-primary))",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/SaisieRapide.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--data-planified) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Search.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/Sessions.tsx": [
+      "#FF6B00",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:transparent",
+      "style.backgroundColor:transparent"
+    ],
+    "src/pages/Settings.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+    ],
+    "src/pages/SettingsAbout.tsx": [
+      "var(--in, #22c55e)",
+      "var(--in, #22c55e)"
+    ],
+    "src/pages/SettingsGestion.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--in) 18%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, transparent)"
+    ],
+    "src/pages/SettingsNotifications.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+    ],
+    "src/pages/SettingsPersonalisation.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)"
+    ],
+    "src/pages/SettingsProfile.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 15%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 16%, transparent)"
+    ],
+    "src/pages/Splash.tsx": [
+      "style.boxShadow:none"
+    ],
+    "src/pages/Trace.tsx": [
+      "style.backgroundColor:transparent"
+    ],
+    "src/pages/TransactionDetail.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-advance) 12%, transparent)",
+      "style.backgroundColor:color-mix(in srgb, var(--data-planified) 12%, transparent)"
+    ],
+    "src/pages/TransactionEdit.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/TransactionNew.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/TransactionNewGroup.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/TransferOwnership.tsx": [
+      "style.background:none",
+      "style.backgroundColor:color-mix(in srgb, var(--warn) 12%, transparent)"
+    ],
+    "src/pages/Tutorial.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)",
+      "style.fill:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
+    ],
+    "src/pages/Versement.tsx": [
+      "style.backgroundColor:color-mix(in srgb, var(--out) 12%, transparent)"
+    ],
+    "src/pages/Welcome.tsx": [
+      "style.backgroundColor:transparent"
+    ],
+    "src/store/useLocalStore.ts": [
+      "#FF6B00"
+    ],
+    "src/templates/church.ts": [
+      "#CC5500",
+      "#FF6B00",
+      "#FF8533"
+    ],
+    "src/templates/school.ts": [
+      "#007F72",
+      "#00A896",
+      "#00D4B6"
+    ],
+    "src/types/index.ts": [
+      "#007F72",
+      "#00A896",
+      "#00D4B6",
+      "#1976D2",
+      "#2196F3",
+      "#303F9F",
+      "#388E3C",
+      "#3F51B5",
+      "#4CAF50",
+      "#64B5F6",
+      "#7986CB",
+      "#81C784",
+      "#CC5500",
+      "#CC5500",
+      "#FF6B00",
+      "#FF6B00",
+      "#FF8533",
+      "#FF8533"
+    ],
+    "src/App.css": [
+      "#052e16",
+      "#0f0f10",
+      "#10b981",
+      "#141416",
+      "#14b8a6",
+      "#15803d",
+      "#166534",
+      "#16a34a",
+      "#18181b",
+      "#1a130f",
+      "#1a1a1c",
+      "#1a1a1c",
+      "#1a1a1c",
+      "#1a1f2b",
+      "#232326",
+      "#232326",
+      "#232326",
+      "#2a1a0e",
+      "#2c2c30",
+      "#2c2c30",
+      "#3b82f6",
+      "#450a0a",
+      "#4ade80",
+      "#4ade80",
+      "#4ade80",
+      "#52525b",
+      "#535353",
+      "#5a3a1e",
+      "#6b7280",
+      "#70757d",
+      "#7aa2ff",
+      "#898991",
+      "#8b5cf6",
+      "#92400e",
+      "#991b1b",
+      "#9a3412",
+      "#9aa0a8",
+      "#9ca3af",
+      "#a1a1aa",
+      "#b45309",
+      "#b91c1c",
+      "#b91c1c",
+      "#b91c1c",
+      "#c2410c",
+      "#cc5500",
+      "#dcfce7",
+      "#e0e3e7",
+      "#e4e4e7",
+      "#e4e6e9",
+      "#ea580c",
+      "#ec4899",
+      "#eef0f2",
+      "#eef0f2",
+      "#ef4444",
+      "#ef4444",
+      "#efeff1",
+      "#f4f4f5",
+      "#f59e0b",
+      "#f5f6f8",
+      "#f7f7f8",
+      "#f87171",
+      "#f87171",
+      "#f87171",
+      "#fbbf24",
+      "#fbbf24",
+      "#fed7aa",
+      "#fee2e2",
+      "#fef3c7",
+      "#ff6b00",
+      "#ff6b00",
+      "#ff7a1a",
+      "#ff8533",
+      "#ff9a4d",
+      "#ff9a4d",
+      "#ffedd5",
+      "#ffffff",
+      "#ffffff",
+      "#ffffff",
+      "#ffffff",
+      "#ffffff",
+      "#ffffff",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba(",
+      "rgba("
+    ],
+    "src/globals.css": [
+      "#121212"
+    ],
+    "src/ionic/theme.css": [
+      "#000",
+      "#000",
+      "#000",
+      "#000",
+      "#000",
+      "#004acd",
+      "#1db954",
+      "#e51332",
+      "#ffb800",
+      "#fff",
+      "#fff",
+      "#fff",
+      "#fff",
+      "#fff",
+      "#fff",
+      "#fff",
+      "rgba("
+    ]
+  }
+}

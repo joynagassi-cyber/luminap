@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import { noHardcodedColors } from "./scripts/eslint-rules/no-hardcoded-colors.mjs";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -16,6 +17,11 @@ export default tseslint.config(
     plugins: {
       "react-hooks": reactHooks,
       "react-refresh": reactRefresh,
+      // Règle locale du ratchet design (plan P1 lot 6) : « off » ici, activée
+      // uniquement par scripts/design-ratchet.mjs qui ne bloque que les
+      // NOUVEAUX littéraux de couleur (baseline figée), afin que `pnpm lint`
+      // reste vert sur l'existant.
+      design: { rules: { "no-hardcoded-colors": noHardcodedColors } },
     },
     rules: {
       ...reactHooks.configs.recommended.rules,

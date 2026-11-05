@@ -196,3 +196,14 @@ tranchée : pile unique, BottomNav maison).
   avec respect du mouvement réduit, détection et choix des effets. Le réglage
   `lite` agit sur les jetons de verre ; il ne retouche pas les écrans anciens.
   Le raccordement du violet, `custom`, le pont Ionic et Design Lab restent dus.
+- P1 lot 6 : **lint en mode ratchet** livré (`scripts/design-ratchet.mjs`,
+  branché sur `pnpm lint` donc la CI). Règle ESLint locale
+  `design/no-hardcoded-colors` (hex, `rgb(`/`hsl(`, `style={{ color: "…" }}`
+  non-`var()`) + scan CSS ; la baseline figée
+  `scripts/design-ratchet-baseline.json` (462 littéraux, 97 fichiers, hors
+  `src/design-system/tokens/` et tests) n'autorise que les littéraux
+  existants — tout nouveau littéral casse le lint. La baseline ne diminue
+  qu'explicitement (`pnpm lint:ratchet:update`), à décrémenter en P4/P5.
+  Note : pas de dépendance stylelint ajoutée ; le volet CSS est couvert par le
+  même runner sans nouveau devDep. Reste dû en P1 : test de contraste étendu
+  (lot 5), raccordement violet (lot 4, PR en attente), Design Lab, police.
