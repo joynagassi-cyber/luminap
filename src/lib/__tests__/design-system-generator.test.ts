@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { wcagContrast } from "culori";
 import { accessibleAccent, createCustomTheme, generatePrimitives, generateTokens } from "@/design-system/tokens/generator";
 import { VIOLET } from "@/design-system/tokens/themes";
-import { renderThemeCss } from "../../../scripts/generate-design-tokens.mjs";
+import { renderBridgeTs, renderThemeCss } from "../../../scripts/generate-design-tokens.mjs";
 import { LUMINA_TOKENS, LUMINA_LIGHT_TOKENS } from "@/ionic/theme";
 
 const root = new URL("../../design-system/tokens/", import.meta.url);
@@ -12,7 +12,7 @@ const pairs: [string, string, number][] = [
   ["fg-muted", "bg", 4.5], ["fg-muted", "surface", 4.5], ["fg-muted", "surface-2", 4.5],
   ["fg-subtle", "bg", 3], ["fg-subtle", "surface", 3], ["fg-subtle", "surface-2", 3],
   ["fg-inverse", "surface-inverse", 4.5], ["hero-fg", "hero-bg", 4.5],
-  ["on-accent", "accent", 4.5], ["income", "surface", 4.5], ["expense", "surface", 4.5],
+  ["on-accent", "accent", 4.5], ["accent", "bg", 4.5], ["accent", "surface", 4.5], ["accent", "surface-2", 4.5], ["income", "surface", 4.5], ["expense", "surface", 4.5],
   ["income", "surface-2", 4.5], ["expense", "surface-2", 4.5],
   ["warning", "surface-2", 4.5], ["info", "surface-2", 4.5], ["focus-ring", "surface", 3],
 ];
@@ -20,6 +20,7 @@ const pairs: [string, string, number][] = [
 describe("génération déterministe des jetons", () => {
   it("le CSS versionné correspond exactement au générateur", () => {
     expect(readFileSync(new URL("themes.generated.css", root), "utf8")).toBe(renderThemeCss([VIOLET]));
+    expect(readFileSync(new URL("bridge.generated.ts", root), "utf8")).toBe(renderBridgeTs(VIOLET));
     expect(() => renderThemeCss([{ ...VIOLET, id: 'bad"] { color:red; }' }])).toThrow();
   });
   it("chaque jeton sémantique généré existe comme alias pour le thème actuel", () => {
@@ -42,6 +43,10 @@ describe("génération déterministe des jetons", () => {
       expect(() => createCustomTheme(invalid)).toThrow();
     }
     expect(() => generateTokens({ ...VIOLET, fontBody: 'Inter";color:red' }, "dark")).toThrow();
+  });
+  it.each(["dark", "light"] as const)("violet %s : accent pressé compatible avec son texte", (mode) => {
+    const t = generateTokens(VIOLET, mode);
+    expect(wcagContrast(t["on-accent"], t["accent-pressed"])).toBeGreaterThanOrEqual(4.5);
   });
   it("le choix noir/blanc est vérifié après quantification et passe AA", () => {
     for (let value = 0; value <= 0xffffff; value += 7919) {

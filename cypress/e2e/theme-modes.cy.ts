@@ -147,6 +147,66 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     });
   });
 
+  it('violet : sélection, overlays, changement de mode, persistance et retour historique', function () {
+    this.timeout(90_000);
+    cy.visit('/settings/theme', { onBeforeLoad(win) {
+      win.localStorage.setItem('lumina-theme', 'fire');
+      win.localStorage.setItem('lumina-theme-mode', 'dark');
+    } });
+    cy.get('button[aria-label="Violet dynamique"]', { timeout: 60_000 }).click();
+
+    const verify = (mode: 'light' | 'dark') => {
+      cy.window().should((win) => {
+        const root = win.document.documentElement;
+        expect(root.dataset.theme).to.eq('violet');
+        expect(root.dataset.mode).to.eq(mode);
+        const css = win.getComputedStyle(root);
+        const token = (name: string) => normalizeHex(css.getPropertyValue(name).trim());
+        for (const [legacy, semantic] of [['--canvas', '--lu-bg'], ['--surface', '--lu-surface'],
+          ['--text-primary', '--lu-fg'], ['--accent-primary', '--lu-accent'],
+          ['--ion-color-primary', '--lu-accent'], ['--on-accent', '--lu-on-accent'],
+          ['--ion-background-color', '--lu-bg'], ['--ion-text-color', '--lu-fg'],
+          ['--ion-color-primary-shade', '--lu-accent-pressed']]) {
+          expect(token(legacy), legacy).to.eq(token(semantic));
+        }
+        const rgb = (hex: string) => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ');
+        expect(token('--ion-color-primary-rgb')).to.eq(rgb(token('--lu-accent')));
+        expect(token('--ion-color-primary-contrast-rgb')).to.eq(rgb(token('--lu-on-accent')));
+        expect(win.localStorage.getItem('lumina-theme')).to.eq('violet');
+      });
+      // Ces véritables custom elements Ionic sont montés hors de l'arbre React,
+      // comme les overlays ; vérifier les variables calculées et leur héritage.
+      cy.window().then((win) => {
+        const rootCss = win.getComputedStyle(win.document.documentElement);
+        for (const tag of ['ion-alert', 'ion-popover', 'ion-action-sheet', 'ion-modal']) {
+          const overlay = win.document.createElement(tag);
+          win.document.body.appendChild(overlay);
+          const css = win.getComputedStyle(overlay);
+          expect(normalizeHex(css.getPropertyValue('--background').trim()), tag)
+            .to.eq(normalizeHex(rootCss.getPropertyValue('--surface').trim()));
+          expect(normalizeHex(css.getPropertyValue('--color').trim()), tag)
+            .to.eq(normalizeHex(rootCss.getPropertyValue('--text-primary').trim()));
+          overlay.remove();
+        }
+      });
+    };
+    verify('dark');
+    cy.get('[data-testid="theme-mode-toggle"]').find('[role="radio"]').contains('Clair').click();
+    verify('light');
+    cy.reload();
+    cy.get('button[aria-label="Violet dynamique"]', { timeout: 60_000 }).should('have.attr', 'aria-pressed', 'true');
+    verify('light');
+    cy.get('button[aria-label="Orange Fire"]').click();
+    cy.window().should((win) => {
+      const root = win.document.documentElement;
+      const css = win.getComputedStyle(root);
+      expect(root.dataset.theme).to.eq('fire');
+      expect(normalizeHex(css.getPropertyValue('--canvas').trim())).to.eq('#f7f7f8');
+      expect(normalizeHex(css.getPropertyValue('--ion-color-primary').trim())).to.eq('#ff6b00');
+      expect(css.getPropertyValue('--ion-color-primary-contrast-rgb').trim()).to.eq('255, 255, 255');
+    });
+  });
+
   it('les effets choisis sont persistés et appliqués après rechargement', function () {
     this.timeout(90_000);
     cy.visit('/settings/theme', {

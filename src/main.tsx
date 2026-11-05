@@ -14,6 +14,7 @@ import "./App.css";
 import "./globals.css";
 import "./design-system/tokens/semantic.css";
 import "./design-system/tokens/themes.generated.css";
+import "./design-system/tokens/violet-legacy.css";
 import "./design-system/tokens/effects.css";
 import "./design-system/theme/transition.css";
 import { ThemeProvider } from "./design-system/theme/ThemeProvider";
