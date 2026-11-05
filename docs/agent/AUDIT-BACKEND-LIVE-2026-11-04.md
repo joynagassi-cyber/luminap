@@ -228,8 +228,13 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
    service-role d'un admin central réel (action propriétaire).
 4. **Durcir `audit_entries_insert`** — **✅ TRANCHÉ** : conservé (le client
    écrit son propre journal ; cf. R-C).
-5. Trancher **R16/R62** (source unique de rôle) et **R17** (régulariser
-   l'historique).
+5. Trancher **R16/R62** (source unique de rôle) — **✅ TRANCHÉ** : autorité =
+   `org_memberships.role` ; `profiles.role` = cache d'affichage ; divergence
+   live 0 (cf. `RISQUES.md` R16/R62). **R17** — **✅ TRANCHÉ** : dérive
+   structurelle assumée (les migrations appliquées par l'outil n'ont pas de
+   fichier horodaté ; **delta d'objets = 0**) ; les fichiers horodatés restent
+   l'artefact de référence pour les reconstructions. Aucune régularisation de
+   l'historique tracker (effet cosmétique, risque de casser le tracking).
 6. R5 (RGPD), R6 (rate-limit), R104 (plan Pro), R13 (fuites d'abonnements).
 
 ---
@@ -395,6 +400,9 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
   par le trigger (`src/lib/orgSettings.ts` : `period_locked_until` +
   `maker_checker_enabled`) → la garde serveur s'activera dès qu'un réglage est
   posé. L'INSERT auto-approuvé reste hors périmètre (choix assumé).
+- **R16/R62** : ✅ tranché (autorité `org_memberships.role`, cf. `RISQUES.md`).
+- **R17** : ✅ tranché (dérive structurelle assumée, delta objets = 0 ; pas de
+  régularisation de l'historique tracker — cosmétique).
 - **R104 / R8 / CI-prod partagée** : voir sections précédentes.
 
 ### Récapitulatif de statut (2026-11-04)
@@ -411,7 +419,7 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 | R-I/R-J doublon PENDING + montant | FAIBLE | ✅ migration `20261104000001` |
 | R-K contrôles financiers client | FAIBLE-MOYEN | ✅ trigger `20261104000004` |
 | R-L doublon APPROVED | FAIBLE | ✅ migration `20261104000003` |
-| R17 dérive migrations | INFO | ⏳ régularisation d'historique |
-| R16/R62 source unique de rôle | INFO | ⏳ à trancher |
+| R17 dérive migrations | INFO | ✅ tranché : dérive structurelle assumée (delta objets = 0) |
+| R16/R62 source unique de rôle | INFO | ✅ tranché : autorité = `org_memberships.role` |
 | R104 fuite mot de passe | FAIBLE | ⏳ plan Pro (propriétaire) |
 | R5 RGPD / R13 abonnements | — | ⏳ backlog |

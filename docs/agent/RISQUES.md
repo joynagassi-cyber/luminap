@@ -86,6 +86,28 @@
   d'aggraver), documenter et faire trancher le propriétaire (choix d'une source
   de vérité unique, ou ajout d'un trigger de propagation).
 - **Statut** : ouvert, à trancher (voir DECISIONS.md et RAPPORT_FINAL.md).
+- **✅ TRANCHÉ (2026-11-04, audit backend LIVE)** — **source de vérité
+  d'AUTORISATION = `org_memberships.role`** (rôle dans l'organisation). Preuve :
+  la fonction serveur `has_permission(uid, org, res, act)` résout le rôle canonique
+  via `org_memberships` (ACTIVE) — **jamais** `profiles.role` ; et l'edge function
+  `create_org`/le trigger `settle_invitation_claim` écrivent `org_memberships.role`
+  comme référence. `profiles.role` est un **cache d'affichage** (rôle « global »
+  lu par `useCurrentUser` → route-gates UI), pas une source d'autorisation.
+  **Divergence live mesurée = 0** (5 profils, tous cohérents).
+  - *Conséquence* : une éventuelle divergence ne peut au pire qu'afficher un
+    libellé/masquer un bouton (UX) ; l'autorisation réelle reste correcte
+    (RLS + `has_permission` = `org_memberships`).
+  - *Chemin résiduel qui PEUT diverger* : `assignMemberRole` (D3, `orgAdmin.ts`,
+    écran `/admin/roles`) n'écrit QUE `org_memberships.role` — si l'utilisateur
+    modifie **son propre** rôle primaire, `profiles.role` ne suit pas (sauf que
+    le trigger `guard_profile_role_immutable` interdit à un non-`org_admins` de
+    changer `profiles.role`). Impact réel aujourd'hui : nul (divergence 0).
+  - *Recommandation future (si le multi-org par utilisateur est activé)* :
+    trigger `AFTER INSERT OR UPDATE OF role ON org_memberships` (SECURITY
+    DEFINER) qui, si `is_primary AND status='ACTIVE'`, recopie
+    `profiles.role = NEW.role`. Non appliqué : changement de modèle à valider
+    par le propriétaire, divergence 0, risque de régression sur les écritures
+    de rôle.
 
 
 ### R17 — Dérive majeure migrations ↔ base (les fichiers du dépôt ne sont pas la source de vérité) — OUVERT
@@ -1420,6 +1442,11 @@ Reste ouvert pour **19 autres pages** (cf. P35). Gravité **basse** (a11y).
   **P36**.
 - **Statut** : ouvert, non corrigé (changement de modèle de données →
   hors périmètre de correctif ciblé).
+- **✅ TRANCHÉ (2026-11-04)** : décision identique à R16 — **`org_memberships.role`
+  = source de vérité d'autorisation**, `profiles.role` = cache d'affichage.
+  Divergence live = 0. Le seul chemin résiduel (`assignMemberRole` sur soi-même)
+  est neutralisé par `guard_profile_role_immutable`. Trigger de synchronisation
+  recommandé si le multi-org par utilisateur devient supporté (cf. R16).
 
 ### R63 — Fixture E2E désalignée — CORRIGÉ (donnée de test)
 - **Défaut** : le compte E2E avait `profiles.role = 'MEMBRE'` (au lieu de

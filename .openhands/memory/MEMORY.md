@@ -1609,3 +1609,32 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Restent : `create_org`, `onesignal-notify`, `report-error`.
 - Undeploy : `DELETE /v1/projects/<ref>/functions/<slug>`.
 - Garde : `src/lib/__tests__/edge-functions-rf.test.ts` (3).
+
+## Audit backend LIVE — statut (2026-11-04)
+- Récapitulatif complet dans `docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md`
+  (§ « Récapitulatif de statut »). Corrigés : R-A..R-L (hors suite/limites).
+- **R-E** : atténué — `signup`/`login` supprimés ; `create_org` borné (self-serve
+  = une fois/compte, exige `org_id='__no_org__'`).
+- **R-G** : rôles `powersync_*` (3) laissés tels quels — retirer le mauvais rôle
+  casse la sync ; nettoyage via console PowerSync, pas à l'aveugle en SQL.
+- **R-K** : gardes financières en base = fail-open ; `src/lib/orgSettings.ts`
+  écrit bien `period_locked_until` + `maker_checker_enabled` (clés == trigger).
+- **R-H** : `notifications_update` = `is_org_member` + privilège colonne
+  `GRANT UPDATE (is_read)` (migration `20261104000002`).
+- Reste : R17 (régulariser historique migrations), R16/R62 (source unique de
+  rôle), R104 (plan Pro), R5 RGPD, R13 abonnements.
+
+## R16/R62 + R17 — tranchés (2026-11-04)
+- **R16/R62 (source unique de rôle)** : ✅ décision — **autorité =
+  `org_memberships.role`** (le serveur `has_permission` ne lit QUE ça, jamais
+  `profiles.role`). `profiles.role` = **cache d'affichage** (lu par
+  `useCurrentUser` → route-gates UI). Divergence live = **0**. Chemin résiduel
+  `assignMemberRole` (D3) : sur soi-même neutralisé par
+  `guard_profile_role_immutable` (sauf porteur d'un grant `org_admins` ACTIVE).
+  Trigger de sync `org_memberships→profiles` recommandé SEULEMENT si multi-org
+  par utilisateur devient supporté. Détail : `docs/agent/RISQUES.md` R16/R62.
+- **R17 (dérive migrations)** : ✅ dérive structurelle **assumée** — les
+  migrations appliquées par l'outil MCP n'ont pas de fichier horodaté
+  correspondant ; **delta d'objets = 0**. Pas de régularisation de l'historique
+  tracker (cosmétique, risque de casser le tracking). Fichiers horodatés =
+  artefact de référence.
