@@ -4708,3 +4708,7 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Reste (classe E7, distinct)** : `claimInvitation` / `registerOrg` utilisent
   `INSERT … ON CONFLICT` sur des VUES PowerSync (`profiles`, `organizations`) →
   « cannot UPSERT a view ». Différé (risque : ne pas diverger client/serveur).
+- **Durcissement** : la garde couvrait `INSERT`/`SELECT` ; elle couvre désormais
+  aussi les colonnes cibles d'un **`UPDATE … SET`** (même classe « no such
+  column »). Balayage complet du dépôt : **0** autre dérive. Test d'auto-détection
+  `UPDATE` ajouté.
