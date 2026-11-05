@@ -72,3 +72,10 @@ jobs:
           CYPRESS_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL || secrets.SUPABASE_URL }}
           CYPRESS_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
           CYPRESS_POWERSYNC_URL: ${{ secrets.TEST_POWERSYNC_URL || secrets.POWERSYNC_URL }}
+          # R-B : le mot de passe du compte E2E n'est plus commité. Fournir
+          # les secrets E2E_ORG_PASSWORD / E2E_ORG_UNCONFIGURED_PASSWORD
+          # (jamais dans le dépôt). Absents = specs d'auth en échec explicite.
+          CYPRESS_ORG_EMAIL: ${{ secrets.E2E_ORG_EMAIL }}
+          CYPRESS_ORG_PASSWORD: ${{ secrets.E2E_ORG_PASSWORD }}
+          CYPRESS_ORG_UNCONFIGURED_EMAIL: ${{ secrets.E2E_ORG_UNCONFIGURED_EMAIL }}
+          CYPRESS_ORG_UNCONFIGURED_PASSWORD: ${{ secrets.E2E_ORG_UNCONFIGURED_PASSWORD }}

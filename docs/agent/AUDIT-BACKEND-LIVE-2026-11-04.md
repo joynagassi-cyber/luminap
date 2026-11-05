@@ -64,13 +64,23 @@
 - **Garde** : `src/lib/__tests__/ci-e2e-isolation-ra.test.ts`.
 
 ### R-B [MOYEN] — R8 (mot de passe en clair) × 91 comptes admin
-- `cypress/support/orgCreds.ts` expose `E2e-Lumina!1` en clair ; **91 comptes
+- `cypress/support/orgCreds.ts` exposait `E2e-Lumina!1` en clair ; **91 comptes
   distincts** détenaient des grants `org_admins` ACTIVE.
-- **✅ Partiellement résolu (2026-11-04)** : la purge R-A a supprimé ces 91
-  comptes éphémères → il ne reste **que 2 comptes porteurs du mot de passe**
-  (`lumina-org-e2e@`, `lumina-org-unconfigured@`), soit **2 grants** au lieu de
-  93. **Reste** : changer ce mot de passe (ou générer des comptes éphémères) —
-  le secret est toujours en clair dans `orgCreds.ts`/`cypress.config.ts`.
+- **✅ RÉSOLU (2026-11-04)** :
+  - la purge R-A a ramené les comptes porteurs de **93 à 2** ;
+  - les mots de passe des 2 comptes restants ont été **rotés en base**
+    (`extensions.crypt(..., gen_salt('bf'))` → bcrypt compatible GoTrue).
+    Vérifié par appel GoTrue : **ancien = HTTP 400**, **nouveau = HTTP 200** ;
+  - le littéral `E2e-Lumina!1` / `E2e-Unconfigured!1` est **retiré de tout le
+    code versionné** (`cypress.config.ts`, `cypress/support/orgCreds.ts`,
+    `cypress/run.{sh,mjs}`, `scripts/rls-isolation-check.sh`). Les mots de passe
+    viennent désormais de `CYPRESS_ORG_PASSWORD` /
+    `CYPRESS_ORG_UNCONFIGURED_PASSWORD` (env ou `.env.local` gitignoré) ; en CI,
+    des secrets dédiés (`E2E_ORG_PASSWORD`, `E2E_ORG_UNCONFIGURED_PASSWORD`).
+  - Garde : `src/lib/__tests__/e2e-credentials-rb.test.ts`.
+- **Note** : les comptes E2E partagés doivent rester en **prod** tant que la
+  suite tourne contre la prod (R-A) ; leurs mots de passe rotés sont à
+  renseigner dans `.env.local` (local) et les secrets GitHub (CI).
 
 ### R-C [FAIBLE] — `audit_entries_insert` = `is_org_member`
 - Un membre peut **INSÉRER** des entrées d'audit arbitraires dans son org
@@ -160,7 +170,8 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 
 1. **Isoler la CI** : projet Supabase de test dédié + purge des artefacts E2E
    en prod (`Self-Serve E2E %`, `Annexe %`, `ss-e2e-%@lumina.dev`).
-2. **Révoquer** `E2e-Lumina!1` (ou comptes E2E éphémères).
+2. **Révoquer** `E2e-Lumina!1` (ou comptes E2E éphémères). — **✅ FAIT**
+   (mots de passe rotés + littéral retiré du dépôt, R-B).
 3. **Matérialiser un admin central** (`org-central`) ou corriger la garde
    broadcast.
 4. **Durcir `audit_entries_insert`** (retirer l'INSERT client si inutile).

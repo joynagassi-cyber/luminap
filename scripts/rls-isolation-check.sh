@@ -35,9 +35,11 @@ ANON=$(grep '^VITE_SUPABASE_ANON_KEY=' "$ENV_FILE" | cut -d= -f2-)
 [ -n "$URL" ] && [ -n "$ANON" ] || { echo "FATAL: URL ou ANON_KEY absente"; exit 1; }
 
 EMAIL_A="${RLS_EMAIL_A:-lumina-org-e2e@lumina.dev}"
-PASS_A="${RLS_PASSWORD_A:-E2e-Lumina!1}"
+# R-B : mots de passe SANS défaut commité — lus depuis l'env ou .env.local
+# (le littéral en clair dans le dépôt public servait de mot de passe réel).
+PASS_A="${RLS_PASSWORD_A:-$(grep '^CYPRESS_ORG_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)}"
 EMAIL_B="${RLS_EMAIL_B:-lumina-org-unconfigured@lumina.dev}"
-PASS_B="${RLS_PASSWORD_B:-E2e-Unconfigured!1}"
+PASS_B="${RLS_PASSWORD_B:-$(grep '^CYPRESS_ORG_UNCONFIGURED_PASSWORD=' "$ENV_FILE" | cut -d= -f2-)}"
 
 login() {
   curl -s -X POST "$URL/auth/v1/token?grant_type=password" \

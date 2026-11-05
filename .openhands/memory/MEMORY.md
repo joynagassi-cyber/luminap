@@ -1550,3 +1550,25 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   les lignes `--`.
 - Garde : `src/lib/__tests__/ci-e2e-isolation-ra.test.ts` (5). Suite : 275
   fichiers / 2659 tests OK ; tsc -b 0 ; eslint 0.
+
+## R-B — mot de passe E2E en clair divulgué (2026-11-04)
+- **Défaut** : `E2e-Lumina!1` (et `E2e-Unconfigured!1`) était commité dans un
+  dépôt **PUBLIC** (`cypress/support/orgCreds.ts`, `cypress.config.ts`,
+  `cypress/run.{sh,mjs}`, `scripts/rls-isolation-check.sh`) ET servait de mot de
+  passe **réel** du compte `lumina-org-e2e@lumina.dev`. `.env.local` ne le
+  contenait pas → le littéral commité EST le secret live.
+- **Rotation en prod** : `update auth.users set encrypted_password =
+  extensions.crypt(<pw>, extensions.gen_salt('bf'))` (schéma `extensions` ;
+  bcrypt `$2...` compatible GoTrue). Vérif : GoTrue
+  `POST /auth/v1/token?grant_type=password` → ancien **400**, nouveau **200**.
+  L'API Management `PUT /v1/projects/<ref>/auth/users/<id>` **échoue**
+  (« Cannot PUT ») — passer par SQL.
+- **Retrait du dépôt** : littéraux supprimés ; mots de passe lus depuis
+  `CYPRESS_ORG_PASSWORD` / `CYPRESS_ORG_UNCONFIGURED_PASSWORD` (env ou
+  `.env.local` **gitignoré**, que `cypress/run.mjs`/`run.sh` chargent
+  explicitement — sans écraser l'env). En CI : secrets `E2E_ORG_PASSWORD` /
+  `E2E_ORG_UNCONFIGURED_PASSWORD` (cypress.yml).
+- **Piège bash** : `set -a; . .env.local; set +a` ÉCRASE les vraies variables
+  d'env (sourcing forcé). Préférer `${VAR:-$(grep ...)}` (défaut = fichier,
+  env prioritaire).
+- Garde : `src/lib/__tests__/e2e-credentials-rb.test.ts` (3).
