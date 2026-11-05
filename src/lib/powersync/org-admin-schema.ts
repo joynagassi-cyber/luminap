@@ -11,6 +11,7 @@ import { column, Table } from "@powersync/web";
 const organizations = new Table(
   {
     name: column.text,
+    logo_url: column.text,
     type: column.text,
     status: column.text,
     parent_org_id: column.text,

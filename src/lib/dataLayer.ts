@@ -2743,20 +2743,36 @@ export async function setOrganizationStatusPS(
 }
 
 /**
- * Renomme une organisation (colonne `name`). Autorisé côté serveur par la
- * policy `orgs_update_merged` (ADMIN de l'org, ou admin central actif).
- * Retourne le nombre de lignes affectées — 0 signifie que l'appelant n'a pas
- * la permission ou que l'org n'existe pas : l'appelant DOIT le traiter comme
- * un échec (sinon l'UI afficherait « Sauvegardé » à tort).
+ * R48 — Persiste l'identité de l'organisation (nom et/ou logo) dans la ligne
+ * `organizations` partagée. Le logo n'existait auparavant que dans
+ * `lumina-config` (localStorage) : les autres membres et les rapports ne le
+ * voyaient jamais. On n'écrit que les champs fournis (undefined = inchangé).
+ *
+ * Autorisé côté serveur par la policy `orgs_update_merged` (ADMIN de l'org, ou
+ * admin central actif). Retourne le nombre de lignes affectées — 0 signifie que
+ * l'appelant n'a pas la permission ou que l'org n'existe pas : l'appelant DOIT
+ * le traiter comme un échec (sinon l'UI afficherait « Sauvegardé » à tort).
  */
-export async function renameOrganizationPS(
+export async function setOrganizationBrandingPS(
   orgId: string,
-  name: string,
+  branding: { name?: string; logoUrl?: string },
 ): Promise<number> {
-  const now = new Date().toISOString();
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (branding.name !== undefined) {
+    sets.push("name = ?");
+    params.push(branding.name);
+  }
+  if (branding.logoUrl !== undefined) {
+    sets.push("logo_url = ?");
+    params.push(branding.logoUrl);
+  }
+  if (sets.length === 0) return 0;
+  sets.push("updated_at = ?");
+  params.push(new Date().toISOString(), orgId);
   return executeWrite(
-    `UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?`,
-    [name, now, orgId],
+    `UPDATE organizations SET ${sets.join(", ")} WHERE id = ?`,
+    params,
   );
 }
 
@@ -3215,27 +3231,92 @@ export async function reverseTransactionPS(
 // App config and auth hooks
 // ============================================================
 
-/**
- * Hook to get app config from localStorage
- */
-export function useAppConfig() {
-  const [config, setConfig] = useState({
+const LUMINA_CONFIG_KEY = "lumina-config";
+
+type StoredAppConfig = {
+  churchName: string;
+  churchLogoUrl: string;
+  userPhoto: string;
+};
+
+/** Lit `lumina-config` (localStorage) en complétant les champs manquants. */
+function readStoredAppConfig(): StoredAppConfig {
+  const empty: StoredAppConfig = {
     churchName: "",
     churchLogoUrl: "",
     userPhoto: "",
-  });
+  };
+  try {
+    const stored = localStorage.getItem(LUMINA_CONFIG_KEY);
+    if (stored) return { ...empty, ...JSON.parse(stored) };
+  } catch {
+    /* config absente ou malformée — valeurs vides */
+  }
+  return empty;
+}
+
+/**
+ * R48 — Hydrate le nom ET le logo de l'organisation depuis la ligne
+ * `organizations` SYNCHRONISÉE (PowerSync), et complète `lumina-config`.
+ *
+ * Défaut corrigé : ces deux champs n'existaient que dans `lumina-config`
+ * (localStorage). Un AUTRE membre, un AUTRE appareil et les rapports PDF ne
+ * voyaient donc jamais la personnalisation. On ne remplit QUE les champs
+ * absents/vides du cache local : une saisie locale (éventuellement hors-ligne,
+ * pas encore montée en base) reste prioritaire — jamais d'écrasement.
+ *
+ * @returns `true` si le cache local a été modifié.
+ */
+export async function hydrateOrgBrandingFromDb(): Promise<boolean> {
+  try {
+    const db = getPowerSyncDatabase();
+    const row = await db.getOptional<{
+      name: string | null;
+      logo_url: string | null;
+    }>(`SELECT name, logo_url FROM organizations WHERE id = ?`, [
+      getOrganizationId(),
+    ]);
+    if (!row) return false;
+    const current = readStoredAppConfig();
+    const next: StoredAppConfig = {
+      ...current,
+      churchName: current.churchName || row.name || "",
+      churchLogoUrl: current.churchLogoUrl || row.logo_url || "",
+    };
+    if (
+      next.churchName === current.churchName &&
+      next.churchLogoUrl === current.churchLogoUrl
+    ) {
+      return false;
+    }
+    localStorage.setItem(LUMINA_CONFIG_KEY, JSON.stringify(next));
+    return true;
+  } catch {
+    return false; // DB non prête / storage indisponible — best-effort
+  }
+}
+
+/**
+ * Hook to get app config from localStorage, enrichi du nom/logo d'organisation
+ * partagés (R48) lus depuis la base synchronisée.
+ */
+export function useAppConfig() {
+  const [config, setConfig] = useState<StoredAppConfig>(readStoredAppConfig);
 
   useEffect(() => {
-    const stored = localStorage.getItem("lumina-config");
-    if (stored) {
-      setConfig(JSON.parse(stored));
-    }
+    let cancelled = false;
+    void hydrateOrgBrandingFromDb().then((changed) => {
+      if (changed && !cancelled) setConfig(readStoredAppConfig());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const updateConfig = async (newConfig: Partial<typeof config>) => {
+  const updateConfig = async (newConfig: Partial<StoredAppConfig>) => {
     const updated = { ...config, ...newConfig };
     setConfig(updated);
-    localStorage.setItem("lumina-config", JSON.stringify(updated));
+    localStorage.setItem(LUMINA_CONFIG_KEY, JSON.stringify(updated));
   };
 
   return { config, updateConfig };

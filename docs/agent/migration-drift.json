@@ -4,19 +4,19 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 94,
-    "repo_timestamped_files": 86,
+    "applied_versions_in_tracker": 97,
+    "repo_timestamped_files": 87,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 149,
+    "repo_total_sql_files": 150,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 92,
-    "repo_file_never_applied": 65,
-    "drift_ratio": "2/94",
-    "repo_filenames_sha256": "fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2",
+    "applied_without_repo_file": 95,
+    "repo_file_never_applied": 85,
+    "drift_ratio": "2/97",
+    "repo_filenames_sha256": "3128d95f9bb4da33377ff74dfa446bb5902c6c10ba2daf7c5077b71861861380",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",

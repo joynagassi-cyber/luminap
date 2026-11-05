@@ -321,7 +321,7 @@ streams:
   org_families:
     auto_subscribe: false
     query: |
-      SELECT o.id, o.name, o.type, o.status, o.parent_org_id,
+      SELECT o.id, o.name, o.logo_url, o.type, o.status, o.parent_org_id,
              o.suspended_at, o.suspended_by,
              o.archived_at, o.archived_by, o.archive_reason,
              o.created_at, o.updated_at
@@ -340,7 +340,7 @@ streams:
   org_administered:
     auto_subscribe: false
     query: |
-      SELECT id, name, type, status, parent_org_id,
+      SELECT id, name, type, status, parent_org_id, logo_url,
              suspended_at, suspended_by,
              archived_at, archived_by, archive_reason,
              created_at, updated_at
@@ -354,7 +354,7 @@ streams:
   org_owned:
     auto_subscribe: false
     query: |
-      SELECT id, name, type, status, parent_org_id,
+      SELECT id, name, type, status, parent_org_id, logo_url,
              suspended_at, suspended_by,
              archived_at, archived_by, archive_reason,
              created_at, updated_at

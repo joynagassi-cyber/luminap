@@ -145,10 +145,13 @@
   (colonnes, fonctions, policies, triggers, index, contraintes, versions) →
   source de vérité de secours, utilisable pour reconstruire un objet ou vérifier
   une dérive avant tout `db push`.
-- **Inventaire gelé (2026-10-29)** : `docs/agent/migration-drift.json` fige la
-  mesure (`applied_versions_in_tracker=70`, `repo_timestamped_files=63`,
-  `repo_sequential_files=63`, `repo_total_sql_files=126`, `versions_in_common=2`,
-  `common_versions=["20261001000001","20261027000003"]`, `drift_ratio="2/70"`).
+- **Inventaire gelé (re-mesuré 2026-11-04)** : `docs/agent/migration-drift.json`
+  fige la mesure (`applied_versions_in_tracker=97`, `repo_timestamped_files=87`,
+  `repo_sequential_files=63`, `repo_total_sql_files=150`, `versions_in_common=2`,
+  `common_versions=["20261001000001","20261027000003"]`, `drift_ratio="2/97"`).
+  Re-mesuré lors de R48 (ajout de `20261104000005_organizations_logo_url.sql`) :
+  la dérive reste quasi totale (2 versions communes sur 97), confirmant que les
+  fichiers du dépôt ne sont PAS la source de vérité.
 - **Garde anti-dérive (repo-side)** : `V: migration-drift-guard.test.ts` (4). Le
   tracker n'étant **pas accessible en CI**, la garde verrouille ce qui est
   vérifiable sans base — le **nombre et la forme des fichiers du dépôt** — et
@@ -820,7 +823,7 @@
 - **Correctif** : horloge injectable (`6e500da`) ; 38/38 × 3 passes.
 - **Statut** : corrigé, stabilité prouvée.
 
-### R48 — Logo d'organisation non persisté en base — NON CORRIGÉ
+### R48 — Logo d'organisation non persisté en base — CORRIGÉ (2026-11-04)
 - **Gravité** : faible (le nom l'est désormais).
 - **Défaut** : la table `organizations` n'a **pas** de colonne `logo_url` ;
   le logo reste en `localStorage` (`lumina-config`). Un autre membre, un
@@ -832,6 +835,26 @@
 - **Travail restant** : migration `ALTER TABLE organizations ADD COLUMN
   logo_url TEXT`, ajout de la colonne aux 3 streams `org_*`, déploiement
   Cloud, puis écriture client. Estimé : 1 h 30.
+
+**✅ CORRIGÉ (2026-11-04)** — le jeton PowerSync (`POWERSYNC_TOKEN`) permet
+désormais de déployer les streams, ce qui a levé le blocage historique.
+- **Migration** `20261104000005_organizations_logo_url.sql` :
+  `ALTER TABLE public.organizations ADD COLUMN logo_url text` (appliquée en prod
+  via MCP).
+- **Sync streams** : `logo_url` ajouté aux 3 streams d'organisation
+  (`org_families`, `org_administered`, `org_owned`) → déployé sur l'instance
+  Production (`powersync deploy`, validations OK).
+- **Schéma client** : `logo_url: column.text` dans `org-admin-schema.ts`.
+- **Lecture** : `hydrateOrgBrandingFromDb()` (dataLayer) remplit nom ET logo
+  absents de `lumina-config` depuis la ligne `organizations` synchronisée
+  (sans JAMAIS écraser une saisie locale) ; `useAppConfig` l'appelle au montage.
+- **Écriture** : `setOrganizationBrandingPS(orgId, {name?, logoUrl?})` (remplace
+  `renameOrganizationPS`, sans appelant) ; `SettingsPersonalisation.handleSave`
+  écrit nom + logo en base (policy `orgs_update_merged` couvre la colonne).
+- **Bonus** : `useAppConfig` lit `lumina-config` de façon SYNCHRONE (le nom se
+  restaure dès le 1er rendu) et DÉGRADE un JSON corrompu (plus de throw) —
+  deux défauts de caractérisation inversés.
+- **Garde** : `src/lib/__tests__/org-branding-r48.test.ts` (7).
 
 ### R49 — Personnalisation / gestion des annexes (`org_units`) — CORRIGÉ (R49.b, 2026-10-29)
 - **Gravité** : faible.
