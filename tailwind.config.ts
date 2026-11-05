@@ -20,7 +20,7 @@ export default {
     extend: {
       colors: {
         // Lumina Design System — pointeurs sur les tokens CSS (src/App.css),
-        // qui basculent dark/light via [data-theme] sur <html>.
+        // qui basculent dark/light via [data-mode] sur <html>.
         canvas: "var(--canvas)",
         surface: "var(--surface)",
         "surface-hover": "var(--surface-hover)",

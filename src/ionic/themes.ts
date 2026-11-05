@@ -168,6 +168,7 @@ export function applyTheme(theme?: LuminaTheme): void {
   if (typeof document === "undefined") return;
   const t = theme ?? getThemeById(getStoredThemeId());
   const root = document.documentElement;
+  root.dataset.theme = t.id;
   const set = (k: string, v: string) => root.style.setProperty(k, v);
 
   // ── Ionic layer ──────────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ export function applyTheme(theme?: LuminaTheme): void {
 //
 // Orthogonal to the brand accent above: the accent is invariant between
 // modes, only the neutral surfaces / texts / borders flip. The mode is
-// applied on <html> via `data-theme` (tokens live in src/App.css),
+// applied on <html> via `data-mode` (tokens live in src/App.css),
 // mirrored onto the Ionic vars that cannot be CSS vars (src/ionic/theme.ts),
 // and persisted in localStorage.
 
@@ -262,7 +263,7 @@ function bindSystemListener(): void {
 }
 
 /**
- * Apply the light/dark mode: sets `data-theme` on <html> to the *resolved*
+ * Apply the light/dark mode: sets `data-mode` on <html> to the *resolved*
  * mode (system → OS preference), pushes the mode-specific Ionic vars, persists
  * the *choice*. Idempotent and SSR-safe.
  */
@@ -273,7 +274,7 @@ export function applyThemeMode(
   if (typeof document === "undefined") return;
   const choice: ThemeMode = mode ?? getStoredThemeMode();
   const resolved = resolveThemeMode(choice);
-  document.documentElement.dataset.theme = resolved;
+  document.documentElement.dataset.mode = resolved;
   applyIonicThemeMode(resolved);
   if (opts?.persist !== false) persistThemeMode(choice);
   if (choice === "system") bindSystemListener();

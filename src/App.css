@@ -1,6 +1,6 @@
 /* Lumina Design System — Color Tokens
  *
- * Deux modes (data-theme="dark" par défaut / data-theme="light") basculés sur
+ * Deux modes (data-mode="dark" par défaut / data-mode="light") basculés sur
  * <html> par `applyThemeMode` (src/ionic/themes.ts). L'argent (`--in`/`--out`/
  * `--warn`) suit désormais le mode (maquette dashboard-MF) ; l'accent reste
  * inviolable (il suit le thème d'organisation, jamais le mode).
@@ -91,9 +91,9 @@
   color-scheme: dark;
 }
 
-/* ── Mode sombre (défaut — s'applique aussi sans data-theme) ─────────────── */
+/* ── Mode sombre (défaut — s'applique aussi sans data-mode) ─────────────── */
 :root,
-[data-theme="dark"] {
+[data-mode="dark"] {
   /* Neutres — valeurs de la maquette dashboard-MF (B1). */
   --canvas: #0f0f10;
   --surface: #1a1a1c;
@@ -142,7 +142,7 @@
 }
 
 /* ── Mode clair ───────────────────────────────────────────────────────────── */
-[data-theme="light"] {
+[data-mode="light"] {
   color-scheme: light;
   --scrim: rgba(26, 26, 26, 0.35);
   --canvas: #f7f7f8;

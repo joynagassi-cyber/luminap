@@ -4,7 +4,7 @@
 
 @layer base {
   /* Les tokens de couleur pointent désormais vers les variables sémantiques
-     de src/App.css (basculées dark/light via [data-theme]) : le mapping
+     de src/App.css (basculées dark/light via [data-mode]) : le mapping
      Tailwind (tailwind.config.ts) consomme var(--canvas), var(--surface)…
      directement. Seuls les tokens non-couleur restent ici. */
   :root {

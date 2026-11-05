@@ -194,7 +194,7 @@ describe('Lumina — responsive (mobile + landscape) + skeleton light/dark', () 
     // 2. Le token du skeleton est EN MODE DARK (src/App.css:106-107
     //    — --skeleton-base: #1a1a1c, --skeleton-highlight: #232326,
     //    valeurs de la maquette dashboard-MF #193) : on lit le computed
-    //    value EFFECTIF sur <html> (pas seulement le data-theme) — c est
+    //    value EFFECTIF sur <html> (pas seulement le data-mode) — c est
     //    l assertion de la complétude du skeleton dark.
     cy.window().then((win) => {
       const cs = win.getComputedStyle(win.document.documentElement);
@@ -215,7 +215,7 @@ describe('Lumina — responsive (mobile + landscape) + skeleton light/dark', () 
     // Le mode LIGHT est forcé AVANT le 1er paint : on écrit
     // lumina-theme-mode='light' dans onBeforeLoad (le script
     // inline d index.html le lit au chargement du document et
-    // pose data-theme="light" sur <html>).
+    // pose data-mode="light" sur <html>).
     cy.visit('/dashboard', {
       onBeforeLoad(win) {
         win.localStorage.setItem('lumina-theme-mode', 'light');

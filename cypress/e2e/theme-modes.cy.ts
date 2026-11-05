@@ -10,18 +10,18 @@
  *
  * Périmètre (conforme à la demande utilisateur) :
  *   - Le token `--canvas` / `--surface` / `--card` / `--text-primary` /
- *     `--border` est DIFFÉRENT entre [data-theme="dark"] et
- *     [data-theme="light"] (cf. src/App.css).
+ *     `--border` est DIFFÉRENT entre [data-mode="dark"] et
+ *     [data-mode="light"] (cf. src/App.css).
  *   - Le choix est PERSISTÉ dans localStorage sous `lumina-theme-mode`
  *     (src/ionic/themes.ts — `THEME_MODE_STORAGE_KEY`) : au
  *     rechargement de la page, le script inline de index.html lit cette
- *     clé AVANT le 1er paint et pose `data-theme` sur <html> — le rendu
+ *     clé AVANT le 1er paint et pose `data-mode` sur <html> — le rendu
  *     React retrouve donc le bon mode.
  *
  * Trois modes possibles depuis #193 : « system » (DÉFAUT, résolu vers
  * dark/light selon l'OS via prefers-color-scheme), « dark » et
- * « light ». Le mode RÉSOLU (dark|light) est ce que porte `data-theme`
- * sur <html> ; `data-theme` ne vaut JAMAIS « system ».
+ * « light ». Le mode RÉSOLU (dark|light) est ce que porte `data-mode`
+ * sur <html> ; `data-mode` ne vaut JAMAIS « system ».
  *
  * Pattern d'activation d'un mode PRÉCIS : `cy.visit('/dashboard', {
  * onBeforeLoad(win) { win.localStorage.setItem('lumina-theme-mode',
@@ -33,7 +33,7 @@
  * .documentElement).getPropertyValue('--…')` — la valeur est celle
  * EFFECTIVEMENT appliquée au <html> (donc celle qui pilote tous
  * les composants qui consomment `var(--…)`) — c'est l'assertion
- * de la complétude du mode, pas seulement du `data-theme`.
+ * de la complétude du mode, pas seulement du `data-mode`.
  */
 
 describe('Lumina — mode thème system/light/dark (tokens complets + persistance)', () => {
@@ -101,17 +101,17 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
           .getPropertyValue(token)
           .trim()
       );
-      expect(val, `le token ${token} est vide (data-theme non appliqué ?)`).to.be.a('string');
+      expect(val, `le token ${token} est vide (data-mode non appliqué ?)`).to.be.a('string');
       expect(val).to.not.eq('');
       return val;
     });
   }
 
-  /** Récupère le <html> dataset.theme effectif (dark|light). */
+  /** Récupère le <html> dataset.mode effectif (dark|light). */
   function readThemeMode(): Cypress.Chainable<'dark' | 'light'> {
     return cy.window().then((win) => {
-      const t = win.document.documentElement.dataset.theme;
-      expect(t, 'data-theme absent du <html> — le script inline n\'a pas tourné').to.be.oneOf(['dark', 'light']);
+      const t = win.document.documentElement.dataset.mode;
+      expect(t, 'data-mode absent du <html> — le script inline n\'a pas tourné').to.be.oneOf(['dark', 'light']);
       return t as 'dark' | 'light';
     });
   }
@@ -132,7 +132,7 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     // localStorage vierge (cf. beforeEach) → aucun choix persisté → le
     // défaut est « system » (src/ionic/themes.ts:204-212,
     // getStoredThemeMode() retombe sur "system" quand la clé est
-    // absente). `data-theme` porte le mode RÉSOLU : soit dark, soit
+    // absente). `data-mode` porte le mode RÉSOLU : soit dark, soit
     // light, selon la préférence de l'OS.
     cy.visit('/dashboard');
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
@@ -146,8 +146,8 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
       const prefersDark = win.matchMedia('(prefers-color-scheme: dark)').matches;
       const expected = prefersDark ? 'dark' : 'light';
       expect(
-        win.document.documentElement.dataset.theme,
-        `data-theme doit suivre prefers-color-scheme (attendu ${expected})`
+        win.document.documentElement.dataset.mode,
+        `data-mode doit suivre prefers-color-scheme (attendu ${expected})`
       ).to.eq(expected);
     });
 
@@ -170,11 +170,11 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     // d'index.html lit la clé au chargement du document).
     visitWithStoredMode('dark');
 
-    // 1. Le <html> porte data-theme="dark".
+    // 1. Le <html> porte data-mode="dark".
     readThemeMode().should('eq', 'dark');
 
     // 2. Les tokens dark sont EN EFFET appliqués (src/App.css, bloc
-    //    `:root, [data-theme="dark"]` — valeurs de la maquette
+    //    `:root, [data-mode="dark"]` — valeurs de la maquette
     //    dashboard-MF, #193) : chaque surface qui consomme var(--…)
     //    a la valeur dark.
     readCssToken('--canvas').should('eq', '#0f0f10');
@@ -196,10 +196,10 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     // On force le mode « light » AVANT le 1er paint.
     visitWithStoredMode('light');
 
-    // 1. Le <html> porte data-theme="light".
+    // 1. Le <html> porte data-mode="light".
     readThemeMode().should('eq', 'light');
 
-    // 2. Les tokens light (src/App.css, bloc [data-theme="light"] —
+    // 2. Les tokens light (src/App.css, bloc [data-mode="light"] —
     //    valeurs de la maquette dashboard-MF, #193) sont EN EFFET
     //    appliqués : le canvas est clair (#f7f7f8), le texte est
     //    sombre (#18181b), le border est clair (#e4e4e7).
@@ -225,7 +225,7 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
 
     // 2. RELOAD (F5) : le mode doit survivre — le script inline
     //    d'index.html relit la clé au 2e chargement et
-    //    ré-applique data-theme="light" AVANT le 1er paint.
+    //    ré-applique data-mode="light" AVANT le 1er paint.
     cy.reload();
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
     readThemeMode().should('eq', 'light');
