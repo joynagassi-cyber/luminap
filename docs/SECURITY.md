@@ -200,6 +200,7 @@ Source : `docs/agent/RISQUES.md`.
 | **R16** | `profiles.role` ↔ `org_memberships.role` : **tranché** — source de vérité d'**autorisation** = `org_memberships.role` (2026-11-04) ; données actuelles cohérentes ; risque structurel documenté. | **TRANCHÉ** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
 | **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
+| **R164** | Transaction `APPROVED` modifiable par `UPDATE` (garde client-only, base ne couvrait que le DELETE) — **corrigé** : trigger `guard_approved_transaction_update` (`BEFORE UPDATE`, refuse toute modif d'une ligne APPROVED, `23514`, REVOKE R115). | **CORRIGÉ** |
 | **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** : cloisonnement forcé à l'org de l'appelant (`isMemberOfOrg` + `effectiveOrgId` toujours scoppé), déployé **v20**. | **CORRIGÉ** |
 | **R97** | Advisors `rls_enabled_no_policy` : **5** tables *deny-all* volontaires (RLS activée, aucune policy ⇒ refus par défaut) : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`. Non modifiées (D-S9-4). | **ASSUMÉ** |
 

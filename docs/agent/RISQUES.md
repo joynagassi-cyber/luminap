@@ -4785,7 +4785,7 @@ partagée par les deux plateformes et couverte par 3 tests.
   (federation-récursive + merged) — **ASSUMÉ** : les fusionner changerait la
   sémantique RLS pour un gain marginal (le nombre de policies reste faible).
 
-### R163 — `onesignal-notify` : injection de push cross-tenant — ✅ CORRIGÉ (déployé v19)
+### R163 — `onesignal-notify` : injection de push cross-tenant — ✅ CORRIGÉ (déployé v20)
 - **Classe** : edge function publique (`verify_jwt: false`) qui exécute une action
   sensible (envoi de push avec la clé REST OneSignal côté serveur) sans vérifier
   l'AUTORISATION de la cible demandée.
@@ -4814,3 +4814,36 @@ partagée par les deux plateformes et couverte par 3 tests.
     --yes` (CLI v3, `SUPABASE_ACCESS_TOKEN`). Version **v20**.
 - **Garde** : `central-broadcast-rd.test.ts` étendu (assertions `isCentralAdmin`,
   `isMemberOfOrg`, `Ciblage limité à vos organisations`, `org_memberships`).
+
+### R164 — Transaction APPROVED modifiable par UPDATE en base — ✅ CORRIGÉ
+- **Classe** : garde d'intégrité **client-only** (identique à R102, mais pour
+  l'UPDATE). La règle « une transaction APPROVED est immuable » n'était
+  appliquée que (a) côté client (`updateTransactionPS`) et (b) en base
+  **uniquement pour le DELETE** (`prevent_approved_transaction_delete`).
+- **Défaut** : un `UPDATE transactions SET amount = … / status = 'PENDING'
+  WHERE id = <tx APPROVED>` (PowerSync écrit en `service_role` → RLS contournée,
+  ou API REST) modifiait une pièce approuvée — montant, date, catégorie, voire
+  réouverture du statut — sans aucun garde-fou serveur. Altération silencieuse
+  d'une comptabilité validée.
+- **Preuve** (base live) : `UPDATE` du montant d'une ligne APPROVED **réussi**
+  avant correctif ; refusé (23514) après.
+- **Correctif** : migration `20261104000007_guard_approved_transaction_update.sql`
+  — trigger `BEFORE UPDATE` (`guard_approved_transaction_update`) qui refuse
+  **TOUTE** modification d'une ligne `OLD.status = 'APPROVED'`. La **transition
+  VERS** APPROVED (`OLD.status <> 'APPROVED'`) reste permise (flux d'approbation).
+  Code `23514` (classe 23) et non `P0001` : le connecteur PowerSync ne jette que
+  22xxx/23xxx/42501, un `P0001` tomberait en retry infini. `REVOKE ALL … FROM
+  PUBLIC, anon, authenticated` (invariant R115).
+- **PIÈGE rencontré (corrigé)** : la 1re version utilisait
+  `OLD.status = 'APPROVED' AND NEW.status IS DISTINCT FROM 'APPROVED'` → une
+  édition de **montant seul** (statut inchangé) passait encore. Détecté par un
+  test `DO $$ … $$` auto-annulant. Garde de non-vacuité :
+  `migration-approved-update-guard-r164.test.ts`.
+- **Non-régression** : aucun flux légitime n'UPDATE une ligne APPROVED (seuls
+  `updateTransactionPS` — qui garde déjà le statut — et `approveTransactionPS`
+  — transition — font un `UPDATE transactions` ; la contrepassation crée une
+  NOUVELLE ligne). Aucune cascade FK (`category_id`/`org_unit_id` = RESTRICT ;
+  `cotisation_id` ON DELETE SET NULL mais aucune suppression de cotisation
+  n'existe).
+- **Statut** : corrigé, appliqué à la base (via MCP `apply_migration`), vérifié
+  (UPDATE APPROVED → 23514 ; transition DRAFT→APPROVED → OK ; données intactes).
