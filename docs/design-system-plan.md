@@ -227,3 +227,11 @@ tranchée : pile unique, BottomNav maison).
   via getComputedStyle, plus un aperçu hero + cartes façon maquettes.
   Les composants `Lu*` (P2/P3) y entreront au fur et à mesure. Gate P1
   atteint côté outillage ; reste : raccordement violet (#424) et `custom`.
+- P2 lot 1 : premières primitives `Lu*` livrées dans
+  `src/design-system/components/` — **LuButton** (6 variantes, tailles
+  lg/md/sm, shape rounded, états pressed/focus/disabled/loading, 100 %
+  jetons), **LuIconButton**, **LuChip** (+ `LuChipRow` snap-x),
+  **LuBadge/LuDelta** (signe + icône + couleur, §0.4). Entrées Design Lab
+  avec tous les états. Tests de comportement (19 tests ciblés). La baseline
+  ratchet a été re-figée pour absorber uniquement les 3 hex du violet
+  (merge #424) : 465 littéraux, toujours 0 nouveau depuis.
