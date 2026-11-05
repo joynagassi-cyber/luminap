@@ -4805,8 +4805,12 @@ partagée par les deux plateformes et couverte par 3 tests.
   - tout appel ciblant un `orgId` dont l'appelant n'est pas membre → **403**
     (« Ciblage limité à vos organisations »), sauf admin central ;
   - le broadcast sans ciblage reste réservé à l'admin central.
-  - **Durcissement restant (backlog)** : un `targetUserId` d'une autre org reste
-    techniquement possible ; l'ajout d'un filtre `org_id` automatique (org
-    primaire de l'appelant) au payload OneSignal fermerait ce dernier interstice.
+  - **Cloisonnement FORCÉ** : pour un non-admin-central, l'org cible vaut
+    `orgId` (appartenance vérifiée) sinon l'org PRIMAIRE de l'appelant ; le
+    filtre OneSignal inclut donc TOUJOURS `org_id` (`targetUserId` est `AND`-é
+    avec l'org) — un ciblage nu par `targetRole`/`targetUserId` est impossible
+    hors admin central. Absence d'org → 403.
+  - **Déploiement** : `supabase functions deploy onesignal-notify --no-verify-jwt
+    --yes` (CLI v3, `SUPABASE_ACCESS_TOKEN`). Version **v20**.
 - **Garde** : `central-broadcast-rd.test.ts` étendu (assertions `isCentralAdmin`,
   `isMemberOfOrg`, `Ciblage limité à vos organisations`, `org_memberships`).

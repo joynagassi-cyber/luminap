@@ -44,8 +44,12 @@ describe("R-D — broadcast OneSignal réservé aux admins centraux", () => {
   it("cloisonne le ciblage à l'organisation de l'appelant (anti-injection cross-tenant)", () => {
     // Un appelant ne peut cibler qu'une organisation dont il est membre, sauf admin central.
     expect(src).toMatch(/const central = await isCentralAdmin\(admin, userId\)/);
-    expect(src).toMatch(/isMemberOfOrg\(admin, userId, body\.orgId\)/);
+    expect(src).toMatch(/isMemberOfOrg\(admin, userId, targetOrg\)/);
     expect(src).toMatch(/Ciblage limité à vos organisations/);
+    // Un ciblage SANS orgId est ramené à l'org primaire de l'appelant (jamais nu).
+    expect(src).toMatch(/const targetOrg = body\?\.orgId \?\? callerOrgId \?\? undefined/);
+    expect(src).toMatch(/effectiveOrgId = targetOrg/);
+    expect(src).toMatch(/buildFilters\(body\?\.targetRole, body\?\.targetUserId, effectiveOrgId\)/);
     // isMemberOfOrg couvre org primaire + memberships + grants admin.
     expect(src).toMatch(/\.from\("org_memberships"\)/);
     expect(src).toMatch(/\.in\("status",\s*\["ACTIVE",\s*"PENDING"\]\)/);

@@ -195,12 +195,12 @@ Source : `docs/agent/RISQUES.md`.
 | Risque | Sujet | Statut |
 |---|---|---|
 | **R104** | Protection des mots de passe compromis (HaveIBeenPwned) désactivée — `auth_leaked_password_protection` (advisor WARN). Non activable sur le plan Free (« available on Pro Plans and up »). | **OUVERT** (escalade propriétaire) |
-| **R109** | Rôle `ADMIN` présent en données/RLS mais absent du modèle TS → le compte admin central n'a **aucun** droit `has_permission`. Choix de modèle de rôles non tranché. | **OUVERT** (décision propriétaire) |
-| **R107** | `needs-membership` (et `forbidden`) déclarés mais **inertes** : `App.tsx` n'alimente pas `isOrgMember`/`hasPermission` → défense en profondeur côté client absente. | **OUVERT** (dépend R109/R16) |
-| **R16** | `profiles.role` et `org_memberships.role` divergent (deux sources de vérité du rôle). | **OUVERT** |
+| **R109** | Rôle `ADMIN` **tranché = 15e rôle canonique** (décision propriétaire 2026-10-29, migration `20261029000001`) : présent dans `Role` TS + `PERMISSION_MATRIX` (29 perms) + `role_permissions` (29 lignes, mesuré via MCP). Garde `role-model-drift.test.ts`. | **CORRIGÉ** |
+| **R107** | `needs-membership`/`forbidden` désormais **alimentés** : `App.tsx` fournit `isOrgMember` (via `useOrgMembership`) et `hasPermission` (via `roleHasPermission`) au routeur. | **CORRIGÉ** |
+| **R16** | `profiles.role` ↔ `org_memberships.role` : **tranché** — source de vérité d'**autorisation** = `org_memberships.role` (2026-11-04) ; données actuelles cohérentes ; risque structurel documenté. | **TRANCHÉ** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
 | **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
-| **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** (garde `isMemberOfOrg`, déployé v19). Reste : filtre `org_id` auto sur `targetUserId`. | **CORRIGÉ** (durcissement résiduel) |
+| **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** : cloisonnement forcé à l'org de l'appelant (`isMemberOfOrg` + `effectiveOrgId` toujours scoppé), déployé **v20**. | **CORRIGÉ** |
 | **R97** | Advisors `rls_enabled_no_policy` : **5** tables *deny-all* volontaires (RLS activée, aucune policy ⇒ refus par défaut) : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`. Non modifiées (D-S9-4). | **ASSUMÉ** |
 
 Risques **corrigés** (pour mémoire) : R100 (code d'invitation CSPRNG), R101/R102

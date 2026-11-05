@@ -220,29 +220,48 @@ serve(async (req) => {
     const message = String(body?.message ?? "").trim();
     if (!title || !message) return fail(400, "title et message sont requis");
 
-    const filters = buildFilters(body?.targetRole, body?.targetUserId, body?.orgId);
-
     // 2bis. Autorisation de l'envoi.
     //
-    // CLOISONNEMENT PAR ORGANISATION (correctif) : l'appelant ne peut cibler que
-    // SA propre organisation. Sans cette garde, tout utilisateur authentifié
-    // pouvait forger un appel `{ targetRole: "TREASURIER" }` SANS `orgId` et
-    // déclencher un push sur les trésoriers de TOUS les tenants — hameçonnage /
-    // injection de notification inter-organisations (le seul frein était le
-    // ciblage, non vérifié).
+    // CLOISONNEMENT PAR ORGANISATION (correctif R163) : l'appelant ne peut
+    // cibler QUE les organisations dont il est membre, et le filtre envoyé à
+    // OneSignal est TOUJOURS scoppé à une organisation. Sans cette garde, tout
+    // utilisateur authentifié pouvait forger `{ targetRole: "TREASURIER" }`
+    // SANS `orgId` et déclencher un push sur les trésoriers de TOUS les tenants
+    // (hameçonnage / injection de notification inter-organisations).
     //
-    // Règle : le ciblage est restreint aux organisations de l'appelant (org
-    // primaire ∪ memberships ∪ grants admin, cf. `isMemberOfOrg`). Seul un
-    // ADMIN CENTRAL peut cibler une AUTRE organisation (ou diffuser à « All »).
+    // Règle :
+    //   • non admin central → l'org cible = `orgId` fourni (appartenance
+    //     vérifiée) sinon l'org PRIMAIRE de l'appelant ; absente → 403. Le
+    //     filtre OneSignal inclut toujours `org_id` (jamais de ciblage nu).
+    //   • admin central → ciblage libre (toute org, ou broadcast « All »).
+    const { data: callerProfile } = await admin
+      .from("profiles")
+      .select("org_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const callerOrgId =
+      typeof callerProfile?.org_id === "string" &&
+      callerProfile.org_id &&
+      callerProfile.org_id !== "__no_org__" &&
+      callerProfile.org_id !== "no-org"
+        ? callerProfile.org_id
+        : null;
+
     const central = await isCentralAdmin(admin, userId);
-    if (!central && body?.orgId) {
-      const member = await isMemberOfOrg(admin, userId, body.orgId);
-      if (!member) {
-        // Tentative de cibler une organisation dont l'appelant n'est pas membre.
+
+    let effectiveOrgId: string | undefined = body?.orgId;
+    if (!central) {
+      const targetOrg = body?.orgId ?? callerOrgId ?? undefined;
+      if (!targetOrg) {
+        return fail(403, "Organisation requise pour cibler");
+      }
+      if (!(await isMemberOfOrg(admin, userId, targetOrg))) {
         return fail(403, "Ciblage limité à vos organisations");
       }
+      effectiveOrgId = targetOrg;
     }
 
+    const filters = buildFilters(body?.targetRole, body?.targetUserId, effectiveOrgId);
     if (!filters) {
       // Aucun ciblage → OneSignal diffuserait à « All » (tous les tenants).
       // Réservé à un admin CENTRAL : un admin d'organisation doit scoper son
