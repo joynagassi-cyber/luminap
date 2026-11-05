@@ -179,6 +179,21 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 - **Action** : corriger aussi `create_pending_transaction_notification`
   (`NEW.amount / 100` + `to_char`), ou la supprimer (cf. R-I).
 
+### R-L [FAIBLE] — Notification APPROVED en double (+ fausses approbations)
+- **DÉFAUT prouvé en production** : à l'approbation, DEUX triggers AFTER
+  produisaient `TRANSACTION_APPROVED` : `on_transaction_change` →
+  `notify_transaction_change` (message « Votre transaction a été approuvée »)
+  **et** `on_transaction_approved` → `create_approved_transaction_notification`
+  (message « …avec succès »). Preuve : **1090 notifications APPROVED pour 1037
+  transactions**, dont **3 tx portant exactement les deux messages**.
+- **Second défaut, même fonction** : la branche APPROVED de
+  `notify_transaction_change` tirait sur TOUT `UPDATE` d'une transaction déjà
+  approuvée (pas seulement la TRANSITION) → une réécriture d'une tx approuvée
+  créait une fausse notification « approuvée ».
+- **Action** : garder un seul chemin (`on_transaction_change`) et exiger
+  `OLD.status IS DISTINCT FROM 'APPROVED'` (transition réelle).
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000003` — cf. §7 « R-L ».
+
 ### R-K [FAIBLE-MOYEN] — Contrôles financiers côté CLIENT uniquement
 - **Maker-checker** (anti auto-approbation) : `canApprove` est une règle PURE
   appelée dans `dataLayer` avant l'approbation. **Aucune** contrainte DB, RLS
@@ -193,6 +208,8 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 - **Action** : porter ces règles en base (trigger `BEFORE INSERT/UPDATE` sur
   `transactions`) si l'on veut une garantie serveur, ou documenter
   l'acceptation du risque (contrôle « procédural » côté app).
+- **✅ RÉSOLU (2026-11-04)** : trigger `trg_transactions_financial_guards` porté
+  en base — cf. §7 « R-K ».
 
 ### Confirmations positives (contrôles d'exécution RPC)
 - `settle_invitation_claim` : **non exécutable** par `anon` **ni**
@@ -239,9 +256,53 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 - Versions tracker des 2 migrations (horodatage d'application, dérive
   structurelle connue) : `20261105124717`, `20261105125246`.
 
+### ✅ R-L — notification APPROVED en double (résolu)
+- **Défaut prouvé** : à l'approbation, DEUX triggers AFTER produisaient
+  `TRANSACTION_APPROVED` — `on_transaction_change`
+  (« Votre transaction a été approuvée ») **et** `on_transaction_approved`
+  (« …avec succès »). Preuve en base : **1090 notifications / 1037 tx**, dont
+  **3 tx portant exactement les deux messages**. Second défaut : la branche
+  APPROVED de `notify_transaction_change` tirait sur TOUT UPDATE d'une tx déjà
+  approuvée (fausse notification).
+- **Migration** `20261104000003_drop_duplicate_approved_notification_trigger.sql`
+  appliquée via MCP : `notify_transaction_change` exige désormais une
+  TRANSITION (`OLD.status IS DISTINCT FROM 'APPROVED'`) + `REVOKE EXECUTE`
+  ré-énoncé (garde R115) ; `DROP TRIGGER on_transaction_approved` +
+  `DROP FUNCTION create_approved_transaction_notification`.
+- **Vérifié en base** : triggers restants = `on_transaction_change`,
+  `prevent_approved_transaction_delete` ; fonction supprimée ; ACL =
+  `{postgres, service_role}`.
+
+### ✅ R-K — garde-fous financiers portés EN BASE (résolu)
+- **Défaut** : maker-checker (PR8) et gel de période (PR13) n'existaient que
+  côté client → un client REST/PowerSync avec `transaction:update` pouvait
+  auto-approuver sa dépense et écrire dans une période clôturée.
+- **Migration** `20261104000004_transaction_financial_guards.sql` appliquée via
+  MCP : trigger `trg_transactions_financial_guards` BEFORE INSERT OR UPDATE sur
+  `transactions` → (1) `org_settings.period_locked_until` : `date ≤ clôture`
+  ⇒ `PERIOD_LOCKED` ; (2) transition UPDATE→APPROVED avec
+  `maker_checker_enabled=true` et `approved_by_id = created_by_id`
+  ⇒ `MAKER_CHECKER_SELF_APPROVAL`.
+- **Choix d'erreur** : `ERRCODE='23514'` (classe 23) et NON `P0001` — le
+  connecteur PowerSync ne JETTE (au lieu de retenter à l'infini) que les
+  `22xxx/23xxx/42501`. Un `P0001` aurait bloqué la file d'upload.
+- **Sémantique fail-open** : réglage absent/vide/illisible ⇒ aucun blocage
+  (`org_settings` = 0 ligne aujourd'hui) ; le rôle de réplication
+  (`auth.uid() IS NULL`) n'est jamais bloqué ; l'INSERT auto-approuvé
+  (revenus/caisse) reste autorisé (seule la TRANSITION est gardée).
+- **Vérifié live (bloc annulé)** : `period=23514:PERIOD_LOCKED`,
+  `open=NO-BLOCK` (fail-open), `mc=23514:MAKER_CHECKER_SELF_APPROVAL` ; ACL =
+  `{postgres, service_role}`, `prosecdef=true`.
+- **Gardes** : `migration-financial-guards-rk.test.ts`.
+
+### Dérive migrations (R17) — mise à jour après R-L/R-K
+- Fichiers dépôt : **86 horodatés / 63 séquentiels / 149 total** ; empreinte de
+  noms `fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2`.
+
 ### Reste à traiter (non corrigé)
-- **R-K** : maker-checker + gel de période côté client uniquement (pas de
-  trigger DB) — décision produit requise.
 - **R-H (suite)** : notifications historiques déjà lues non backfillées (sans
   objet), et le libellé « lu » n'est pas par-utilisateur (compteur d'org).
+- **R-K (suite)** : aucun réglage d'org n'active encore les gardes (aucune
+  ligne `org_settings`) — les gardes sont inertes jusqu'à activation par
+  l'écran de paramètres ; l'INSERT auto-approuvé reste hors périmètre.
 - **R104 / R8 / CI-prod partagée** : voir sections précédentes.

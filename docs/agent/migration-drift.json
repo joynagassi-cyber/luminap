@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 94,
-    "repo_timestamped_files": 84,
+    "repo_timestamped_files": 86,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 147,
+    "repo_total_sql_files": 149,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 92,
     "repo_file_never_applied": 65,
     "drift_ratio": "2/94",
-    "repo_filenames_sha256": "8994ea7d2452f69622c6632812540f404b376234728968c6b3b6ae94e5795b56",
+    "repo_filenames_sha256": "fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -88,5 +88,11 @@
     "2 migrations ajoutees (2026-11-04) : 20261104000001_drop_duplicate_pending_notification_trigger (R-I/R-J : DROP du trigger redondant `on_transaction_pending` + fonction `create_pending_transaction_notification` — `on_transaction_change` couvre deja INSERT PENDING) et 20261104000002_notifications_read_policy (R-H : policy `notifications_update` elargie a `is_org_member` + GRANT UPDATE(is_read) colonne seule).",
     "Les deux ont ete appliquees via MCP `apply_migration` -> versions tracker = horodatages d'application 20261105124717 et 20261105125246 (mecanisme de derive deja documente). Objets verifies en base : triggers transactions = on_transaction_change / on_transaction_approved / prevent_approved_transaction_delete ; notifications_update qual = is_org_member(auth.uid(), org_id) ; authenticated updatable_columns = {is_read}.",
     "Tracker re-mesure le 2026-11-04 : 94 versions (92 precedentes + 2). drift_ratio 2/94. Empreinte de noms re-mesuree : 84 horodatees / 63 sequentielles / 147 total."
+  ],
+  "notes_rl_and_rk": [
+    "2 migrations ajoutees (2026-11-04) : 20261104000003_drop_duplicate_approved_notification_trigger (R-L : l'approbation produisait 2 notifications TRANSACTION_APPROVED — `on_transaction_change` ET `on_transaction_approved` ; 1090 notifs / 1037 tx, 3 tx avec les DEUX messages). La fonction `notify_transaction_change` exige desormais une TRANSITION (OLD.status IS DISTINCT FROM 'APPROVED') et le trigger/fonction `on_transaction_approved`/`create_approved_transaction_notification` sont supprimes.",
+    "20261104000004_transaction_financial_guards (R-K) : trigger BEFORE INSERT OR UPDATE sur `transactions` portant en base (1) le gel de periode (`org_settings.period_locked_until`, date <= cloture -> PERIOD_LOCKED) et (2) l'anti auto-approbation maker-checker sur la TRANSITION vers APPROVED (`maker_checker_enabled`, approved_by_id = created_by_id -> MAKER_CHECKER_SELF_APPROVAL). Fail-open (reglage absent = aucun blocage), ignore le role de replication (auth.uid() NULL).",
+    "CHOIX DE CODE : `23514` (classe 23) et NON `P0001` — le connecteur PowerSync ne JETTE que les 22xxx/23xxx/42501 ; un P0001 tomberait en retry infini et bloquerait la file d'upload.",
+    "Empreinte de noms re-mesuree : 86 horodatees / 63 sequentielles / 149 total."
   ]
 }
