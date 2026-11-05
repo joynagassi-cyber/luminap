@@ -199,8 +199,8 @@ Source : `docs/agent/RISQUES.md`.
 | **R107** | `needs-membership` (et `forbidden`) déclarés mais **inertes** : `App.tsx` n'alimente pas `isOrgMember`/`hasPermission` → défense en profondeur côté client absente. | **OUVERT** (dépend R109/R16) |
 | **R16** | `profiles.role` et `org_memberships.role` divergent (deux sources de vérité du rôle). | **OUVERT** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
-| **R80** | Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté (choix assumé, D-S6-1). | **OUVERT** (moyenne) |
-| **R97** | Advisors `rls_enabled_no_policy` : 2 tables *deny-all* volontaires (`keep_alive`, `_jsonb_backfill_20261024`) — non modifiées (D-S9-4). | **ASSUMÉ** |
+| **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
+| **R97** | Advisors `rls_enabled_no_policy` : **5** tables *deny-all* volontaires (RLS activée, aucune policy ⇒ refus par défaut) : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`. Non modifiées (D-S9-4). | **ASSUMÉ** |
 
 Risques **corrigés** (pour mémoire) : R100 (code d'invitation CSPRNG), R101/R102
 (triggers finance), R103 (escalade RPC), R111 (claim ↔ `auth.users`), R113

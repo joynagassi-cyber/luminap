@@ -4747,3 +4747,40 @@ partagée par les deux plateformes et couverte par 3 tests.
   plus aucune occurrence.
 - **Preuve** : tests notification 16/16 + garde, verts (params d'INSERT indexés
   en conséquence).
+
+### R162 — Audit schéma client ↔ PostgreSQL + advisors (2026-11-04) — ✅ CONFORME (2 flags bénins)
+- **Comparaison exhaustive** des 42 tables du schéma PowerSync local
+  (`schema.ts` + 4 fichiers annexes) aux colonnes réelles de PostgreSQL
+  (`information_schema.columns`) :
+  - **0** colonne locale référencée par le SQL client et absente de PG
+    (hors `org_settings.id`/`org_units.updated_at`, voir plus bas) → aucune
+    écriture client ne peut être rejetée à l'upload.
+  - **0** table locale sans table PG (hors `config`, voir plus bas).
+  - `invitations.target_role_uuid` existe en PG mais n'est pas exposée au client
+    (bénin : le client ne l'utilise pas ; colonne serveur du nouveau modèle de
+    rôles R109).
+- **`config`** (schéma local, `key/value/created_at/updated_at`) : **aucun
+  stream** (`sync-config.yaml` a bien une clé de tête `config:` = édition, pas
+  un stream) et **aucune lecture/écriture** dans `src/` → coquille inerte. La
+  retirer est sûr (non fait pour éviter un bump de schéma supplémentaire ; à
+  nettoyer lors du prochain bump).
+- **`org_settings.id` / `org_units.updated_at`** : colonnes locales absentes de
+  PG. `org_settings` est une vue sans `id` (l'écriture fait
+  `INSERT (id, org_id, key, …)` avec UUID client → PG ignore `id`, PK
+  `(key, org_id)`) ; `org_units.updated_at` est local-only (cf. R184). Les deux
+  sont volontaires et **non exposées** à l'upload (PowerSync ne pousse que les
+  colonnes du schéma serveur). Bénin.
+- **RLS** : toutes les tables de `public` ont `relrowsecurity = true` (aucune
+  table exposée sans RLS).
+- **Advisors sécurité** : les 7 `authenticated_security_definer_function_executable`
+  sont des helpers RLS **gardés** (`has_permission`, `is_org_member`, `is_org_admin`,
+  `current_org_id`, `org_descendants`, `can_manage_invitations`) — `upsert_profile`
+  est durci (vérifie `p_user_id = auth.uid()` + `is_org_admin` pour rôle/org).
+  `keep_alive_ping` (anon) et `auth_leaked_password_protection` (plan Free) déjà
+  documentés (R104). Les 5 `rls_enabled_no_policy` sont *deny-all* volontaires
+  (R97, inventaire mis à jour).
+- **Advisors perf** : 34 `unused_index` (INFO, trafic faible, index préventifs) ;
+  7 `multiple_permissive_policies` (WARN) sur `org_reports` (emitter ALL +
+  receiver SELECT = design émetteur/récepteur) et `organizations`
+  (federation-récursive + merged) — **ASSUMÉ** : les fusionner changerait la
+  sémantique RLS pour un gain marginal (le nombre de policies reste faible).
