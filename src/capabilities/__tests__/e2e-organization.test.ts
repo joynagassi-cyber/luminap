@@ -33,48 +33,50 @@ const mockRows: Record<string, any[]> = {
 // ─── Mock PowerSync ──────────────────────────────────────────────────
 const mockDb = {
   execute: async (sql: string, params: any[] = []) => {
-    const tableMatch = sql.match(/(?:FROM|INTO)\s+(\w+)/i);
+    const tableMatch = sql.match(/(?:FROM|INTO|UPDATE)\s+(\w+)/i);
     const table = tableMatch ? tableMatch[1] : "unknown";
     if (!mockRows[table]) mockRows[table] = [];
     const data = mockRows[table];
 
     if (sql.startsWith("INSERT")) {
-      if (sql.includes("ON CONFLICT")) {
-        // organizations upsert: params [id, name, created_at, updated_at]
+      if (table === "organizations") {
+        // INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+        //   VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)
         if (params[0]) {
-          const existingIdx = data.findIndex((r: any) => r.id === params[0]);
-          if (existingIdx >= 0) {
-            data[existingIdx] = { ...data[existingIdx], name: params[1] };
-          } else {
-            const now = params[3] ?? "2026-01-01T00:00:00.000Z";
-            data.push({
-              id: params[0],
-              name: params[1],
-              type: "CHURCH",
-              status: "ACTIVE",
-              created_at: params[2] ?? now,
-              updated_at: now,
-            });
-          }
-        }
-      } else {
-        // org_units: params [id, name, type, org_id, description, is_active,
-        //            created_at, updated_at]
-        const now = params[params.length - 1];
-        if (table === "org_units" && params[0]) {
           data.push({
             id: params[0],
             name: params[1],
-            type: params[2] ?? "",
-            org_id: params[3],
-            description: params[4] ?? "",
-            is_active: params[5] ?? 1,
-            created_at: params[6] ?? now,
-            updated_at: params[7] ?? now,
+            type: "CHURCH",
+            status: "ACTIVE",
+            created_at: params[2] ?? "2026-01-01T00:00:00.000Z",
+            updated_at: params[3] ?? "2026-01-01T00:00:00.000Z",
           });
         }
+      } else if (table === "org_units" && params[0]) {
+        // org_units: params [id, name, type, org_id, description, is_active,
+        //            created_at]
+        data.push({
+          id: params[0],
+          name: params[1],
+          type: params[2] ?? "",
+          org_id: params[3],
+          description: params[4] ?? "",
+          is_active: params[5] ?? 1,
+          created_at: params[6] ?? "2026-01-01T00:00:00.000Z",
+        });
       }
       return { array: [], rowsAffected: 1 };
+    }
+
+    if (sql.startsWith("UPDATE")) {
+      // UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?
+      const id = params[params.length - 1];
+      const row = data.find((r: any) => r.id === id);
+      if (row) {
+        row.name = params[0];
+        row.updated_at = params[1];
+      }
+      return { array: [], rowsAffected: row ? 1 : 0 };
     }
 
     if (sql.startsWith("DELETE")) {

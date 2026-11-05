@@ -194,7 +194,7 @@ sans risque de casser des flux légitimes).
   `/admin/reports*` est une ligne du registre).
 
 
-## E7 — Écritures `UPSERT` sur une VUE PowerSync (« cannot UPSERT a view ») — **CORRIGÉ pour `org_settings`**, 2 occurrences latentes consignées (2026-10-31)
+## E7 — Écritures `UPSERT` sur une VUE PowerSync (« cannot UPSERT a view ») — **CORRIGÉ (org_settings + les 2 occurrences, R160, 2026-11-04)**
 
 - **Symptôme** : PR13 (gel de période) et PR8 (maker-checker) semblaient
   **inertes** — cliquer « Clôturer la période » / la bascule n'enregistrait rien,
@@ -225,7 +225,10 @@ sans risque de casser des flux légitimes).
   PowerSync client ; utiliser `SELECT` + `UPDATE`/`INSERT` explicite. Envisager
   une garde statique (lint/test) qui échoue sur `ON CONFLICT` dans `src/lib` et
   `src/capabilities`.
-- **Statut** : `org_settings` **corrigé + gardé** ; occurrences 1–2 **consignées**.
+- **Statut** : `org_settings` **corrigé + gardé** ; occurrences 1–2 **CORRIGÉES**
+  (R160, 2026-11-04) — passées au pattern `SELECT` → `UPDATE`/`INSERT` explicite
+  (`registerOrg` sur `organizations` ; `claimInvitation` sur `profiles`).
+  ALLOWLIST de `ps-view-upsert-guard.test.ts` vidée.
 
 ## E8 — 9 tables du schéma client SANS stream PowerSync — **CORRIGÉ ET DÉPLOYÉ** (2026-11-01)
 

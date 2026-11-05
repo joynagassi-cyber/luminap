@@ -4712,3 +4712,21 @@ partagée par les deux plateformes et couverte par 3 tests.
   aussi les colonnes cibles d'un **`UPDATE … SET`** (même classe « no such
   column »). Balayage complet du dépôt : **0** autre dérive. Test d'auto-détection
   `UPDATE` ajouté.
+
+### R160 — `ON CONFLICT`/`INSERT OR REPLACE` sur une VUE PowerSync (« cannot UPSERT a view ») — ✅ CORRIGÉ
+- **Classe (E7)** : côté client, PowerSync expose chaque table comme une **VUE**.
+  Un `INSERT … ON CONFLICT DO UPDATE` ou `INSERT OR REPLACE` échoue alors avec
+  « cannot UPSERT a view », silencieusement (le bouton paraît inerte). Déjà
+  corrigé pour `setOrgSetting` (PR8/PR13) ; restaient **2 occurrences** :
+  1. `registerOrg` (`organization/index.ts`) sur la vue `organizations` —
+     **aucun appelant en production** (tests seulement) ;
+  2. `claimInvitation` (`invitation/index.ts`) sur la vue `profiles` — **VIVANT**
+     (parcours « rejoindre via invitation », `InvitationClaim.tsx`).
+- **Correctif** : les deux passent au pattern vue-safe `SELECT id …` puis
+  `UPDATE`-ou-`INSERT` explicite (comme `setOrgSetting`). `claimInvitation`
+  conserve l'intention R111 (ne poser que `status='PENDING'` ; role/org laissés
+  au trigger serveur `settle_invitation_claim`).
+- **Garde** : `ps-view-upsert-guard.test.ts` — ALLOWLIST **vidée** (les 2 entrées
+  étaient soit morte, soit désormais corrigée). Toute nouvelle occurrence échoue.
+- **Preuve** : 112 tests (organization, e2e-organization, e2e, invitation,
+  garde) verts ; mocks de test alignés sur le nouveau SQL.

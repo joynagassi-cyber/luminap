@@ -56,8 +56,11 @@ describe("R111 — inscription obligatoire avant le claim", () => {
 
   it("le profil local ne réécrit PAS role/org_id (gardes ROLE/ORG_IMMUTABLE)", () => {
     const body = claimInvitationBody();
-    // L'UPSERT ne doit poser que status='PENDING' en conflit.
-    expect(body).toMatch(/ON CONFLICT \(id\) DO UPDATE SET status = 'PENDING'/);
+    // Le profil ne passe à PENDING que via UPDATE (colonne status) — ou, si la
+    // ligne n'est pas encore visible, un INSERT aux défauts tolérés
+    // (role MEMBRE / org __no_org__). Jamais d'`ON CONFLICT` (vue PowerSync).
+    expect(body).toMatch(/status = 'PENDING'/);
+    expect(body).toMatch(/'MEMBRE', '__no_org__', 'PENDING'/);
     // Le rôle/org de l'invitation ne doit PAS être écrit par le client.
     expect(body).not.toContain("payload.role,");
     expect(body).not.toContain("payload.orgId,\n        now");

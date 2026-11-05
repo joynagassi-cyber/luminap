@@ -55,6 +55,14 @@
 - **`password_hibp_enabled=False`** (R104) : PATCH **ignoré** → Pro Plan requis.
   CAPTCHA désactivé. Non bloquant.
 
+## Vue PowerSync / R160 (ON CONFLICT banni)
+- **Jamais** `INSERT … ON CONFLICT` ni `INSERT OR REPLACE` dans du SQL client
+  PowerSync : chaque table est une VUE → « cannot UPSERT a view » (silencieux).
+  Pattern obligatoire : `SELECT id …` puis `UPDATE`-ou-`INSERT` explicite.
+  Garde `ps-view-upsert-guard.test.ts` (ALLOWLIST vide depuis R160).
+- R160 : `registerOrg` (organizations, mort) + `claimInvitation` (profiles,
+  VIVANT — InvitationClaim.tsx) corrigés.
+
 ## Classe #317 / R184 (schéma PowerSync ↔ SQL client)
 - **Règle** : toute colonne utilisée par le SQL client DOIT être dans
   `src/lib/powersync/schema.ts`. Garde `powersync-schema-drift-guard.test.ts`.

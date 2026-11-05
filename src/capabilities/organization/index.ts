@@ -117,13 +117,25 @@ export class OrganizationService {
   async registerOrg(orgId: string, name: string): Promise<void> {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
-    // Use INSERT … ON CONFLICT (id) to keep the SQL canonical and idempotent.
-    await db.execute(
-      `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
-       VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)
-       ON CONFLICT (id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at`,
-      [orgId, name, now, now],
+    // PowerSync expose les tables comme des VUES → `ON CONFLICT`/`INSERT OR
+    // REPLACE` échoue (« cannot UPSERT a view », cf. E7 / setOrgSetting). On
+    // fait donc SELECT puis UPDATE-ou-INSERT explicite.
+    const existing = await db.execute(
+      "SELECT id FROM organizations WHERE id = ?",
+      [orgId],
     );
+    if ((existing?.array?.length ?? 0) > 0) {
+      await db.execute(
+        "UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?",
+        [name, now, orgId],
+      );
+    } else {
+      await db.execute(
+        `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+         VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)`,
+        [orgId, name, now, now],
+      );
+    }
   }
 
   /**

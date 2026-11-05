@@ -28,19 +28,13 @@ const SCAN_DIRS = [
 ];
 
 /**
- * Occurrences connues et justifiées (cf. docs/agent/ESCALATIONS.md E7). Toute
- * autre occurrence fait échouer la garde — c'est le but : forcer une revue.
+ * Occurrences connues et justifiées (cf. docs/agent/ESCALATIONS.md E7).
+ * **Vide** : les 2 anciennes entrées ont été corrigées (R160) — `registerOrg`
+ * (aucun appelant) et `claimInvitation` (parcours d'invitation VIVANT) sont
+ * passés au pattern SELECT → UPDATE/INSERT. Toute occurrence fait donc échouer
+ * la garde, ce qui force une revue.
  */
-const ALLOWLIST = new Map<string, string>([
-  [
-    "src/capabilities/organization/index.ts",
-    "registerOrg() : code mort (aucun appelant), à traiter avec le schéma PowerSync",
-  ],
-  [
-    "src/capabilities/invitation/index.ts",
-    "claimInvitation() : dépend d'un changement de schéma/stream profiles (E7)",
-  ],
-]);
+const ALLOWLIST = new Map<string, string>();
 
 const FORBIDDEN = /(ON\s+CONFLICT|INSERT\s+OR\s+REPLACE)/i;
 
