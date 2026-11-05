@@ -100,7 +100,12 @@ vi.mock("@/store/useLocalStore", () => {
   // action non déclarée, ce qui couvre tous les sélecteurs des écrans testés.
   const state: Record<string, unknown> = new Proxy(
     { loadInitialData: vi.fn(async () => undefined), auditEntries: [] },
-    { get: (t, p) => (p in t ? (t as Record<string, unknown>)[p] : vi.fn()) },
+    {
+      // `p` est un `string | symbol` : le typer `PropertyKey` évite
+      // `TS2538: Type 'symbol' cannot be used as an index type` (tsc -b).
+      get: (t, p: PropertyKey) =>
+        p in t ? (t as Record<PropertyKey, unknown>)[p] : vi.fn(),
+    },
   );
   const hook = ((sel?: (s: unknown) => unknown) => (sel ? sel(state) : state)) as ((
     s?: unknown,

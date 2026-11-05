@@ -42,11 +42,35 @@
   organisations ni les `auth.users`** ⇒ pollution illimitée.
 - **Action** : projet Supabase de test dédié pour la CI ; purge des orgs
   `Self-Serve E2E %` / `Annexe %` et comptes `ss-e2e-%@lumina.dev`.
+- **✅ PARTIELLEMENT RÉSOLU (2026-11-04)** :
+  - **Purge prod exécutée** (bloc `DO` atomique) : **267 → 5 orgs**,
+    **101 → 4 comptes**, `ss-e2e-*` = **0**, `Self-Serve E2E %`/`Annexe %` = **0**.
+    Conservés : `lumina-org-e2e@` + `lumina-org-unconfigured@` (persistants,
+    partagés), les 2 églises réelles, `org-central`, et les orgs « Org E2E »/
+    « Lumina E2E Unconfigured ».
+  - **Outillage pérenne** : `scripts/e2e-purge.sql` (atomique + idempotent,
+    désactive/réactive `trg_org_admins_not_last`, ne touche jamais aux comptes
+    partagés), `scripts/e2e-purge.sh` (API Management), workflow
+    `.github/workflows/e2e-purge.yml` (déclenché après chaque run Cypress +
+    filet quotidien 04:30 UTC). `pnpm run e2e:purge`.
+  - **Durcissement CI** : `cypress.yml` + `ci.yml` préfèrent les secrets
+    `TEST_SUPABASE_URL` / `TEST_SUPABASE_ANON_KEY` / `TEST_POWERSYNC_URL`
+    (repli prod tant que le projet de test n'existe pas).
+  - **RESTE À FAIRE (blocage)** : provisionner le **projet de test** exige un
+    token Management rattaché à une **organisation** — le token actuel
+    (`GET /v1/organizations` → `[]`) n'en liste aucune, donc impossible depuis
+    l'agent. À faire par le propriétaire (voir RUNBOOK.md § « Purger les
+    artefacts E2E »).
+- **Garde** : `src/lib/__tests__/ci-e2e-isolation-ra.test.ts`.
 
 ### R-B [MOYEN] — R8 (mot de passe en clair) × 91 comptes admin
 - `cypress/support/orgCreds.ts` expose `E2e-Lumina!1` en clair ; **91 comptes
-  distincts** détiennent des grants `org_admins` ACTIVE.
-- **Action** : changer le mot de passe (ou comptes éphémères) + purge prod.
+  distincts** détenaient des grants `org_admins` ACTIVE.
+- **✅ Partiellement résolu (2026-11-04)** : la purge R-A a supprimé ces 91
+  comptes éphémères → il ne reste **que 2 comptes porteurs du mot de passe**
+  (`lumina-org-e2e@`, `lumina-org-unconfigured@`), soit **2 grants** au lieu de
+  93. **Reste** : changer ce mot de passe (ou générer des comptes éphémères) —
+  le secret est toujours en clair dans `orgCreds.ts`/`cypress.config.ts`.
 
 ### R-C [FAIBLE] — `audit_entries_insert` = `is_org_member`
 - Un membre peut **INSÉRER** des entrées d'audit arbitraires dans son org
