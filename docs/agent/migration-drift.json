@@ -4,19 +4,19 @@
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 97,
-    "repo_timestamped_files": 87,
+    "applied_versions_in_tracker": 98,
+    "repo_timestamped_files": 88,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 150,
+    "repo_total_sql_files": 151,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 95,
-    "repo_file_never_applied": 85,
-    "drift_ratio": "2/97",
-    "repo_filenames_sha256": "3128d95f9bb4da33377ff74dfa446bb5902c6c10ba2daf7c5077b71861861380",
+    "applied_without_repo_file": 96,
+    "repo_file_never_applied": 86,
+    "drift_ratio": "2/98",
+    "repo_filenames_sha256": "6a3d2b16cfa00e162fb5b5bada2c20d11ccdd368c6aa809b8e18489e97c4d1d8",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -94,5 +94,9 @@
     "20261104000004_transaction_financial_guards (R-K) : trigger BEFORE INSERT OR UPDATE sur `transactions` portant en base (1) le gel de periode (`org_settings.period_locked_until`, date <= cloture -> PERIOD_LOCKED) et (2) l'anti auto-approbation maker-checker sur la TRANSITION vers APPROVED (`maker_checker_enabled`, approved_by_id = created_by_id -> MAKER_CHECKER_SELF_APPROVAL). Fail-open (reglage absent = aucun blocage), ignore le role de replication (auth.uid() NULL).",
     "CHOIX DE CODE : `23514` (classe 23) et NON `P0001` — le connecteur PowerSync ne JETTE que les 22xxx/23xxx/42501 ; un P0001 tomberait en retry infini et bloquerait la file d'upload.",
     "Empreinte de noms re-mesuree : 86 horodatees / 63 sequentielles / 149 total."
+  ],
+  "notes_r148_initplan": [
+    "1 migration ajoutee 20261104000006_notifications_update_initplan (R148 : realignement de notifications_update sur initplan_uid(), seule policy hors convention auth.uid() introduite par 20261104000002). Appliquee via MCP apply_migration -> version tracker = horodatage d'application 20261105215449 (mecanisme de derive documente). Objets verifies en base : notifications_update qual = is_org_member(initplan_uid(), org_id) ; advisor auth_rls_initplan disparu.",
+    "Tracker RE-MESURE le 2026-11-04 (accessible via MCP execute_sql) : 98 versions. drift_ratio 2/98. Empreinte de noms re-mesuree : 88 horodatees / 63 sequentielles / 151 total."
   ]
 }

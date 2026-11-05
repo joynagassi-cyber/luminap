@@ -129,10 +129,16 @@
   | Fichiers jamais enregistrés comme appliqués | **61** |
 
   Les seules correspondances exactes sont `20261001000001` et
-  `20261027000003`. **La dérive est donc quasi totale (2/70)** : le tracker et
+  `20261027000003`. **La dérive est donc quasi totale** : le tracker et
   le dépôt sont deux historiques disjoints. Les 63 fichiers séquentiels
-  `NNNN_*` (0000→0062) s'ajoutent aux 63 fichiers horodatés → **126 fichiers**
-  pour un tracker qui ne connaît que des versions à 14 chiffres.
+  `NNNN_*` (0000→0062) s'ajoutent aux fichiers horodatés pour un tracker qui ne
+  connaît que des versions à 14 chiffres.
+
+  **Re-mesure LIVE 2026-11-04** (tracker désormais lisible via MCP
+  `execute_sql`, cf. R147) : tracker = **98** versions ; dépôt = **88**
+  horodatées + **63** séquentielles = **151** fichiers ; versions communes = **2**
+  → `drift_ratio` **2/98**. Instantané `docs/agent/migration-drift.json` mis à
+  jour (garde `migration-drift-guard.test.ts` alignée).
 - **Conséquence** : `supabase db push` rejouerait les **61** migrations non
   tracées sur une base où leur contenu existe déjà → erreurs (objets existants)
   voire altérations. `supabase db pull` produirait un diff trompeur. **Ne pas
