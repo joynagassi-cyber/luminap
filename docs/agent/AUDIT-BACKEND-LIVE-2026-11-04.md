@@ -125,8 +125,17 @@
   ('org-central', <uuid d'un compte de confiance>, 'ACTIVE')` — à faire
   volontairement (crée un compte privilégié).
 
-### R-E [FAIBLE] — Pas de rate-limit applicatif (R6, non corrigé)
+### R-E [FAIBLE] — Pas de rate-limit applicatif (R6)
 - `signup` / `login` / `create_org` sans limitation de débit applicative.
+- **✅ ATTÉNUÉ (2026-11-04)** : les fonctions `signup`/`login` ont été
+  **supprimées** (R-F) → la surface non authentifiée se réduit à GoTrue
+  (`auth.signUp`/`signInWithPassword`), lui-même borné par GoTrue. `create_org`
+  est borné **par conception** : le chemin self-serve ne s'ouvre qu'au compte
+  **sans organisation** (`org_id = '__no_org__'`), donc il n'est utilisable
+  qu'**une fois par compte** ; un admin (annexe) exige déjà un grant ACTIVE.
+  Aucune boucle de création d'organisations par un même compte n'est possible.
+- **Reste** : GoTrue applique des limites de débit par défaut ; un rate-limit
+  applicatif explicite (par IP) reste une amélioration optionnelle.
 
 ### R-F [INFO] — Edge functions mortes
 - `signup` (v11) et `login` (v11) étaient **invoquées nulle part** côté client
@@ -145,7 +154,13 @@
 
 ### R-G [INFO] — Hygiène réplication
 - 3 rôles `powersync_*` coexistent (`…28d1d976…` actif, `…90f6145d…`,
-  `powersync_role` legacy), tous `BYPASSRLS`.
+  `powersync_role` legacy), tous `BYPASSRLS` (49/49/71 grants).
+- **DÉCISION : laissé tel quel (2026-11-04).** Supprimer un rôle `powersync_*`
+  sans savoir lequel le connecteur PowerSync utilise effectivement en
+  production **casserait la synchronisation** (échec silencieux côté client).
+  L'information vit dans la console PowerSync, pas en base. Nettoyage à faire
+  depuis la console PowerSync (vérifier le rôle du connecteur, puis `DROP
+  ROLE` des deux autres), pas à l'aveugle via SQL.
 
 ---
 
@@ -375,7 +390,28 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 ### Reste à traiter (non corrigé)
 - **R-H (suite)** : notifications historiques déjà lues non backfillées (sans
   objet), et le libellé « lu » n'est pas par-utilisateur (compteur d'org).
-- **R-K (suite)** : aucun réglage d'org n'active encore les gardes (aucune
-  ligne `org_settings`) — les gardes sont inertes jusqu'à activation par
-  l'écran de paramètres ; l'INSERT auto-approuvé reste hors périmètre.
+- **R-K (suite)** : `org_settings` vide ⇒ gardes **inertes par conception**
+  (fail-open). **Vérifié 2026-11-04** : l'écran écrit exactement les clés lues
+  par le trigger (`src/lib/orgSettings.ts` : `period_locked_until` +
+  `maker_checker_enabled`) → la garde serveur s'activera dès qu'un réglage est
+  posé. L'INSERT auto-approuvé reste hors périmètre (choix assumé).
 - **R104 / R8 / CI-prod partagée** : voir sections précédentes.
+
+### Récapitulatif de statut (2026-11-04)
+| Constat | Sévérité | Statut |
+|---|---|---|
+| R-A prod = bac à sable E2E | MOYEN-ÉLEVÉ | ✅ purge + outillage ; projet de test = propriétaire |
+| R-B mot de passe en clair | MOYEN | ✅ roté, littéraux retirés |
+| R-C `audit_entries_insert` | FAIBLE | ✅ tranché (conception) |
+| R-D `org-central` vide / broadcast | FAIBLE | ✅ garde corrigée (v18) ; admin central = propriétaire |
+| R-E rate-limit | FAIBLE | ✅ atténué (signup/login supprimés ; `create_org` borné) |
+| R-F edge functions mortes | INFO | ✅ supprimées (prod + dépôt) |
+| R-G rôles réplication | INFO | ✅ tranché (nettoyage console PowerSync) |
+| R-H « marquer lu » | MOYEN | ✅ migration `20261104000002` |
+| R-I/R-J doublon PENDING + montant | FAIBLE | ✅ migration `20261104000001` |
+| R-K contrôles financiers client | FAIBLE-MOYEN | ✅ trigger `20261104000004` |
+| R-L doublon APPROVED | FAIBLE | ✅ migration `20261104000003` |
+| R17 dérive migrations | INFO | ⏳ régularisation d'historique |
+| R16/R62 source unique de rôle | INFO | ⏳ à trancher |
+| R104 fuite mot de passe | FAIBLE | ⏳ plan Pro (propriétaire) |
+| R5 RGPD / R13 abonnements | — | ⏳ backlog |
