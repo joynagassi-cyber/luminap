@@ -219,3 +219,11 @@ tranchée : pile unique, BottomNav maison).
   et l'écart connu « blanc sur accent < AA » (fire, emerald, care, know) est
   verrouillé comme exception documentée — à corriger à l'unification P4/P5,
   sans toucher à l'apparence du thème actuel en P1.
+- P1 lot 7 (gate) : **Design Lab** livré — route `/dev/design-lab`, 100 %
+  dev-only (vérifié : 0 référence dans le bundle `pnpm build`, route et
+  résolveur compilés hors prod via `import.meta.env.DEV`). Barre fixe
+  thème (10 accents, boutons — aucun `<select>` natif) × mode × effets,
+  tous les jetons `--lu-*` résolus (couleurs, rayons, ombres, typo) lus
+  via getComputedStyle, plus un aperçu hero + cartes façon maquettes.
+  Les composants `Lu*` (P2/P3) y entreront au fur et à mesure. Gate P1
+  atteint côté outillage ; reste : raccordement violet (#424) et `custom`.
