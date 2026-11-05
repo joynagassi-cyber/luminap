@@ -69,8 +69,22 @@
             : "dark";
         } catch (e) { resolved = "dark"; }
       }
+      var effects = null;
+      try {
+        var storedEffects = localStorage.getItem("lumina-theme-effects");
+        if (storedEffects === "full" || storedEffects === "lite") effects = storedEffects;
+      } catch (e) { /* stockage indisponible : détecter l'appareil */ }
+      if (!effects) {
+        var device = typeof navigator === "undefined" ? {} : navigator;
+        var memory = device.deviceMemory;
+        var cores = device.hardwareConcurrency;
+        var lowMemory = typeof memory === "number" && isFinite(memory) && memory > 0 && memory <= 2;
+        var fewCores = typeof cores === "number" && isFinite(cores) && cores > 0 && cores <= 4;
+        effects = lowMemory || fewCores ? "lite" : "full";
+      }
       document.documentElement.dataset.theme = theme;
       document.documentElement.dataset.mode = resolved;
+      document.documentElement.dataset.effects = effects;
     })();
   </script>
   <!-- Un seul splash dans l'app : la page React /splash (src/pages/Splash.tsx).

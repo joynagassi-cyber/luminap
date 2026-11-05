@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useThemeModeStore } from "@/store/useThemeModeStore";
+import { withThemeTransition } from "@/design-system/theme/transition";
 import type { ThemeMode } from "@/ionic/themes";
 
 const OPTIONS: { mode: ThemeMode; label: string; Icon: typeof Sun }[] = [
@@ -37,7 +38,7 @@ export default function ThemeToggle() {
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => setMode(m)}
+            onClick={() => withThemeTransition(() => setMode(m))}
             className="flex-1 flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-all active:scale-95"
             style={{
               minHeight: 44,

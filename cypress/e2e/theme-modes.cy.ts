@@ -147,6 +147,28 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     });
   });
 
+  it('les effets choisis sont persistés et appliqués après rechargement', function () {
+    this.timeout(90_000);
+    cy.visit('/settings/theme', {
+      onBeforeLoad(win) {
+        win.localStorage.setItem('lumina-theme-effects', 'full');
+      },
+    });
+    cy.get('[role="radiogroup"][aria-label="Effets visuels"]', { timeout: 60_000 })
+      .find('[role="radio"]').contains('Allégés').click();
+    cy.get('[role="radiogroup"][aria-label="Effets visuels"]')
+      .find('[role="radio"]').contains('Allégés').should('have.attr', 'aria-checked', 'true');
+    cy.window().then((win) => {
+      expect(win.localStorage.getItem('lumina-theme-effects')).to.eq('lite');
+      expect(win.document.documentElement.dataset.effects).to.eq('lite');
+      expect(win.getComputedStyle(win.document.documentElement).getPropertyValue('--lu-glass-blur').trim()).to.eq('0px');
+    });
+    cy.reload();
+    cy.get('[role="radiogroup"][aria-label="Effets visuels"]', { timeout: 60_000 })
+      .find('[role="radio"]').contains('Allégés').should('have.attr', 'aria-checked', 'true');
+    cy.window().then((win) => expect(win.document.documentElement.dataset.effects).to.eq('lite'));
+  });
+
   it('mode par défaut = SYSTEM : le mode résolu suit prefers-color-scheme', function () {
     this.timeout(90_000);
 
