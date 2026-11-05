@@ -1598,3 +1598,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   -F 'file=@supabase/functions/<slug>/index.ts;type=application/typescript'`
   (pas de CLI supabase installée). Vérifier : `GET /v1/projects/<ref>/functions`.
 - Garde : `src/lib/__tests__/central-broadcast-rd.test.ts` (4).
+
+## R-F — edge functions mortes supprimées (2026-11-04)
+- `signup`/`login` (verify_jwt:false) n'étaient invoquées nulle part (le client
+  passe par GoTrue `auth.signUp/signInWithPassword`). Supprimées prod + dépôt.
+- `signup` était un vecteur d'abus : signup non authentifié + **auto-confirmation
+  d'email** (clé service-role). Inutile car : projet Auth en
+  `mailer_autoconfirm=true`, et `handle_new_user` **ignore** `role`/`org_id` des
+  métadonnées (force `MEMBRE`/`__no_org__`) → aucune escalade.
+- Restent : `create_org`, `onesignal-notify`, `report-error`.
+- Undeploy : `DELETE /v1/projects/<ref>/functions/<slug>`.
+- Garde : `src/lib/__tests__/edge-functions-rf.test.ts` (3).

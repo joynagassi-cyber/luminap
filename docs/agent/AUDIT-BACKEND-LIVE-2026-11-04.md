@@ -129,10 +129,19 @@
 - `signup` / `login` / `create_org` sans limitation de débit applicative.
 
 ### R-F [INFO] — Edge functions mortes
-- `signup` (v11) et `login` (v11) sont **invoquées nulle part** côté client
-  (seul `create_org` l'est). 5 fonctions déployées :
-  `signup`, `login`, `create_org`, `onesignal-notify`, `report-error`.
-- `verify_jwt:false` sur les 4 premières (auth applicative dans le corps).
+- `signup` (v11) et `login` (v11) étaient **invoquées nulle part** côté client
+  (le client utilise GoTrue : `supabase.auth.signUp/signInWithPassword`).
+  5 fonctions déployées : `signup`, `login`, `create_org`, `onesignal-notify`,
+  `report-error`, toutes `verify_jwt:false`.
+- **✅ CORRIGÉ (2026-11-04)** : `signup`/`login` **retirées de la prod**
+  (undeploy) et du dépôt. `signup` était un vecteur d'abus (création de compte
+  non authentifiée + **auto-confirmation d'email** avec la clé service-role) —
+  inutile puisque le projet Auth est déjà `mailer_autoconfirm=true` et que le
+  trigger `handle_new_user` **ignore** `role`/`org_id` des métadonnées (force
+  `MEMBRE`/`__no_org__` ; `guard_profile_role_insert`/`guard_profile_org_insert`
+  refusent un rôle/org privilégié à l'INSERT). Fonctions restantes :
+  `create_org`, `onesignal-notify`, `report-error`.
+  Garde : `src/lib/__tests__/edge-functions-rf.test.ts` (3).
 
 ### R-G [INFO] — Hygiène réplication
 - 3 rôles `powersync_*` coexistent (`…28d1d976…` actif, `…90f6145d…`,
