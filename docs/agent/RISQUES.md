@@ -263,7 +263,7 @@
 
 ## Gravité HAUTE
 
-### R3 — Streams PowerSync non filtrés par organisation — CORRIGÉ FICHIER, DÉPLOIEMENT CLOUD À CONFIRMER
+### R3 — Streams PowerSync non filtrés par organisation — ✅ CORRIGÉ ET DÉPLOYÉ (confirmé 2026-11-04)
 - **Défaut** : `categories`, `org_units`, `caisses` en `SELECT *` sans filtre
   `org_id` dans `powersync/sync-config.yaml` → chaque client synchronisait les
   données de **toutes** les organisations sur son appareil.
@@ -271,6 +271,13 @@
   (`powersync deploy sync-config`) reste à confirmer. Tant qu'il n'est pas
   déployé, le défaut persiste en production.
 - **Vérification** : voir RUNBOOK.md (procédure de déploiement + contrôle).
+- **✅ DÉPLOIEMENT CONFIRMÉ (2026-11-04)** — lors du déploiement R48
+  (`powersync deploy --instance-id 6a9dd96302481fb31b945823`), le **dry-run**
+  comparait le sync-config local au config DÉPLOYÉ : le **seul** diff portait sur
+  l'ajout de `logo_url` (R48). Les filtres `org_id IN (SELECT … FROM profiles/
+  org_memberships …)` sur `categories`, `org_units`, `caisses` étaient donc
+  **déjà présents en production** → R3 est corrigé ET déployé. Aucune fuite
+  inter-organisations via ces streams.
 
 ### R4 — Notifications ciblées jamais délivrées (`filter` vs `filters`) — CORRIGÉ
 - **Défaut** : le payload envoyait `filter` (chaîne) au lieu de `filters`
