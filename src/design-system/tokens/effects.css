@@ -1,0 +1,6 @@
+/* Activé au lot Provider ; les overlays Ionic héritent du même root. */
+html[data-effects="lite"][data-mode] {
+  --lu-glass-bg: var(--lu-surface-2);
+  --lu-glass-border: var(--lu-border);
+  --lu-glass-blur: 0px;
+}

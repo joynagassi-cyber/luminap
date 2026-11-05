@@ -126,6 +126,27 @@ describe('Lumina — mode thème system/light/dark (tokens complets + persistanc
     cy.location('pathname', { timeout: 60_000 }).should('eq', '/dashboard');
   }
 
+  it('les alias sur html suivent le thème historique et atteignent les overlays', () => {
+    visitWithStoredMode('light');
+    cy.window().then((win) => {
+      const root = win.document.documentElement;
+      const styles = win.getComputedStyle(root);
+      for (const [alias, old] of [['--lu-bg', '--canvas'], ['--lu-fg', '--text-primary'],
+        ['--lu-accent', '--accent-primary'], ['--lu-income', '--in'], ['--lu-fg-subtle', '--text-tertiary']]) {
+        expect(styles.getPropertyValue(alias).trim(), alias).to.eq(styles.getPropertyValue(old).trim());
+      }
+      const overlay = win.document.createElement('div');
+      win.document.body.appendChild(overlay);
+      overlay.style.color = 'var(--lu-fg)';
+      const probe = win.document.createElement('div');
+      probe.style.color = 'var(--text-primary)';
+      win.document.body.appendChild(probe);
+      expect(win.getComputedStyle(overlay).color).to.eq(win.getComputedStyle(probe).color);
+      overlay.remove();
+      probe.remove();
+    });
+  });
+
   it('mode par défaut = SYSTEM : le mode résolu suit prefers-color-scheme', function () {
     this.timeout(90_000);
 

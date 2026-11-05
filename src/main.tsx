@@ -12,6 +12,9 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "./App.css";
 import "./globals.css";
+import "./design-system/tokens/semantic.css";
+import "./design-system/tokens/themes.generated.css";
+import "./design-system/tokens/effects.css";
 // Ionic structural CSS: layout for ion-app / .ion-page / ion-content
 // (absolute positioning, flex fill). Without it, pushed views collapse to
 // the header height and the screen appears blank even though content is in
