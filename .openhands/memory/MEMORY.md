@@ -67,9 +67,11 @@
 - 3 fonctions : `create_org` (v11), `onesignal-notify` (v19), `report-error` (v8).
   Toutes `verify_jwt:false` : chacune DOIT vérifier l'appelant elle-même.
 - **R163** : `onesignal-notify` exigeait un JWT mais ne vérifiait pas
-  l'appartenance à l'org ciblée → injection de push cross-tenant. Corrigé
-  (isMemberOfOrg = profiles.org_id ∪ org_memberships ACTIVE/PENDING ∪
-  org_admins). Reste : filtre org_id auto sur targetUserId.
+  l'appartenance à l'org ciblée → injection de push cross-tenant. Corrigé v20 :
+  cloisonnement FORCÉ (`effectiveOrgId` toujours scoppé à une org ; un non-admin
+  central ne peut pas cibler nu). PIÈGE : une 1re version testait seulement
+  `if (body.orgId)` → l'exploit SANS orgId passait encore ; toujours forcer le
+  scope, pas seulement valider ce qui est fourni.
 - `report-error` : allowlist repo, dédup atomique (`claim_error_report`
   service_role), filtre non-production. RPC sensibles (claim/release/
   register_anonymous_report, handle_new_user, settle_invitation_claim) =
