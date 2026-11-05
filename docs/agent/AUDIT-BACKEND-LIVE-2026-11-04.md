@@ -85,9 +85,19 @@
 ### R-C [FAIBLE] — `audit_entries_insert` = `is_org_member`
 - Un membre peut **INSÉRER** des entrées d'audit arbitraires dans son org
   (falsification par ajout — l'altération/suppression est, elle, bloquée).
-- **Action** : restreindre l'INSERT aux triggers `SECURITY DEFINER` (retirer la
-  policy INSERT pour `authenticated`) si le client n'écrit pas d'audit
-  directement.
+- **DÉCISION : accepté par conception (2026-11-04).** Le client écrit
+  **lui-même** son journal (`src/lib/audit.ts` → INSERT PowerSync) : la policy
+  INSERT est **nécessaire** ; on ne peut pas la retirer au profit des seuls
+  triggers `SECURITY DEFINER`. La falsification est bornée à SA propre
+  organisation (`is_org_member`), l'acteur est déjà coercé en NULL si non-UUID,
+  et l'altération/suppression reste bloquée. Deux gardes encodent ce choix :
+  `pr18-write-permission-guard.test.ts` et
+  `r141d-write-permission-guard.test.ts`.
+- **Durcissement optionnel (non retenu, risque de régression)** : exiger
+  `user_id = initplan_uid() OR user_id IS NULL` en `WITH CHECK`. Rejeté car
+  certains flux légitimes pourraient attribuer l'entrée à un autre acteur →
+  rejet silencieux à l'upload. À reconsidérer seulement si la traçabilité
+  d'attribution devient un besoin.
 
 ### R-D [FAIBLE] — `org-central` sans grant `org_admins` ACTIVE
 - Seule organisation sans admin ACTIVE : `org-central` (« Administration
@@ -192,7 +202,8 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
    broadcast. — **✅ FAIT côté code** (garde broadcast : chemin canonique
    `ADMIN` de `org-central`, edge function v18). Reste le provisionnement
    service-role d'un admin central réel (action propriétaire).
-4. **Durcir `audit_entries_insert`** (retirer l'INSERT client si inutile).
+4. **Durcir `audit_entries_insert`** — **✅ TRANCHÉ** : conservé (le client
+   écrit son propre journal ; cf. R-C).
 5. Trancher **R16/R62** (source unique de rôle) et **R17** (régulariser
    l'historique).
 6. R5 (RGPD), R6 (rate-limit), R104 (plan Pro), R13 (fuites d'abonnements).
@@ -209,11 +220,9 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 - Côté client, `markNotificationRead` / `markAllNotificationsRead`
   (`src/lib/notification-service.ts` → `useLocalStore`) **ne mettent à jour
   que l'état React en mémoire** — **aucune** écriture PowerSync/Supabase.
-- Résultat : cliquer « lu » n'a **aucun effet persistant** ; toutes les
-  notifications redeviennent non lues au reload/à la resynchro.
-- **Action** : soit écrire `is_read` via PowerSync (UPDATE), soit assouplir la
-  policy à `is_org_member` (voire par destinataire), soit assumer « non lu
-  permanent ».
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000002` — policy
+  `notifications_update` → `is_org_member(auth.uid(), org_id)` + privilège
+  colonne (`GRANT UPDATE (is_read)`) ; le client persiste via PowerSync. Cf. §7.
 
 ### R-I [FAIBLE] — Notification de transaction PENDING en double
 - Deux triggers `AFTER INSERT` sur `transactions` tirent quand `status='PENDING'` :
@@ -221,16 +230,18 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
   **et** `on_transaction_pending` → `create_pending_transaction_notification`
   (`TRANSACTION_PENDING`). Preuve en base : 32 `TRANSACTION_SUBMITTED` + 32
   `TRANSACTION_PENDING` (mêmes 32 transactions).
-- **Action** : supprimer l'un des deux triggers (garder un seul chemin).
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000001` — `DROP TRIGGER
+  on_transaction_pending` + `DROP FUNCTION create_pending_transaction_notification`.
+  Vérifié en base : `on_transaction_pending` absent. Cf. §7.
 
 ### R-J [FAIBLE] — Montant BRUT dans la notification PENDING
 - `create_pending_transaction_notification` concatène `NEW.amount` **brut**
   (stocké en **centimes**) → « 5 000 000 FCFA » pour 50 000 FCFA.
 - Le correctif B-07 (`20261103000001_fix_notify_transaction_amount_display`) n'a
   patché **que** `notify_transaction_change` — la fonction PENDING (chemin
-  redondant R-I) garde le bug.
-- **Action** : corriger aussi `create_pending_transaction_notification`
-  (`NEW.amount / 100` + `to_char`), ou la supprimer (cf. R-I).
+  redondant R-I) gardait le bug.
+- **✅ RÉSOLU (2026-11-04)** : la fonction fautive a été **supprimée** avec le
+  trigger redondant (R-I). Cf. §7.
 
 ### R-L [FAIBLE] — Notification APPROVED en double (+ fausses approbations)
 - **DÉFAUT prouvé en production** : à l'approbation, DEUX triggers AFTER
