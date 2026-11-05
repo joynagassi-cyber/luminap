@@ -50,7 +50,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
               <div
                 className="w-full aspect-square rounded-full flex items-center justify-center"
                 style={{
-                  background: t.primary,
+                  background: selected && t.id === "violet" ? "var(--accent-primary)" : t.primary,
                   boxShadow: selected
                     ? `0 0 0 3px var(--canvas), 0 0 0 5px ${t.primary}`
                     : "none",
@@ -61,7 +61,7 @@ export default function ThemePicker({ value, onChange, columns = 5 }: Props) {
               {columns === 5 && (
                 <span
                   className="text-xs leading-tight text-center"
-                  style={{ color: selected ? t.primary : "var(--text-tertiary)" }}
+                  style={{ color: selected ? (t.id === "violet" ? "var(--brand-text)" : t.primary) : "var(--text-tertiary)" }}
                 >
                   {t.name.split(" ")[0]}
                 </span>

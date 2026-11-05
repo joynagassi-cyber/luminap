@@ -74,11 +74,28 @@ export function generateTokens(spec: ThemeSpec, mode: ThemeMode): Record<string,
   const primitives = generatePrimitives(spec);
   const dark = mode === "dark";
   const n = primitives.neutral;
-  const { accent, onAccent } = accessibleAccent(spec.accent);
   const vivid = normalizeHex(spec.accentVivid ?? spec.accent);
   const bg = dark ? fromOklch(0.16, 0.012, spec.neutralHue) : n[50];
   const surface = dark ? fromOklch(0.22, 0.012, spec.neutralHue) : n[0];
   const surface2 = dark ? n[800] : n[100];
+  // L'accent sert aussi au texte et aux icônes. Ajuster sa luminosité
+  // en OKLCH jusqu'à AA sur les trois surfaces, puis choisir son texte
+  // noir/blanc après conversion et arrondi sRGB.
+  const sourceAccent = normalizeHex(spec.accent);
+  const source = toOklch(sourceAccent)!;
+  let adjusted = sourceAccent;
+  const surfaces = [bg, surface, surface2];
+  const readable = (color: string) => surfaces.every((background) => wcagContrast(color, background) >= 4.5);
+  if (!readable(adjusted)) {
+    let found = false;
+    for (let step = 1; step <= 1000; step++) {
+      const l = Math.max(0, Math.min(1, source.l + (dark ? step : -step) / 1000));
+      const candidate = fromOklch(l, source.c, source.h ?? spec.neutralHue);
+      if (readable(candidate)) { adjusted = candidate; found = true; break; }
+    }
+    if (!found) throw new Error("Accent cannot meet contrast on theme surfaces");
+  }
+  const { accent, onAccent } = accessibleAccent(adjusted);
   const fg = dark ? n[0] : n[950];
   const fgMuted = dark ? n[300] : n[700];
   const fgSubtle = dark ? n[400] : n[600];
