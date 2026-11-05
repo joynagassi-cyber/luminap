@@ -296,11 +296,31 @@
 - **Statut** : non corrigé (hors périmètre 45 min). Proposé : PROPOSITIONS.md
   P1. Consigné pour le propriétaire.
 
-### R6 — Pas de limitation de débit sur les endpoints sensibles
-- **Défaut** : les edge `signup`, `login` et la connexion Supabase directe
-  n'ont aucun rate-limit applicatif. Le brute-force de mot de passe dépend
-  uniquement des protections Supabase (présentes mais non paramétrées ici).
-- **Statut** : non corrigé. Proposé : PROPOSITIONS.md P2.
+### R6 — Pas de limitation de débit applicatif sur signup/login — ⚠️ CARACTÉRISÉ (LIVE 2026-11-04)
+- **Défaut (description initiale)** : « les edge `signup`, `login` … n'ont aucun
+  rate-limit applicatif ».
+- **🔎 CARACTÉRISATION LIVE (corrige la prémisse)** : il **n'existe AUCUNE** edge
+  function `signup`/`login` dans ce projet (`supabase/functions/` = `create_org`,
+  `onesignal-notify`, `report-error`). L'authentification passe **directement par
+  Supabase GoTrue** (`supabase.auth.signUp`/`signInWithPassword`). Il n'y a donc
+  **pas d'endpoint applicatif à plafonner** : le rate-limit pertinent est celui
+  de GoTrue, **déjà actif** (config live) :
+  - `rate_limit_email_sent = 2/h` (borne la création de comptes par IP) ;
+  - `rate_limit_token_refresh = 150/h` ; `rate_limit_verify = 30/h` ;
+  - `rate_limit_otp = 30/h` ; `rate_limit_sms_sent = 30/h`.
+- **✅ DURCISSEMENT APPLIQUÉ (LIVE 2026-11-04)** : `password_min_length` était
+  **6** côté serveur alors que le **client** exige **8** (`authService.isValidPassword`,
+  message « au moins 8 caractères »). Un client malveillant (ou l'API directe)
+  pouvait créer un compte à **6** caractères. Alignement serveur → **8**
+  (`PATCH /config/auth`), vérifié persistant.
+- **Risque résiduel (faible)** : pas de CAPTCHA (`security_captcha_enabled=false`) ;
+  `rate_limit_email_sent=2` limite la création de comptes mais un signup réussi
+  peut être suivi de tentatives de connexion (couvertes par le rate-limit
+  token_refresh de GoTrue). Un plafond de connexion par compte/IP serait un
+  durcissement supplémentaire possible (non disponible via la config Management ;
+  nécessiterait un hook GoTrue).
+- **Statut** : **prémisse corrigée** + durcissement mot de passe appliqué. Le
+  reste (CAPTCHA, hook anti-brute-force) = décision propriétaire, non bloquant.
 
 ### R7 — 13 tables sans index sur `org_id` — CORRIGÉ
 - **Défaut** : chaque policy RLS et chaque stream PowerSync filtre par
@@ -3180,6 +3200,10 @@ sauvegarde disponible).
   Auth → Password settings → « Leaked password protection », ou accepter le
   risque documenté.
 - **Statut** : ouvert, escalade (non bloquant pour le code).
+- **🔁 RE-CONFIRMÉ LIVE (2026-11-04)** : `password_hibp_enabled = False` ; la
+  tentative d'activation via `PATCH /config/auth` est **ignorée** (la clé reste
+  `False` après l'appel) → cohérent avec « Pro Plan requis ». Rien à faire côté
+  code. (L'activation du plan Pro reste la seule voie.)
 
 ### R105 — Garde de route RBAC déclarée mais INERTE + permissions `invitation:*` orphelines — ✅ CORRIGÉ (câblage via R142)
 - **Gravité** : MOYENNE (défense en profondeur absente ; pas d'escalade directe car les pages et la RLS filtrent déjà).

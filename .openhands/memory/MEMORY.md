@@ -45,6 +45,16 @@
 - **R8/R9/R105** : R8 corrigé (R-B, garde `e2e-credentials-rb.test.ts`) ; R9
   corrigé (garde `keystore-password-r9.test.ts`) ; R105 résolu par R142.
 
+## Config Auth GoTrue (R6/R104, 2026-11-04)
+- **Pas d'edge `signup`/`login`** : l'auth passe par GoTrue direct
+  (`supabase.auth.signUp/signInWithPassword`). Rate-limits GoTrue déjà actifs
+  (`rate_limit_email_sent=2/h` borne la création de comptes, `token_refresh=150/h`).
+- **`password_min_length` 6 → 8** (LIVE, aligné sur le client `isValidPassword`).
+  Modifiable via `PATCH https://api.supabase.com/v1/projects/<ref>/config/auth`
+  avec `$SUPABASE_ACCESS_TOKEN` ; lecture via `GET` du même endpoint.
+- **`password_hibp_enabled=False`** (R104) : PATCH **ignoré** → Pro Plan requis.
+  CAPTCHA désactivé. Non bloquant.
+
 ## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
 - **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
   `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒
