@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNotifications, markNotificationRead, markAllNotificationsRead, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useLocalStore } from "@/store/useLocalStore";
 import { NotificationsSkeleton } from "@/components/PageSkeletons";
 import {
   Bell,
@@ -72,6 +73,7 @@ export default function NotificationsPage() {
     error: notificationsError,
     retry: retryNotifications,
   } = useNotifications();
+  const { markNotificationRead, markAllNotificationsRead } = useLocalStore();
 
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -100,11 +102,11 @@ export default function NotificationsPage() {
   ).length;
 
   const handleMarkRead = async (id: string) => {
-    await markNotificationRead(id, {} as any);
+    await markNotificationRead(id);
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsRead({} as any);
+    await markAllNotificationsRead();
   };
 
   if (notificationsLoading || (sorted.length === 0 && replicaPending)) {

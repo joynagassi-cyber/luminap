@@ -1,22 +1,22 @@
 {
   "version": 1,
-  "generated": "2026-11-03",
+  "generated": "2026-11-04",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 95,
-    "repo_timestamped_files": 82,
+    "applied_versions_in_tracker": 94,
+    "repo_timestamped_files": 84,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 145,
+    "repo_total_sql_files": 147,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 71,
+    "applied_without_repo_file": 92,
     "repo_file_never_applied": 65,
-    "drift_ratio": "2/95",
-    "repo_filenames_sha256": "fdee4809b001b7bddcedb4016d69f788d6431d36071838353dce63d29aa15f47",
+    "drift_ratio": "2/94",
+    "repo_filenames_sha256": "8994ea7d2452f69622c6632812540f404b376234728968c6b3b6ae94e5795b56",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -83,5 +83,10 @@
   ],
   "notes_b07_notify_amount": [
     "1 migration ajoutee 20261103000001 (B-07 : notify_transaction_change affichait le montant brut en centimes, x100 ; division par 100 + REVOKE re-enonce pour la garde R115). Appliquee via API de migration Supabase -> version tracker 20261103125333 (horodatage d'application, mecanisme de derive deja documente). Tracker re-mesure le 2026-11-03 via API Management : 95 versions (91 au 2026-11-01 + 3 des 2026-11-01/02 + celle-ci) ; versions communes toujours 2 (20261001000001, 20261027000003) -> drift_ratio 2/95. Empreinte de noms re-mesuree : 82 horodatees / 145 total. Objets : delta nul maintenu (CREATE OR REPLACE d'une fonction existante, ACL durcies preservees — anon/authenticated EXECUTE = false verifies)."
+  ],
+  "notes_pending_dedup_and_r_h": [
+    "2 migrations ajoutees (2026-11-04) : 20261104000001_drop_duplicate_pending_notification_trigger (R-I/R-J : DROP du trigger redondant `on_transaction_pending` + fonction `create_pending_transaction_notification` — `on_transaction_change` couvre deja INSERT PENDING) et 20261104000002_notifications_read_policy (R-H : policy `notifications_update` elargie a `is_org_member` + GRANT UPDATE(is_read) colonne seule).",
+    "Les deux ont ete appliquees via MCP `apply_migration` -> versions tracker = horodatages d'application 20261105124717 et 20261105125246 (mecanisme de derive deja documente). Objets verifies en base : triggers transactions = on_transaction_change / on_transaction_approved / prevent_approved_transaction_delete ; notifications_update qual = is_org_member(auth.uid(), org_id) ; authenticated updatable_columns = {is_read}.",
+    "Tracker re-mesure le 2026-11-04 : 94 versions (92 precedentes + 2). drift_ratio 2/94. Empreinte de noms re-mesuree : 84 horodatees / 63 sequentielles / 147 total."
   ]
 }

@@ -1,0 +1,31 @@
+-- ============================================================================
+-- 20261104000001 — Suppression du trigger PENDING redondant (R-I + R-J)
+-- ----------------------------------------------------------------------------
+-- DÉFAUT (mesuré en production, 2026-11-04)
+--   Deux triggers AFTER INSERT tirent sur `transactions` quand
+--   `status = 'PENDING'` :
+--     • `on_transaction_change` → `notify_transaction_change()`  → insère une
+--       notification `TRANSACTION_SUBMITTED` (montant correct : /100 + to_char) ;
+--     • `on_transaction_pending` → `create_pending_transaction_notification()`
+--       → insère une notification `TRANSACTION_PENDING` (montant BRUT, en
+--       centimes : « 5000000 FCFA » pour 50 000 FCFA).
+--   Preuve en base : 32 `TRANSACTION_SUBMITTED` + 32 `TRANSACTION_PENDING`
+--   pour les 32 mêmes transactions (doublon systématique).
+--
+--   Le correctif B-07 (`20261103000001_fix_notify_transaction_amount_display`)
+--   n'a patché QUE `notify_transaction_change` ; la fonction PENDING garde le
+--   bug de montant ×100 ET crée une seconde notification.
+--
+-- CORRECTIF (minimal, réversible)
+--   Supprimer le chemin redondant `on_transaction_pending` /
+--   `create_pending_transaction_notification`. `notify_transaction_change`
+--   couvre déjà INSERT PENDING (`TRANSACTION_SUBMITTED`, montant correct),
+--   DELETE, UPDATE APPROVED/REJECTED/UPDATED — c'est le journal canonique
+--   unique.
+--
+-- RÉVERSIBILITÉ : rollback/20261104000001_rollback.sql (recrée le trigger et
+--   la fonction, avec le montant corrigé /100 au passage).
+-- ============================================================================
+
+DROP TRIGGER IF EXISTS on_transaction_pending ON public.transactions;
+DROP FUNCTION IF EXISTS public.create_pending_transaction_notification();

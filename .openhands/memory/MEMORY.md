@@ -1432,3 +1432,55 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Cypress en local** : `npx cypress install` + `apt-get install -y
   --fix-missing xvfb` (snapshot.debian.org fait des 503 → réessayer) ;
   `npx vite --port 8080 --strictPort` ; `CYPRESS_BASE_URL=http://localhost:8080`.
+
+## Audit backend LIVE — état vérifié 2026-11-04 (Supabase + PowerSync)
+- **Méthode** : MCP Supabase (`hhgovvrnalibhgpakswi`) + PowerSync CLI
+  (`PS_ADMIN_TOKEN=$POWERSYNC_TOKEN`, instance `Production` `6a9dd963…`).
+- **Durcissement confirmé EN PROD** : schéma client ↔ colonnes DB = **delta nul**
+  (17 tables) ; sync rules déployées == dépôt (43 streams identiques) ;
+  R137/R141 (écriture via `has_permission`) actives ; `is_org_member` +
+  `handle_new_user` = versions durcies ; RLS sur 48/48 tables ; `role_permissions`
+  181 l./15 rôles ; 0 FK orpheline ; advisors OK (sauf `keep_alive_ping` R97.b
+  intentionnel + R104 plan gratuit).
+- **[RISQUE CLÉ] La PROD sert de bac à sable E2E.** `cypress.yml` pointe les
+  secrets prod → 93/95 comptes `@lumina.dev`, 262/265 orgs vides (86 « Self-Serve
+  E2E », 174 « Annexe A/B »). Nettoyage **non fatal**, ne supprime PAS les orgs.
+  ⇒ **ne jamais lancer d'E2E avec les secrets prod** ; purger régulièrement.
+- **[RISQUE] R8 × 91 admins** : `cypress/support/orgCreds.ts` (`E2e-Lumina!1` en
+  clair) + 91 comptes avec grants `org_admins` ACTIVE ⇒ changer le mot de passe.
+- **`audit_entries` EST append-only** (mig `20261030000001`, appliquée sous
+  `20261030063307`) : policies UPDATE/DELETE retirées (deny-all). Résiduel
+  mineur : `audit_entries_insert` = `is_org_member` (falsification par ajout).
+- Restent ouverts : R5 (RGPD), R6 (rate-limit), R13 (subs PowerSync), R16/R62
+  (2 sources de rôle), R17 (dérive migrations 92 vs 82 fichiers), R104.
+- Détail complet : `.openhands/memory/2026-11-04.md`.
+
+## Audit notifications + défenses financières (2026-11-04, LIVE)
+- **« Marquer lu » inopérant** : policy `notifications_update` exige
+  `admin:settings` (TREASURIER/PASTEUR exclus) ET le client
+  (`notification-service.ts`/`useLocalStore`) ne mute que l'état React — aucune
+  écriture PowerSync/Supabase. → non persistant.
+- **Notif PENDING en double** : triggers `on_transaction_change`
+  (`TRANSACTION_SUBMITTED`) + `on_transaction_pending` (`TRANSACTION_PENDING`),
+  tous deux sur INSERT status=PENDING.
+- **Montant brut (centimes)** dans `create_pending_transaction_notification` :
+  B-07 n'a patché que `notify_transaction_change`.
+- **Maker-checker + gel de période = CLIENT seulement** (`canApprove`,
+  `assertPeriodOpen`) ; aucun trigger DB ; `org_settings` vide (options off).
+  Contournable via REST si on a la permission.
+- **RPC fermées** : `settle_invitation_claim`, `claim/release_error_report`,
+  `register_anonymous_report` non exécutables par anon/authenticated.
+  `keep_alive_ping` anon = intentionnel (R97.b).
+- Rapport : `docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md` (205 l.).
+
+## Correctifs prod appliqués (2026-11-04)
+- `20261104000001` : DROP trigger `on_transaction_pending` + fn
+  `create_pending_transaction_notification` (R-I doublon + R-J montant ×100).
+- `20261104000002` : `notifications_update` → `is_org_member` + `GRANT
+  UPDATE(is_read)` (R-H « marquer lu ») ; client `useLocalStore` persiste via
+  PowerSync (`UPDATE notifications SET is_read=1`).
+- **PIÈGE gardes** : toute relaxation d'une policy R141.d/PR18 doit être
+  AJOUTÉE aux listes `ALLOWED_EXCEPTIONS`/`KNOWN_UNHARDENED_WRITE` sinon tests
+  rouges. Mock zustand de `a11y-screens.test.tsx` doit gérer l'appel SANS
+  sélecteur (le Proxy `vi.fn()` ne suffit pas : `sel is not a function`).
+- migration-drift.json re-mesuré : 94 tracker / 84 ts / 63 seq / 147 total.

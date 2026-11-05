@@ -36,6 +36,13 @@ const ALLOWED_EXCEPTIONS: Record<string, string> = {
   // R141.d — un membre enregistre SA propre action ; restreindre à un rôle
   // priverait les non-managers de toute traçabilité (append-only par R140).
   audit_entries_insert: "journal d'audit : l'acteur enregistre sa propre action",
+  // R-H (2026-11-04) — « marquer une notification comme lue » doit être
+  // possible pour TOUT membre (un TREASURIER/PASTEUR ne peut pas porter
+  // `admin:settings`). L'écriture est restreinte à la SEULE colonne `is_read`
+  // par privilège colonne (`GRANT UPDATE (is_read)`, cf. migration
+  // 20261104000002) ; title/message/org_id restent non modifiables.
+  notifications_update:
+    "R-H : l'utilisateur marque SA notification lue ; écriture limitée à la colonne is_read (privilège colonne)",
 };
 
 /**
@@ -47,6 +54,11 @@ const ALLOWED_EXCEPTIONS: Record<string, string> = {
  */
 const KNOWN_UNHARDENED_WRITE: Record<string, string> = {
   org_reports_emitter: "R141.e — bloqué par PR20 (CENTRAL_ADMIN), cf. RISQUES.md",
+  // R-H (2026-11-04) — notifications_update est volontairement membre-only :
+  // « marquer lu » doit être ouvert à tout membre, l'écriture étant limitée à
+  // la colonne `is_read` (privilège colonne, migration 20261104000002).
+  notifications_update:
+    "R-H : marquer sa notification lue, écriture limitée à is_read (privilège colonne)",
 };
 
 /** Tables métier dont CHAQUE politique d'écriture doit porter has_permission. */
