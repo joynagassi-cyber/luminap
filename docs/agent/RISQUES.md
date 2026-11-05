@@ -351,11 +351,24 @@
 - **Statut** : corrigé (statique ; le warning est runtime, non reproductible
   hors navigateur — cf. limite R98).
 
-### R13 — Fuites d'abonnements PowerSync (« subscription leaked »)
-- **Défaut** : de nombreux avertissements `[PowerSync]: A subscription to <table>
-  with params null leaked!` au fil de la navigation → abonnements non
-  `unsubscribe()` → fuite mémoire progressive sur une session longue.
-- **Statut** : documenté. Proposé : PROPOSITIONS.md P6.
+### R13 — Fuites d'abonnements PowerSync (« subscription leaked ») — CORRIGÉ
+- **Défaut** : avertissements `[PowerSync]: A subscription to <stream> with
+  params … leaked!`.
+- **Cause RÉELLE (identifiée 2026-11-04)** : le message provient d'un
+  `FinalizationRegistry` du SDK (`@powersync/shared-internals`
+  `ConnectionManager`) — il se déclenche quand un handle `SyncStreamSubscription`
+  est **collecté par le GC sans `unsubscribe()`**. Le seul appel du dépôt est
+  `subscribeOrgStreams()` (`src/lib/powersync/index.ts`), qui ouvrait les
+  streams `auto_subscribe:false` par `await _db.syncStream(name).subscribe()`
+  **sans conserver le handle** → handle jeté → avertissement (et abonnement non
+  réobservable). (Les `registerListener` sont des singletons gardés par flag :
+  hors sujet.)
+- **Correctif** : les handles sont désormais retenus dans un champ de module
+  `_orgStreamSubscriptions` (ce sont des streams GLOBAUX ouverts au boot, jamais
+  fermés — un `unsubscribe()` serait inapproprié, la doc SDK demande
+  explicitement de conserver la référence).
+- **Garde** : `src/lib/__tests__/sync-stream-leak-r13.test.ts` (2) — interdit le
+  retour d'un `.subscribe()` « nu ». Non-vacuité vérifiée par mutation.
 
 ### R24 — Vue `org_family` sans `security_invoker` : fuite inter-organisations — CORRIGÉ
 - **Défaut** : la vue `org_family` (clôture transitive de la fédération)
