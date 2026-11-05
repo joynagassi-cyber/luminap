@@ -205,5 +205,17 @@ tranchée : pile unique, BottomNav maison).
   existants — tout nouveau littéral casse le lint. La baseline ne diminue
   qu'explicitement (`pnpm lint:ratchet:update`), à décrémenter en P4/P5.
   Note : pas de dépendance stylelint ajoutée ; le volet CSS est couvert par le
-  même runner sans nouveau devDep. Reste dû en P1 : test de contraste étendu
-  (lot 5), raccordement violet (lot 4, PR en attente), Design Lab, police.
+  même runner sans nouveau devDep. Reste dû en P1 : raccordement violet
+  (lot 4, PR en attente), Design Lab, police.
+- P1 lot 5 : **test de contraste étendu AA** livré
+  (`src/lib/__tests__/design-system-contrast-aa.test.ts`). Nouveau registre
+  `THEME_SPECS` dans `tokens/themes.ts` : le test itère chaque thème publié ×
+  dark/light et exige 4.5:1 sur fg/bg, fg-muted/surface, on-accent/accent,
+  income/surface, expense/surface, hero-fg/hero-bg (échec = CI rouge, spec
+  §0.3 « un thème qui échoue n'est pas publié »). Le thème `custom` est
+  couvert par une grille hue × luminosité (52 hex) via `createCustomTheme` +
+  ajustement noir/blanc testé, et les entrées invalides rejetées. Audit du
+  catalogue historique : les 10 accents atteignent AA avec noir OU blanc,
+  et l'écart connu « blanc sur accent < AA » (fire, emerald, care, know) est
+  verrouillé comme exception documentée — à corriger à l'unification P4/P5,
+  sans toucher à l'apparence du thème actuel en P1.
