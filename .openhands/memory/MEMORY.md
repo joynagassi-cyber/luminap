@@ -1467,11 +1467,15 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   B-07 n'a patché que `notify_transaction_change`.
 - **Maker-checker + gel de période = CLIENT seulement** (`canApprove`,
   `assertPeriodOpen`) ; aucun trigger DB ; `org_settings` vide (options off).
-  Contournable via REST si on a la permission.
+  Contournable via REST si on a la permission. → **CORRIGÉ (R-K, cf. plus bas)**.
+- **R-L — notif APPROVED en double** : `on_transaction_change` +
+  `on_transaction_approved` tiraient tous deux sur UPDATE→APPROVED (1090 notifs
+  / 1037 tx, 3 tx avec les DEUX messages). + branche APPROVED sans garde de
+  transition (fausse notif sur tout UPDATE d'une tx approuvée).
 - **RPC fermées** : `settle_invitation_claim`, `claim/release_error_report`,
   `register_anonymous_report` non exécutables par anon/authenticated.
   `keep_alive_ping` anon = intentionnel (R97.b).
-- Rapport : `docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md` (205 l.).
+- Rapport : `docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md`.
 
 ## Correctifs prod appliqués (2026-11-04)
 - `20261104000001` : DROP trigger `on_transaction_pending` + fn
@@ -1484,3 +1488,31 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   rouges. Mock zustand de `a11y-screens.test.tsx` doit gérer l'appel SANS
   sélecteur (le Proxy `vi.fn()` ne suffit pas : `sel is not a function`).
 - migration-drift.json re-mesuré : 94 tracker / 84 ts / 63 seq / 147 total.
+
+## R-L + R-K — correctifs prod (2026-11-04, commit 73c10b04)
+- **R-L** `20261104000003_drop_duplicate_approved_notification_trigger.sql` :
+  `notify_transaction_change` exige `TG_OP='UPDATE' AND NEW.status='APPROVED'
+  AND OLD.status IS DISTINCT FROM 'APPROVED'` + `REVOKE EXECUTE … FROM PUBLIC`
+  ré-énoncé (garde R115 : toute redéfinition d'une fn de trigger SECURITY
+  DEFINER doit ré-énoncer son REVOKE, sinon `revoke-trigger-functions.test.ts`
+  échoue). DROP trigger `on_transaction_approved` + fn
+  `create_approved_transaction_notification`.
+- **R-K** `20261104000004_transaction_financial_guards.sql` : trigger
+  `trg_transactions_financial_guards` BEFORE INSERT OR UPDATE sur `transactions`
+  → (1) gel de période (`org_settings.period_locked_until`, `NEW.date <=
+  clôture` ⇒ `PERIOD_LOCKED`) ; (2) maker-checker sur la TRANSITION vers
+  APPROVED (`maker_checker_enabled` + `approved_by_id = created_by_id` ⇒
+  `MAKER_CHECKER_SELF_APPROVAL`). Fail-open (réglage absent = rien) ; ignore le
+  rôle réplication (`auth.uid()` NULL) ; INSERT auto-approuvé (revenus/caisse)
+  NON bloqué — seule la TRANSITION l'est (parité client `approveTransactionPS`).
+- **PIÈGE MAJEUR** : le connecteur PowerSync ne JETTE (au lieu de retenter à
+  l'infini) que `22xxx`/`23xxx`/`42501`. Un `RAISE … ERRCODE='P0001'`
+  (convention du dépôt) bloque la file d'upload. Pour une garde DÉTERMINISTE en
+  trigger, utiliser **`23514`** (classe 23).
+- Vérif live (bloc `DO` annulé) : `period=23514:PERIOD_LOCKED`,
+  `open=NO-BLOCK`, `mc=23514:MAKER_CHECKER_SELF_APPROVAL`. ACL fn =
+  `{postgres,service_role}`, `prosecdef=true`. `org_settings` reste vide.
+- Garde : `src/lib/__tests__/migration-financial-guards-rk.test.ts`.
+  Suite : 274 fichiers / 2654 tests OK ; tsc 0 ; eslint 0.
+- Dérive : 86 ts / 63 seq / 149 total ; hash noms
+  `fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2`.
