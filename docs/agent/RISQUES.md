@@ -1201,7 +1201,7 @@ désormais de déployer les streams, ce qui a levé le blocage historique.
 - **Non-vacuité** : une sonde temporaire (`__R52Probe.tsx`) fait échouer la
   garde ; supprimée ensuite. 0 faux positif mesuré sur le corpus actuel.
 
-### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide dans l'environnement — NON CORRIGÉ
+### R53 — `sessions.cy.ts` rouge : réplique PowerSync vide / compte E2E invalide — NON CORRIGÉ (blocage provisionnement)
 - **Gravité** : moyenne (le spec ne peut pas passer ici ; ce n'est pas une
   régression produit démontrée).
 - **Constat** : `sessions.cy.ts` échoue 3/3. `listUserOrgs()` lit
@@ -1232,7 +1232,23 @@ désormais de déployer les streams, ce qui a levé le blocage historique.
 - **Travail restant** : faire aboutir le sync PowerSync dans
   l'environnement de test (ou seeder la réplique locale), puis rejouer.
 
-### R54 — Le job E2E de la CI ne teste rien de réel — NON CORRIGÉ (documenté)
+- **🔎 RE-CARACTÉRISÉ (2026-11-04, logs CI LIVE)** — `sessions.cy.ts` échoue
+  dans **deux modes distincts** selon l'environnement :
+  1. **CI (`cypress.yml`)** : le `before all` échoue AVANT tout rendu —
+     `loginOrgAccount: échec d'auth AUTHENTIQUE (kind=invalid-credentials,
+     status=400)`. Le compte E2E partagé (`CYPRESS_ORG_EMAIL`/`_PASSWORD`) est
+     **invalide/non provisionné** en CI. Ce n'est PAS un flake infra : le helper
+     `cloud-auth` le détecte explicitement (bannière « Invalid email or
+     password »). Toutes les specs cloud tombent en cascade pour la même raison
+     (`cloud-sync`, `forms-v2`, `org-reports`, …).
+  2. **Local** : l'auth réussit mais la réplique PowerSync ne se peuple pas →
+     0 org → aucune carte `Re-ouvrir`.
+  Dans les deux cas, **le code produit est sain** : `listUserOrgs` lit la
+  réplique (source de vérité offline-first) ; une réplique vide ⇒ liste vide
+  est le comportement CORRECT, pas un bug. **Blocage = provisionnement du
+  compte de test**, pas le code. Voir R54 (même cause racine).
+
+### R54 — Job E2E CI : suite réelle exécutée mais compte de test invalide — PARTIELLEMENT PÉRIMÉ
 - **Gravité** : élevée (faux sentiment de sécurité sur toute la couche E2E).
 - **Défaut** (`.github/workflows/ci.yml`) : le job « E2E (Cypress) » exécute
   **un seul** spec (`simple-check.cy.ts`, qui se contente de rendre la page
@@ -1253,7 +1269,24 @@ désormais de déployer les streams, ce qui a levé le blocage historique.
   en secret, (2) retirer `continue-on-error`, (3) élargir la liste de specs,
   (4) rendre le job bloquant. Estimé 2 h dont 1 h de mise au point du sync.
 
-### R55 — Le build Android échoue à chaque push (préexistant, y compris sur `main`) — NON CORRIGÉ
+- **🔄 PARTIELLEMENT PÉRIMÉ (2026-11-04)** — un workflow dédié
+  **`cypress.yml`** existe désormais et exécute la **suite complète** (41 specs,
+  parallélisée en 2 shards, `cypress-io/github-action@v7`), sur `push`. Le job
+  `e2e` de `ci.yml` reste, lui, le smoke « credential-free » (inchangé).
+- **🔎 CAUSE RACINE MESURÉE (logs CI LIVE, run `42082011207`)** — la suite
+  `cypress.yml` **échoue réellement** (8/18 + 15/23 specs), mais TOUJOURS pour
+  la même raison : `before all` → `loginOrgAccount: échec d'auth AUTHENTIQUE
+  (kind=invalid-credentials, status=400)`. **Le compte E2E partagé n'est pas
+  valide en CI** (secret `CYPRESS_ORG_EMAIL`/`CYPRESS_ORG_PASSWORD` absent ou
+  périmé). Les specs sans auth (`local-*`, `welcome`, `theme-modes`,
+  `update-required`, `nav-bottom`, `backup-import-restore`, `sessions`…) passent.
+- **Conséquence** : R54 n'est plus « la CI ne teste rien » — elle teste, mais
+  le **provisionnement du compte de test** est le seul verrou. Ce n'est PAS
+  corrigeable en code : il faut (a) créer/valider le compte E2E et (b) poser
+  les secrets `CYPRESS_ORG_EMAIL`/`_PASSWORD` (et `TEST_SUPABASE_*`/`TEST_POWERSYNC_*`
+  pour un projet de test dédié). **Action propriétaire.**
+
+### R55 — Le build Android échoue à chaque push — ✅ CORRIGÉ (commits 177e5edf + 3e324a18)
 - **Gravité** : moyenne (n'affecte pas la PWA web, mais l'app native est
   **impossible à produire**).
 - **Cause racine exacte** (log du job `120537034105`, run `39989430527`) :
@@ -1275,6 +1308,17 @@ désormais de déployer les streams, ce qui a levé le blocage historique.
 - **Correctif proposé (1 h)** : remplacer `@capacitor/storage` (déprécié) par
   `@capacitor/preferences`, ou épingler une version du plugin déclarant son
   `namespace`. Voir PROPOSITIONS.md P26.
+
+- **✅ CORRIGÉ (constat 2026-11-04, vérifié par logs CI LIVE)** — `@capacitor/storage`
+  a été retiré de `package.json` (remplacé par `@capacitor/preferences`), et le
+  build Capacitor 8 / SQLite natif a été réparé par les commits `177e5edf`
+  (« P35 — réparer le build APK debug, alignement Capacitor 7 ») puis `3e324a18`
+  (« SQLite natif Capacitor 8 + @powersync/capacitor »), tous deux ancêtres de
+  `main`. **Preuve** : les workflows `Android Debug Build` (android-debug.yml)
+  ET `Lumina Android` (lumina-android.yml) sont **`success` sur `main`** (dernier
+  run 2026-11-05T18:12). Le diagnostic d'origine (namespace manquant du plugin
+  `@capacitor/storage`) est **obsolète** — l'app native est de nouveau
+  produisible. (Non re-testé localement : pas de JDK/SDK Android ici.)
 
 ### R56 — Deux workflows CI sont rouges en permanence (préexistant)
 - **Gravité** : moyenne.

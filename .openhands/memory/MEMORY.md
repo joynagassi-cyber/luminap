@@ -1,5 +1,34 @@
 # Mémoire projet — Lumina
 
+## Persistance « identité d'organisation » (R48) + audit backend (2026-11-04)
+- **R48** : `organizations` n'avait pas de logo → tout vivait dans `lumina-config`
+  (localStorage), invisible aux autres membres/appareils/rapports. Livré :
+  colonne `logo_url` (migration `20261104000005`) ; projetée dans les **3 streams
+  `org_*`** de `powersync/sync-config.yaml` + `logo_url: column.text` dans
+  `org-admin-schema.ts` (**garder les 3 en phase**) ; `hydrateOrgBrandingFromDb()`
+  remplit nom+logo absents depuis la ligne DB (n'écrase JAMAIS une saisie locale),
+  appelé par `useAppConfig` ; `setOrganizationBrandingPS(orgId,{name?,logoUrl?})`
+  (remplace `renameOrganizationPS`, supprimé). Garde `org-branding-r48.test.ts`.
+- **PowerSync deploy** : `PS_ADMIN_TOKEN=$POWERSYNC_TOKEN npx powersync deploy
+  --instance-id 6a9dd96302481fb31b945823` (dry-run = `--dry-run`). Un `ALTER TABLE`
+  est répliqué automatiquement (slot logique) mais le **stream doit projeter la
+  colonne** pour la rendre au client.
+- **R17 (drift migrations)** : à CHAQUE migration ajoutée, la garde
+  `migration-drift-guard.test.ts` échoue → re-mesurer `docs/agent/migration-drift.json`
+  (tracker via MCP `select count(*) from supabase_migrations.schema_migrations`,
+  hash SHA-256 de l'ensemble des noms de fichiers). État 2026-11-04 : tracker=97,
+  dépôt 87 horodatés / 150 total, `drift_ratio="2/97"`.
+- **R55 RÉSOLU** : `@capacitor/storage` retiré (→ `@capacitor/preferences`) ;
+  commits `177e5edf` + `3e324a18` ; `android-debug.yml` ET `lumina-android.yml`
+  `success` sur `main`.
+- **R53/R54 (E2E)** : cause racine LIVE unique = `loginOrgAccount` →
+  `invalid-credentials status=400` (**compte E2E CI non provisionné**) ;
+  `cypress.yml` exécute déjà la **suite complète** (41 specs, 2 shards). Le
+  blocage est le provisionnement (secrets `CYPRESS_ORG_*` + projet de test), pas
+  le code. `listUserOrgs` lisant la réplique PowerSync est CORRECT (offline-first).
+- **Astuce CI** : si `$GITHUB_TOKEN` renvoie 401, extraire le token de
+  `git remote get-url origin` (`https://x-access-token:<TOKEN>@github.com/...`).
+
 ## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
 - **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
   `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒
