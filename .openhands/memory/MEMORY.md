@@ -55,6 +55,15 @@
 - **`password_hibp_enabled=False`** (R104) : PATCH **ignoré** → Pro Plan requis.
   CAPTCHA désactivé. Non bloquant.
 
+## PowerSync CLI (R147, 2026-11-04)
+- **Jeton dispo** : `POWERSYNC_TOKEN` → `PS_ADMIN_TOKEN` pour la CLI
+  `npx -y powersync@0.10.3` (instance Production `6a9dd96302481fb31b945823`).
+- `fetch config --directory <dir>` exige un projet lié dans `<dir>` : copier
+  d'abord `powersync/{cli,service,sync-config}.yaml` dans le dir.
+- **Zéro dérive** dépôt↔Cloud ; `powersync validate` vert ; réplication
+  connectée (lag 0) ; couverture des streams complète (seule table locale
+  `config` sans stream). Le blocage « PS_ADMIN_TOKEN absent » est levé.
+
 ## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
 - **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
   `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒

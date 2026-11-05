@@ -365,6 +365,11 @@
   `initplan_uid() = id OR is_org_member(uid, org_id)` ; les orphelins ne sont
   pas lisibles entre eux. Artefact d'onboarding (pas de FK volontaire).
 - **Statut** : documenté, aucun correctif nécessaire. À surveiller (croissance).
+- **📉 MESURÉ LIVE (2026-11-04)** : **0 profil orphelin** aujourd'hui
+  (`profiles` = 6, `org_id='__no_org__'` = 0, `profiles_without_auth` = 0,
+  `org_memberships` = 6, `organizations` = 7). Les 47 orphelins ont été purgés
+  (même purge que R-A). Le « risque de croissance » reste théorique ; la
+  sentinelle `__no_org__` est toujours le comportement voulu avant onboarding.
 
 ### R11 — Suite Cypress obsolète (sélecteurs pré-Ionic)
 - **Défaut** : 108 usages de `cy.contains('button', …)` alors que l'app rend
@@ -4621,3 +4626,26 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Statut** : conforme, aucun correctif requis. (Élargit R97/R50 ; voir aussi
   R6 — rate-limit applicatif — et R104 — fuite de mots de passe —, hors de ce
   balayage.)
+
+### R147 — Vérification PowerSync LIVE (dérive dépôt↔Cloud + couverture des streams) — ✅ CONFORME
+- **Contexte** : de nombreux documents signalaient « `PS_ADMIN_TOKEN` absent de
+  l'environnement » (R80, ESCALATIONS) → `powersync deploy sync-config`
+  impossible. **L'environnement dispose désormais d'un jeton** (secret
+  `POWERSYNC_TOKEN`, à passer en `PS_ADMIN_TOKEN`).
+- **Méthode (LIVE 2026-11-04)** : `PS_ADMIN_TOKEN=$POWERSYNC_TOKEN powersync
+  fetch config` / `fetch status` / `validate`, instance Production
+  `6a9dd96302481fb31b945823` (eu).
+- **Constats** :
+  1. **Aucune dérive** : `powersync/sync-config.yaml` et `powersync/service.yaml`
+     du dépôt sont **identiques** (diff = 0 ligne) à la config déployée.
+  2. `powersync validate` → **tous les tests passent** (schéma, connexion,
+     sync config).
+  3. Réplication **connectée**, `Initial replication done: true`, lag 0 o,
+     slot `powersync_6a9dd96302481fb31b945823_29_8982`.
+  4. **`logo_url` + `org_families` bien déployés** → confirme R48 en prod.
+  5. **Couverture complète** : chaque table de `src/lib/powersync/schema.ts`
+     est couverte par un stream (vérifié par script) ; **seule `config`**
+     (table purement locale) n'a pas de stream — attendu.
+- **Statut** : conforme. La capacité `powersync deploy sync-config` étant
+  désormais disponible, les correctifs futurs touchant les streams sont
+  déployables depuis cet environnement (lève le blocage historique).
