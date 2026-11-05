@@ -157,8 +157,20 @@ serve(async (req) => {
     const filters = buildFilters(body?.targetRole, body?.targetUserId, body?.orgId);
     if (!filters) {
       // No targeting at all → OneSignal would broadcast to "All" (every tenant).
-      // Only a CENTRAL admin (org_id "org-central") may do that; an org admin
-      // must scope their push to a role, a user or their own organisation.
+      // Only a CENTRAL admin may do that; an org admin must scope their push
+      // to a role, a user or their own organisation.
+      //
+      // R-D — deux chemins d'autorisation :
+      //  1. grant admin central ACTIVE sur `org-central` (chemin historique) ;
+      //  2. admin CENTRAL canonique : `profiles.role='ADMIN'` rattaché à
+      //     l'organisation centrale (`org_id = 'org-central'`). Sans ce
+      //     chemin, le broadcast est inopérant car aucune ligne `org_admins`
+      //     centrale n'existe (mesuré : `org-central` sans admin ACTIVE).
+      //
+      // NE PAS élargir à « ADMIN d'une org racine » : toute organisation
+      // self-serve (église) a `parent_org_id IS NULL`, donc ce critère
+      // autoriserait n'importe quel admin d'église à diffuser à TOUS les
+      // tenants (escalade mesurée). L'admin central est celui de `org-central`.
       const { data: grants } = await admin
         .from("org_admins")
         .select("id")
@@ -166,7 +178,19 @@ serve(async (req) => {
         .eq("org_id", "org-central")
         .eq("status", "ACTIVE")
         .limit(1);
-      if (!grants || grants.length === 0) {
+
+      let authorized = (grants?.length ?? 0) > 0;
+
+      if (!authorized) {
+        const { data: prof } = await admin
+          .from("profiles")
+          .select("role, org_id")
+          .eq("id", userId)
+          .maybeSingle();
+        authorized = prof?.role === "ADMIN" && prof?.org_id === "org-central";
+      }
+
+      if (!authorized) {
         return fail(403, "Ciblage requis (rôle, utilisateur ou organisation)");
       }
     }

@@ -91,13 +91,29 @@
 
 ### R-D [FAIBLE] — `org-central` sans grant `org_admins` ACTIVE
 - Seule organisation sans admin ACTIVE : `org-central` (« Administration
-  centrale Lumina », type CENTRAL, sans parent).
-- Conséquence : le **broadcast** `onesignal-notify` (qui exige un grant ACTIVE
-  sur `org-central`) est **inopérant**, et les branches centrales des policies
-  `orgs_*` ne s'activent pas pour un opérateur central. Aucun compte n'est
-  bloqué (les membres réels passent par `profiles`/`org_memberships`).
-- **Action** : matérialiser un admin central (`org_admins` ACTIVE) ou basculer
-  la vérification sur `profiles.role='ADMIN' AND org_id='org-central'`.
+  centrale Lumina », type CENTRAL, sans parent). Aucun profil, membership ni
+  grant n'y est rattaché.
+- Conséquence : le **broadcast** `onesignal-notify` (qui exigeait un grant
+  ACTIVE sur `org-central`) était **inopérant**.
+- **✅ CORRIGÉ (2026-11-04)** — l'edge function accepte désormais **deux**
+  chemins d'autorisation pour le broadcast global :
+  1. grant `org_admins` ACTIVE sur `org-central` (chemin historique) ;
+  2. admin central canonique : `profiles.role='ADMIN'` **et**
+     `profiles.org_id='org-central'`.
+  **Piège mesuré** : ne PAS élargir à « ADMIN d'une org racine
+  (`parent_org_id IS NULL`) » — toute organisation self-serve (église) est
+  racine, ce qui autorisait n'importe quel admin d'église à diffuser à TOUS
+  les tenants (escalade reproduite en live : HTTP 200, puis fermée → 403).
+  Déployée en **v18** ; vérifié en live : admin d'église sans ciblage → **403**,
+  push ciblé → **200**, sans JWT → **401**.
+  Garde : `src/lib/__tests__/central-broadcast-rd.test.ts` (4).
+- **Reste (action propriétaire)** : matérialiser un admin central réel. Comme
+  `guard_profile_org_immutable` bloque le déplacement d'un profil et qu'aucune
+  policy `INSERT` n'existe sur `org_admins` pour `authenticated`, le
+  provisionnement se fait en **service-role** :
+  `insert into org_admins (org_id, admin_profile_id, status) values
+  ('org-central', <uuid d'un compte de confiance>, 'ACTIVE')` — à faire
+  volontairement (crée un compte privilégié).
 
 ### R-E [FAIBLE] — Pas de rate-limit applicatif (R6, non corrigé)
 - `signup` / `login` / `create_org` sans limitation de débit applicative.
@@ -173,7 +189,9 @@ Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
 2. **Révoquer** `E2e-Lumina!1` (ou comptes E2E éphémères). — **✅ FAIT**
    (mots de passe rotés + littéral retiré du dépôt, R-B).
 3. **Matérialiser un admin central** (`org-central`) ou corriger la garde
-   broadcast.
+   broadcast. — **✅ FAIT côté code** (garde broadcast : chemin canonique
+   `ADMIN` de `org-central`, edge function v18). Reste le provisionnement
+   service-role d'un admin central réel (action propriétaire).
 4. **Durcir `audit_entries_insert`** (retirer l'INSERT client si inutile).
 5. Trancher **R16/R62** (source unique de rôle) et **R17** (régulariser
    l'historique).

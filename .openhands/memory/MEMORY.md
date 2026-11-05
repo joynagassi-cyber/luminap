@@ -1572,3 +1572,29 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   d'env (sourcing forcé). Préférer `${VAR:-$(grep ...)}` (défaut = fichier,
   env prioritaire).
 - Garde : `src/lib/__tests__/e2e-credentials-rb.test.ts` (3).
+
+## R-D — broadcast OneSignal + « admin central » (2026-11-04)
+- **Défaut** : `onesignal-notify` n'autorisait le broadcast global (aucun
+  ciblage → `included_segments:["All"]`) qu'au détenteur d'un grant
+  `org_admins` ACTIVE sur `org-central`… qui n'existe pas (org-central vide) ⇒
+  broadcast inopérant.
+- **Correctif (déployé v18)** : 2ᵉ chemin = `profiles.role='ADMIN'` **et**
+  `profiles.org_id='org-central'`. **PIÈGE MAJEUR** : ne PAS utiliser
+  « ADMIN d'une org racine (`organizations.parent_org_id IS NULL`) » — TOUTE org
+  self-serve (église) est racine ⇒ escalade (un admin d'église diffuse à tous
+  les tenants). Reproduit en live (200) puis fermé (403).
+- **Admin central canonique (R109/R142)** = `ADMIN` ; `CENTRAL_ADMIN` est un
+  rôle **hors matrice** (refusé par `roleHasPermission`, fail-closed). Le
+  dashboard `/admin` reste gardé par la réplique PowerSync (`useOrganizations`
+  → grant) — fail-open local assumé, RLS serveur derrière.
+- **Provisionner un admin central** = service-role uniquement (aucune policy
+  INSERT sur `org_admins` pour `authenticated` ; `guard_profile_org_immutable`
+  bloque le déplacement de profil) : `insert into org_admins(org_id,
+  admin_profile_id, status) values ('org-central', <uuid>, 'ACTIVE')`.
+- **Déploiement edge function SANS CLI** : `curl -X POST
+  https://api.supabase.com/v1/projects/<ref>/functions/deploy?slug=<slug>
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN"
+  -F 'metadata={"entrypoint_path":"index.ts","name":"<slug>","verify_jwt":false};type=application/json'
+  -F 'file=@supabase/functions/<slug>/index.ts;type=application/typescript'`
+  (pas de CLI supabase installée). Vérifier : `GET /v1/projects/<ref>/functions`.
+- Garde : `src/lib/__tests__/central-broadcast-rd.test.ts` (4).
