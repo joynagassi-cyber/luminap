@@ -188,3 +188,7 @@ tranchée : pile unique, BottomNav maison).
   tertiaire ≥ 3:1). Le lot 1 sépare `data-theme` (accent existant) de
   `data-mode` (mode résolu) sans ajouter de clé de persistance. Les autres
   lots P1 et la validation Design Lab restent à réaliser.
+- P1 lot 2 : socle d'alias `--lu-*`, générateur OKLCH et CSS violet
+  généré au build ; application du seuil C6 sur les surfaces historiques.
+  Violet est préparé mais pas encore sélectionnable ; raccordement Ionic,
+  Provider, `custom` interactif et contrôle AA global restent à faire.
