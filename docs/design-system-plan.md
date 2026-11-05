@@ -1,6 +1,6 @@
 # Design System dynamique — plan d'exécution
 
-Date : 4 nov. 2026 · Base mesurée : `main @ ae019b2` · Statut : **validé le 4 nov. 2026 — P0 en cours (gate avant P1)**
+Date : 4 nov. 2026 · Base mesurée : `main @ ae019b2` · Statut : **P0 validé — P1 en cours, lot 1**
 
 Sources : `Lumina — Design System dynamique.md` (spécification, 7 captures
 finance) ; `lumina-design-system.md` (spec DS v1 du 2 nov. 2026, identité
@@ -181,3 +181,10 @@ tranchée : pile unique, BottomNav maison).
   `docs/design-system-spec-v1-archive.md`) ; **P0 en cours**
   (`docs/design-system-audit.md`). Gate avant P1 : validation du rapport
   P0 + confirmation D4/D5.
+
+- 5 nov. 2026 : rapport P0 et gate P1 validés : D4 (moteur `custom`
+  en P1, UI en P4, unification des catalogues en P1), D5 (seuils de la
+  spec provisoires), thème preuve `violet`, Inter conservée, C6 (texte
+  tertiaire ≥ 3:1). Le lot 1 sépare `data-theme` (accent existant) de
+  `data-mode` (mode résolu) sans ajouter de clé de persistance. Les autres
+  lots P1 et la validation Design Lab restent à réaliser.

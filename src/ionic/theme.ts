@@ -6,7 +6,7 @@
  *
  * Since src/ionic/theme.css already points every `--ion-*` neutral at the
  * semantic CSS tokens (`var(--canvas)`, `var(--surface)`…), switching
- * `[data-theme]` on <html> flips the whole Ionic surface automatically.
+ * `[data-mode]` on <html> flips the whole Ionic surface automatically.
  * The JS layer below only re-sets the vars that theme.css cannot express
  * as CSS vars (the `-rgb` triplets and the `ion-theme`/`color-theme`
  * attributes) and stays idempotent / SSR-safe.

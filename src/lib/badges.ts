@@ -12,7 +12,7 @@
  * laissait des badges divergents (même famille de défaut que M22). Ici, tout
  * badge se construit à partir d'un TON + d'un LIBELLÉ, donc :
  *   - il suit automatiquement le mode clair/sombre (`--data-*` et `--text-*`
- *     basculent via `[data-theme]`, `--accent-*` suit le thème d'organisation) ;
+ *     basculent via `[data-mode]`, `--accent-*` suit le thème d'organisation) ;
  *   - la teinte de fond est dérivée par `tint()` (color-mix), plus de `+ "20"`.
  *
  * Les libellés sont FR, explicites (DESIGN.md §4 : « label texte explicite »),

@@ -65,7 +65,7 @@ initPowerSync().catch((err) => {
 applyStoredTheme();
 
 // Restore the persisted light/dark mode (dark by default) before the first
-// paint. Sets `data-theme` on <html> so every CSS token + Ionic var is
+// paint. Sets `data-mode` on <html> so every CSS token + Ionic var is
 // already in the right state (index.html also primes it pre-bundle).
 applyStoredThemeMode();
 

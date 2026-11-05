@@ -3,7 +3,7 @@
  * Tests for the display mode (system/dark/light):
  *  - getStoredThemeMode / persistThemeMode (localStorage, "system" default)
  *  - resolveThemeMode (system → OS preference, dark fallback sans matchMedia)
- *  - applyThemeMode (data-theme = mode résolu, Ionic attrs, idempotency)
+ *  - applyThemeMode (data-mode = mode résolu, Ionic attrs, idempotency)
  *  - useThemeModeStore (setMode persists + flips the document, toggleMode)
  */
 
@@ -22,7 +22,7 @@ const root = document.documentElement;
 
 beforeEach(() => {
   localStorage.clear();
-  root.removeAttribute("data-theme");
+  root.removeAttribute("data-mode");
   root.removeAttribute("ion-theme");
   root.removeAttribute("color-theme");
 });
@@ -56,16 +56,16 @@ describe("resolveThemeMode", () => {
 });
 
 describe("applyThemeMode", () => {
-  it("sets data-theme on <html> and the Ionic theme attributes", () => {
+  it("sets data-mode on <html> and the Ionic theme attributes", () => {
     applyThemeMode("light");
-    expect(root.dataset.theme).toBe("light");
+    expect(root.dataset.mode).toBe("light");
     expect(root.getAttribute("ion-theme")).toBe("light");
     expect(root.getAttribute("color-theme")).toBe("light");
   });
 
   it("defaults to dark when no mode is given", () => {
     applyThemeMode();
-    expect(root.dataset.theme).toBe("dark");
+    expect(root.dataset.mode).toBe("dark");
     expect(root.getAttribute("ion-theme")).toBe("dark");
   });
 
@@ -92,7 +92,7 @@ describe("applyThemeMode", () => {
   it("is idempotent", () => {
     applyThemeMode("light");
     applyThemeMode("light");
-    expect(root.dataset.theme).toBe("light");
+    expect(root.dataset.mode).toBe("light");
   });
 });
 
@@ -100,12 +100,12 @@ describe("applyStoredThemeMode", () => {
   it("restores a stored light mode", () => {
     persistThemeMode("light");
     applyStoredThemeMode();
-    expect(root.dataset.theme).toBe("light");
+    expect(root.dataset.mode).toBe("light");
   });
 
   it("restores dark when nothing is stored", () => {
     applyStoredThemeMode();
-    expect(root.dataset.theme).toBe("dark");
+    expect(root.dataset.mode).toBe("dark");
   });
 });
 
@@ -113,7 +113,7 @@ describe("useThemeModeStore", () => {
   it("setMode applies the mode to the document and updates the state", () => {
     useThemeModeStore.getState().setMode("light");
     expect(useThemeModeStore.getState().mode).toBe("light");
-    expect(root.dataset.theme).toBe("light");
+    expect(root.dataset.mode).toBe("light");
     expect(getStoredThemeMode()).toBe("light");
   });
 
@@ -121,9 +121,9 @@ describe("useThemeModeStore", () => {
     useThemeModeStore.getState().setMode("dark");
     useThemeModeStore.getState().toggleMode();
     expect(useThemeModeStore.getState().mode).toBe("light");
-    expect(root.dataset.theme).toBe("light");
+    expect(root.dataset.mode).toBe("light");
     useThemeModeStore.getState().toggleMode();
     expect(useThemeModeStore.getState().mode).toBe("dark");
-    expect(root.dataset.theme).toBe("dark");
+    expect(root.dataset.mode).toBe("dark");
   });
 });

@@ -1,8 +1,8 @@
 /**
  * Garde de contraste des tokens de design (contrat Phase 10 — a11y/design).
  *
- * Le catalogue de tokens vit dans `src/App.css` (`:root` / `[data-theme="dark"]`
- * puis `[data-theme="light"]`). On lit cette source de vérité et on vérifie le
+ * Le catalogue de tokens vit dans `src/App.css` (`:root` / `[data-mode="dark"]`
+ * puis `[data-mode="light"]`). On lit cette source de vérité et on vérifie le
  * ratio de contraste WCAG 2.1 des combinaisons *texte sur fond* qui doivent
  * rester lisibles : le texte principal et le texte secondaire, sur le canvas
  * et sur les surfaces, dans les deux modes.
@@ -72,8 +72,8 @@ function contrast(a: string, b: string): number {
 }
 
 const css = readFileSync(cssPath, "utf8");
-const dark = tokens(block(css, ':root,\n[data-theme="dark"]'));
-const light = tokens(block(css, '[data-theme="light"]'));
+const dark = tokens(block(css, ':root,\n[data-mode="dark"]'));
+const light = tokens(block(css, '[data-mode="light"]'));
 
 const AA_NORMAL = 4.5;
 const PAIRS: [string, string][] = [

@@ -38,7 +38,7 @@ export function initStatusBar(): void {
     try {
       await StatusBar.setOverlaysWebView({ overlay: true });
       const mode =
-        typeof document !== "undefined" && document.documentElement.dataset.theme === "light"
+        typeof document !== "undefined" && document.documentElement.dataset.mode === "light"
           ? "light"
           : "dark";
       applyStatusBarForMode(mode);

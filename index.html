@@ -31,7 +31,7 @@
        le fond #121212 dès le 1er paint, le résultat visuel est le même que
        l'arrière-plan de l'app (dark par défaut) : plus de flash noir surprise.
        Le mode clair (localStorage lumina-theme-mode = "light") est géré par le
-       script de data-theme ci-dessous — le fond #121212 est seulement un
+       script de thème ci-dessous — le fond #121212 est seulement un
        défaut de repli, remplacé par les tokens CSS dès qu'ils se chargent.
        PAS de display:flex ici : les pages Ionic (ion-content) sont
        position:fixed plein-écran, un flex sur html/#root casserait tout le
@@ -46,28 +46,31 @@
       min-height: 100vh;
     }
   </style>
-  <!-- Pose data-theme AVANT le premier paint. Choix persisté
-       (localStorage `lumina-theme-mode`) : « system » suit le réglage de l'OS
-       via prefers-color-scheme, sinon « light » / « dark ». Défaut = system. -->
+  <!-- Préférences existantes appliquées avant le premier paint : data-theme
+       identifie l'accent, data-mode le mode résolu (jamais « system »). -->
   <script>
     (function () {
+      var themes = ["fire", "spirit", "action", "trust", "emerald", "care", "know", "feminine", "tech", "luxury"];
+      var theme = "fire";
+      var mode = "system";
       try {
-        var mode = localStorage.getItem("lumina-theme-mode");
-        if (mode !== "light" && mode !== "dark" && mode !== "system") {
-          mode = "system";
-        }
-        var resolved = mode;
-        if (mode === "system") {
-          resolved =
-            window.matchMedia &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches
-              ? "dark"
-              : "light";
-        }
-        document.documentElement.dataset.theme = resolved;
-      } catch (e) {
-        document.documentElement.dataset.theme = "dark";
+        var storedTheme = localStorage.getItem("lumina-theme");
+        if (themes.indexOf(storedTheme) !== -1) theme = storedTheme;
+      } catch (e) { /* stockage indisponible : défaut */ }
+      try {
+        var storedMode = localStorage.getItem("lumina-theme-mode");
+        if (storedMode === "light" || storedMode === "dark" || storedMode === "system") mode = storedMode;
+      } catch (e) { /* stockage indisponible : suivre le système */ }
+      var resolved = mode;
+      if (mode === "system") {
+        try {
+          resolved = typeof window.matchMedia === "function"
+            ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : "dark";
+        } catch (e) { resolved = "dark"; }
       }
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.mode = resolved;
     })();
   </script>
   <!-- Un seul splash dans l'app : la page React /splash (src/pages/Splash.tsx).

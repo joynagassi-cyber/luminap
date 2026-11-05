@@ -216,7 +216,7 @@ describe("A3 — plugins essentiels, insets et clavier (C-01/C-02/C-03/C-09/C-10
     expect(read("src/App.tsx")).toContain("StatusBarBridge");
     const bridge = read("src/components/StatusBarBridge.tsx");
     expect(bridge).toContain("setOverlaysWebView({ overlay: false })");
-    expect(bridge).toContain("dataset.theme");
+    expect(bridge).toContain("dataset.mode");
     expect(read("src/pages/Splash.tsx")).toContain("SplashScreen.hide()");
     expect(read("src/lib/haptics.ts")).toContain("@capacitor/haptics");
     const txNew = read("src/pages/TransactionNew.tsx");

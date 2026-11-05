@@ -9,7 +9,7 @@ import { StatusBar, Style } from "@capacitor/status-bar";
  * n'étaient pilotés : en plein écran (targetSdk 35), des icônes claires
  * sur fond clair pouvaient devenir illisibles en thème clair.
  *
- * Ce pont suit le thème APPLIQUÉ (`data-theme` sur <html>, posé par
+ * Ce pont suit le thème APPLIQUÉ (`data-mode` sur <html>, posé par
  * `applyThemeMode` — y compris quand le mode « system » bascule) :
  * - icônes : `Style.Dark` = icônes SOMBRES pour fond CLAIR,
  *   `Style.Light` = icônes CLAIRES pour fond sombre (noms inversés par
@@ -27,7 +27,7 @@ export function StatusBarBridge() {
     if (!Capacitor.isNativePlatform()) return;
 
     const apply = () => {
-      const dark = document.documentElement.dataset.theme === "dark";
+      const dark = document.documentElement.dataset.mode === "dark";
       const surface = getComputedStyle(document.documentElement)
         .getPropertyValue("--surface")
         .trim();
@@ -46,7 +46,7 @@ export function StatusBarBridge() {
     const observer = new MutationObserver(apply);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme", "style"],
+      attributeFilter: ["data-mode", "style"],
     });
     return () => observer.disconnect();
   }, []);

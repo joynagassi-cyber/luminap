@@ -5,7 +5,7 @@
  * libellé FR explicite, teinte de fond dérivée du TON par `tint()` (color-mix).
  * La couleur de texte et l'icône pointent un token CSS Lumina — donc le badge
  * s'adapte automatiquement au mode (`--data-*`/`--text-*` basculent via
- * `[data-theme]`) et à la couleur de marque (`--accent-*`, poussée par
+ * `[data-mode]`) et à la couleur de marque (`--accent-*`, poussée par
  * `applyTheme`). Aucune couleur brute n'est acceptée.
  *
  * Deux formes d'usage :

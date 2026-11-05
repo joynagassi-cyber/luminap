@@ -78,22 +78,22 @@ test.describe("Page Paramètres — hub + sous-pages (thème, profil)", () => {
     await expect(toggle).toBeVisible({ timeout: 30_000 });
 
     // Sombre par défaut, sans interaction.
-    await expect(page.locator("html[data-theme='dark']")).toHaveCount(1);
+    await expect(page.locator("html[data-mode='dark']")).toHaveCount(1);
     expect(await canvasVar(page)).toBe("#121212");
 
     // Bascule dark → light (tokens clairs).
     await toggle.click();
-    await expect(page.locator("html[data-theme='light']")).toHaveCount(1);
+    await expect(page.locator("html[data-mode='light']")).toHaveCount(1);
     await expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(await canvasVar(page)).toBe("#F5F6F8");
 
     // Persistance du choix : le mode survit à un rechargement (deep link).
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.locator("html[data-theme='light']")).toHaveCount(1);
+    await expect(page.locator("html[data-mode='light']")).toHaveCount(1);
 
     // Retour en sombre.
     await page.getByTestId("theme-mode-toggle").click();
-    await expect(page.locator("html[data-theme='dark']")).toHaveCount(1);
+    await expect(page.locator("html[data-mode='dark']")).toHaveCount(1);
     expect(await canvasVar(page)).toBe("#121212");
     await expect(page.getByTestId("theme-mode-toggle")).toHaveAttribute(
       "aria-checked",

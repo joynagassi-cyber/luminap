@@ -10,7 +10,7 @@
  * dérive code↔document/asset non gardée).
  *
  * La garde relève, pour chaque clé TS (camelCase → kebab-case), la valeur CSS
- * du bloc `:root`/`[data-theme="dark"]` et du bloc `[data-theme="light"]`, et
+ * du bloc `:root`/`[data-mode="dark"]` et du bloc `[data-mode="light"]`, et
  * exige l'égalité (insensible à la casse hexadécimale). Les couleurs
  * financières et d'accent, volontairement identiques entre les modes, sont
  * couvertes par la même règle.
@@ -52,12 +52,12 @@ function kebab(key: string): string {
 }
 
 // `App.css` a trois blocs : le `:root` global porte les couleurs de données et
-// d'accent (partagées entre modes) ; `[data-theme="dark"]` et
-// `[data-theme="light"]` portent les neutres. La cascade réelle = global +
+// d'accent (partagées entre modes) ; `[data-mode="dark"]` et
+// `[data-mode="light"]` portent les neutres. La cascade réelle = global +
 // bloc de thème, donc on fusionne dans cet ordre.
 const globalRoot = tokens(block(":root"));
-const darkTheme = tokens(block('[data-theme="dark"]'));
-const lightTheme = tokens(block('[data-theme="light"]'));
+const darkTheme = tokens(block('[data-mode="dark"]'));
+const lightTheme = tokens(block('[data-mode="light"]'));
 const darkCss = { ...globalRoot, ...darkTheme };
 const lightCss = { ...globalRoot, ...lightTheme };
 
@@ -73,7 +73,7 @@ describe("jetons design TS ↔ CSS (Phase 10)", () => {
       const cssKey = kebab(key);
       const cssValue = darkCss[cssKey];
       if (!cssValue) {
-        mismatches.push(`${cssKey} absent de :root/[data-theme="dark"]`);
+        mismatches.push(`${cssKey} absent de :root/[data-mode="dark"]`);
       } else if (cssValue !== tsValue.toLowerCase()) {
         mismatches.push(`${cssKey} : TS=${tsValue} CSS=${cssValue}`);
       }
@@ -87,7 +87,7 @@ describe("jetons design TS ↔ CSS (Phase 10)", () => {
       const cssKey = kebab(key);
       const cssValue = lightCss[cssKey];
       if (!cssValue) {
-        mismatches.push(`${cssKey} absent de [data-theme="light"]`);
+        mismatches.push(`${cssKey} absent de [data-mode="light"]`);
       } else if (cssValue !== tsValue.toLowerCase()) {
         mismatches.push(`${cssKey} : TS=${tsValue} CSS=${cssValue}`);
       }
