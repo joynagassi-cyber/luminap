@@ -4563,3 +4563,37 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Risque résiduel** : point d'écriture public borné (5/h par IP, dédup par
   signature, allowlist, troncature) — documenté dans le README de la fonction.
 - **Statut** : **CORRIGÉ** (tsc 0, eslint 0, 2231/2231).
+
+### R146 — Balayage advisors Supabase (LIVE 2026-11-04) : aucun défaut exploitable — ✅ CONFORME
+- **Méthode** : `get_advisors(security)` sur le projet `hhgovvrnalibhgpakswi`
+  (ACTIVE_HEALTHY, PG 17.6) + requêtes de vérification directes
+  (`pg_proc`, `pg_policies`, `pg_class`).
+- **Constats vérifiés (tous bénins ou faux positifs documentés)** :
+  1. `rls_enabled_no_policy` (5) : `_jsonb_backfill_20261024`,
+     `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`,
+     `keep_alive` — **deny-all intentionnel** (tables internes/techniques, RLS
+     active, 0 policy = personne via PostgREST ; service_role/postgres
+     contournent). Déjà documenté (R97).
+  2. `anon_security_definer_function_executable` (1) : `keep_alive_ping()` —
+     ping d'un cron, sans donnée sensible, un effet borné. FAIBLE.
+  3. `authenticated_security_definer_function_executable` (7) : `has_permission`,
+     `is_org_member`, `is_org_admin`, `can_manage_invitations`, `org_descendants`,
+     `current_org_id`, `upsert_profile`. **Vérifié : pas d'escalade.** Toutes les
+     policies RLS appellent ces helpers avec `initplan_uid()` (jamais un uid
+     arbitraire) ; `initplan_uid()` = `request.jwt.claims->>'sub'` (sûr).
+     `upsert_profile` est correctement gardé : `p_user_id = auth.uid()`, un
+     changement de rôle exige `is_org_admin`, et un rattachement à une org réelle
+     sans être admin est forcé à `__no_org__`.
+  4. `auth_leaked_password_protection` : = R104 (plan), non bloquant.
+- **Vérifications supplémentaires** : **0 table** publique sans RLS ; aucune
+  policy permissive (`USING true`) sur une table de données ; `role_permissions`
+  (matrice de référence, non sensible) est lisible par tout `authenticated` ;
+  `lumina_logos_read` (rôle `anon`) est publique **par conception** (logos
+  affichés aux invitations) ; les policies en rôle `public` de
+  `event_tasks`/`org_reports` sont **neutralisées** par la sémantique NULL
+  (`is_org_member(NULL,…)` = NULL ; `current_org_id()` = NULL sans JWT ⇒ 0 ligne).
+  Policy `orgs_update_merged` confirmée (admin d'org OU `ADMIN` central) — garde
+  correcte de l'écriture du branding (R48).
+- **Statut** : conforme, aucun correctif requis. (Élargit R97/R50 ; voir aussi
+  R6 — rate-limit applicatif — et R104 — fuite de mots de passe —, hors de ce
+  balayage.)

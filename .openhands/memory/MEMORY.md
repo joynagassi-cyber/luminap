@@ -29,6 +29,22 @@
 - **Astuce CI** : si `$GITHUB_TOKEN` renvoie 401, extraire le token de
   `git remote get-url origin` (`https://x-access-token:<TOKEN>@github.com/...`).
 
+## Audit backend Supabase (R146, 2026-11-04)
+- **RLS/Policies = saines** : toutes les policies appellent les helpers
+  SECURITY DEFINER avec `initplan_uid()` (= `request.jwt.claims->>'sub'`), jamais
+  un uid arbitraire → pas d'escalade via `/rest/v1/rpc/has_permission` etc.
+  `upsert_profile` gardé (`p_user_id = auth.uid()`, rôle = `is_org_admin`).
+- **Piège** : policy `TO public` + `USING is_org_member(initplan_uid(),…)` est
+  SÛRE pour `anon` (initplan_uid()=NULL ⇒ NULL ⇒ 0 ligne) — ne PAS la compter
+  comme fuite. Les tables `rls_enabled_no_policy` (`keep_alive`,
+  `error_report_*`, `_jsonb_*`) = deny-all intentionnel (R97).
+- **Scripts dev keystore (R9)** : `scripts/generate-keystore*`,
+  `GetFingerprints*`, `show-fingerprints.sh`, `generate-and-show.sh` lisent
+  `LUMINA_KEYSTORE_PASSWORD` (repli dev `lumina1234`). `release.yml` n'utilise
+  QUE les secrets GitHub `ANDROID_KEYSTORE_*`.
+- **R8/R9/R105** : R8 corrigé (R-B, garde `e2e-credentials-rb.test.ts`) ; R9
+  corrigé (garde `keystore-password-r9.test.ts`) ; R105 résolu par R142.
+
 ## Hors-ligne Android — 2 causes racines (2026-11-04, branche `feat/offline-native-powersync`)
 - **Cause 1 — SDK web dans la WebView** : le projet n'embarquait que
   `@powersync/web` (WA-SQLite/WASM sur IndexedDB/OPFS, effaçable par l'OS) ⇒
