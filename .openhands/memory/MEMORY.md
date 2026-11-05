@@ -63,6 +63,26 @@
 - R160 : `registerOrg` (organizations, mort) + `claimInvitation` (profiles,
   VIVANT — InvitationClaim.tsx) corrigés.
 
+## Audit backend Lumina — 2026-11-04 (R160/R161/R162)
+- **3 bugs réels** corrigés, tous « échec silencieux » côté client PowerSync :
+  - R184 : colonnes locales manquantes (`profiles.status`, `org_units.updated_at`).
+  - R160 : `ON CONFLICT` sur vue (registerOrg/claimInvitation) → « cannot UPSERT a view ».
+  - R161 : `INSERT notifications` sans `id` → « id is required » (aucune notif persistée).
+- **Classes de bug SQL client PowerSync** (toutes « no such … »/silencieuses) :
+  1) colonne hors schéma local ; 2) ON CONFLICT/INSERT OR REPLACE sur vue ;
+  3) INSERT sans id. Gardes : `powersync-schema-drift-guard` (INSERT/SELECT/UPDATE),
+  `ps-view-upsert-guard` (ON CONFLICT + INSERT sans id).
+- **Leçon** : les ALLOWLIST « code mort » de ces gardes étaient FAUSSES (code
+  VIVANT câblé à des pages). Toujours croiser avec les appelants réels +
+  `information_schema.columns`.
+- **R162 audit** : 42 tables locales vs PG → 0 dérive bloquante ; RLS activée
+  partout ; `config` (local) inerte (pas de stream, non utilisée) ; advisors
+  SECURITY DEFINER = helpers RLS gardés (upsert_profile durci) ; 34 unused_index
+  + 7 multiple_permissive_policies = ASSUMÉ.
+- **Dérive documentaire** : docs/SECURITY.md disait R80 « OUVERT » alors que le
+  stream `profiles` est org-wide (corrigé) ; R97 listait 2 tables deny-all au
+  lieu de 5. Toujours re-mesurer via MCP plutôt que se fier à la doc.
+
 ## Classe #317 / R184 (schéma PowerSync ↔ SQL client)
 - **Règle** : toute colonne utilisée par le SQL client DOIT être dans
   `src/lib/powersync/schema.ts`. Garde `powersync-schema-drift-guard.test.ts`.
