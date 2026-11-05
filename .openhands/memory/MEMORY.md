@@ -1791,3 +1791,23 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (foldername[1] ou [2]) ; `upsert_profile` durci ; `create_org` gardé.
 - **R16/R107/R109** : la doc `SECURITY.md` avait 3 lignes en retard (déjà
   résolus dans le code) — re-mesurer via MCP/le code, jamais la doc seule.
+
+- **R165 (CORRIGÉ)** : le stream PowerSync `invitations`/`invitation_claims`
+  filtrait `role IN ('PASTEUR_PRINCIPAL','ANCIEN','TREASURIER')` — **ADMIN
+  oublié** alors qu'il porte `invitation:manage` (rbac.ts + `can_manage_invitations`
+  SQL) → l'ADMIN voyait l'écran /invitation/manage mais **0 invitation
+  synchronisée**. Garde `sync-stream-invitation-roles-r165.test.ts` (verrouille
+  rbac ↔ littéraux du stream). Redéployé.
+- **Déployer PowerSync (outillage)** : CLI = package npm **`powersync`** (PAS
+  `@powersync/cli`, qui n'existe pas) → `npm i powersync` puis
+  `PS_ADMIN_TOKEN=$POWERSYNC_TOKEN npx powersync deploy sync-config` (ou
+  `deploy service-config`). `powersync validate` + `deploy sync-config
+  --dry-run` (montre le diff) avant de déployer. Instance Production
+  `6a9dd96302481fb31b945823`. Config dans `powersync/{cli,service,sync-config}.yaml`.
+- **Surfaces auditées CONFORMES (2026-11-04)** : triggers finance/notify/denorm ;
+  RLS écriture (toutes gardées `is_org_member + has_permission`, exceptions
+  volontaires : audit_entries_insert, notifications_update is_read, profiles
+  self, org_reports_emitter, invitation_claims_insert) ; RLS lecture (toutes
+  scopées ; seule `role_permissions_read` globale = catalogue non sensible) ;
+  Storage (4 buckets) ; RPC SECURITY DEFINER ; edge functions create_org/
+  onesignal-notify/report-error.
