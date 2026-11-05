@@ -36,8 +36,19 @@ describe("R-D — broadcast OneSignal réservé aux admins centraux", () => {
   });
 
   it("refuse (403) un broadcast non autorisé — pas de fail-open", () => {
-    expect(src).toMatch(/if \(!authorized\)/);
+    expect(src).toMatch(/if \(!filters\)/);
+    expect(src).toMatch(/if \(!central\)/);
     expect(src).toMatch(/fail\(403/);
+  });
+
+  it("cloisonne le ciblage à l'organisation de l'appelant (anti-injection cross-tenant)", () => {
+    // Un appelant ne peut cibler qu'une organisation dont il est membre, sauf admin central.
+    expect(src).toMatch(/const central = await isCentralAdmin\(admin, userId\)/);
+    expect(src).toMatch(/isMemberOfOrg\(admin, userId, body\.orgId\)/);
+    expect(src).toMatch(/Ciblage limité à vos organisations/);
+    // isMemberOfOrg couvre org primaire + memberships + grants admin.
+    expect(src).toMatch(/\.from\("org_memberships"\)/);
+    expect(src).toMatch(/\.in\("status",\s*\["ACTIVE",\s*"PENDING"\]\)/);
   });
 
   it("exige un JWT appelant (pas de relais anonyme)", () => {

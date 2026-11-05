@@ -66,6 +66,72 @@ function fail(status: number, message: string) {
 
 type OSFilter = Record<string, string>;
 
+/** Type minimal du client admin (évite d'importer le type Supabase en Deno). */
+type AdminClient = ReturnType<typeof createClient>;
+
+/**
+ * L'appelant est-il ADMIN CENTRAL ? Deux chemins (cf. R-D) :
+ *   1. grant `org_admins` ACTIVE sur `org-central` ;
+ *   2. `profiles.role='ADMIN'` rattaché à `org-central`.
+ * NE PAS élargir à « ADMIN d'une org racine » : toute église self-serve a
+ * `parent_org_id IS NULL`, ce critère autoriserait un admin d'église à diffuser
+ * à TOUS les tenants (escalade mesurée).
+ */
+async function isCentralAdmin(admin: AdminClient, userId: string): Promise<boolean> {
+  const { data: grants } = await admin
+    .from("org_admins")
+    .select("id")
+    .eq("admin_profile_id", userId)
+    .eq("org_id", "org-central")
+    .eq("status", "ACTIVE")
+    .limit(1);
+  if ((grants?.length ?? 0) > 0) return true;
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("role, org_id")
+    .eq("id", userId)
+    .maybeSingle();
+  return prof?.role === "ADMIN" && prof?.org_id === "org-central";
+}
+
+/**
+ * L'appelant appartient-il à `orgId` ? Miroir serveur de `is_org_member` :
+ * `profiles.org_id` (org primaire) ∪ `org_memberships` ACTIVE/PENDING ∪
+ * `org_admins` ACTIVE. Couvre le cas multi-org (membre d'une org secondaire).
+ */
+async function isMemberOfOrg(
+  admin: AdminClient,
+  userId: string,
+  orgId: string | undefined | null,
+): Promise<boolean> {
+  if (!orgId || orgId === "__no_org__" || orgId === "no-org") return false;
+
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("org_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (prof?.org_id === orgId) return true;
+
+  const { data: memberships } = await admin
+    .from("org_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("org_id", orgId)
+    .in("status", ["ACTIVE", "PENDING"])
+    .limit(1);
+  if ((memberships?.length ?? 0) > 0) return true;
+
+  const { data: grants } = await admin
+    .from("org_admins")
+    .select("id")
+    .eq("admin_profile_id", userId)
+    .eq("org_id", orgId)
+    .eq("status", "ACTIVE")
+    .limit(1);
+  return (grants?.length ?? 0) > 0;
+}
+
 /**
  * Build the OneSignal v2 `filters` array from targetRole / targetUserId / orgId.
  *
@@ -155,42 +221,33 @@ serve(async (req) => {
     if (!title || !message) return fail(400, "title et message sont requis");
 
     const filters = buildFilters(body?.targetRole, body?.targetUserId, body?.orgId);
-    if (!filters) {
-      // No targeting at all → OneSignal would broadcast to "All" (every tenant).
-      // Only a CENTRAL admin may do that; an org admin must scope their push
-      // to a role, a user or their own organisation.
-      //
-      // R-D — deux chemins d'autorisation :
-      //  1. grant admin central ACTIVE sur `org-central` (chemin historique) ;
-      //  2. admin CENTRAL canonique : `profiles.role='ADMIN'` rattaché à
-      //     l'organisation centrale (`org_id = 'org-central'`). Sans ce
-      //     chemin, le broadcast est inopérant car aucune ligne `org_admins`
-      //     centrale n'existe (mesuré : `org-central` sans admin ACTIVE).
-      //
-      // NE PAS élargir à « ADMIN d'une org racine » : toute organisation
-      // self-serve (église) a `parent_org_id IS NULL`, donc ce critère
-      // autoriserait n'importe quel admin d'église à diffuser à TOUS les
-      // tenants (escalade mesurée). L'admin central est celui de `org-central`.
-      const { data: grants } = await admin
-        .from("org_admins")
-        .select("id")
-        .eq("admin_profile_id", userId)
-        .eq("org_id", "org-central")
-        .eq("status", "ACTIVE")
-        .limit(1);
 
-      let authorized = (grants?.length ?? 0) > 0;
-
-      if (!authorized) {
-        const { data: prof } = await admin
-          .from("profiles")
-          .select("role, org_id")
-          .eq("id", userId)
-          .maybeSingle();
-        authorized = prof?.role === "ADMIN" && prof?.org_id === "org-central";
+    // 2bis. Autorisation de l'envoi.
+    //
+    // CLOISONNEMENT PAR ORGANISATION (correctif) : l'appelant ne peut cibler que
+    // SA propre organisation. Sans cette garde, tout utilisateur authentifié
+    // pouvait forger un appel `{ targetRole: "TREASURIER" }` SANS `orgId` et
+    // déclencher un push sur les trésoriers de TOUS les tenants — hameçonnage /
+    // injection de notification inter-organisations (le seul frein était le
+    // ciblage, non vérifié).
+    //
+    // Règle : le ciblage est restreint aux organisations de l'appelant (org
+    // primaire ∪ memberships ∪ grants admin, cf. `isMemberOfOrg`). Seul un
+    // ADMIN CENTRAL peut cibler une AUTRE organisation (ou diffuser à « All »).
+    const central = await isCentralAdmin(admin, userId);
+    if (!central && body?.orgId) {
+      const member = await isMemberOfOrg(admin, userId, body.orgId);
+      if (!member) {
+        // Tentative de cibler une organisation dont l'appelant n'est pas membre.
+        return fail(403, "Ciblage limité à vos organisations");
       }
+    }
 
-      if (!authorized) {
+    if (!filters) {
+      // Aucun ciblage → OneSignal diffuserait à « All » (tous les tenants).
+      // Réservé à un admin CENTRAL : un admin d'organisation doit scoper son
+      // push à un rôle, un utilisateur ou sa propre organisation.
+      if (!central) {
         return fail(403, "Ciblage requis (rôle, utilisateur ou organisation)");
       }
     }

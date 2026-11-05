@@ -200,6 +200,7 @@ Source : `docs/agent/RISQUES.md`.
 | **R16** | `profiles.role` et `org_memberships.role` divergent (deux sources de vérité du rôle). | **OUVERT** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
 | **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
+| **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** (garde `isMemberOfOrg`, déployé v19). Reste : filtre `org_id` auto sur `targetUserId`. | **CORRIGÉ** (durcissement résiduel) |
 | **R97** | Advisors `rls_enabled_no_policy` : **5** tables *deny-all* volontaires (RLS activée, aucune policy ⇒ refus par défaut) : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`. Non modifiées (D-S9-4). | **ASSUMÉ** |
 
 Risques **corrigés** (pour mémoire) : R100 (code d'invitation CSPRNG), R101/R102

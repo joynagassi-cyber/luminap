@@ -4784,3 +4784,29 @@ partagée par les deux plateformes et couverte par 3 tests.
   receiver SELECT = design émetteur/récepteur) et `organizations`
   (federation-récursive + merged) — **ASSUMÉ** : les fusionner changerait la
   sémantique RLS pour un gain marginal (le nombre de policies reste faible).
+
+### R163 — `onesignal-notify` : injection de push cross-tenant — ✅ CORRIGÉ (déployé v19)
+- **Classe** : edge function publique (`verify_jwt: false`) qui exécute une action
+  sensible (envoi de push avec la clé REST OneSignal côté serveur) sans vérifier
+  l'AUTORISATION de la cible demandée.
+- **Défaut** : la fonction exigeait un JWT valide (401 sinon) mais, pour un envoi
+  **ciblé** (`targetRole` / `targetUserId` / `orgId`), ne vérifiait PAS que
+  l'appelant appartenait à `orgId`. Un utilisateur authentifié de N'IMPORTE
+  quelle organisation pouvait forger
+  `POST /functions/v1/onesignal-notify { targetRole: "TREASURIER" }` **sans
+  `orgId`** → push délivré aux trésoriers de **tous les tenants**
+  (hameçonnage / déni de service par spam de notifications). Seul le chemin
+  « broadcast sans ciblage » était restreint (admin central) ; le ciblage, lui,
+  était ouvert.
+- **Correctif** (déployé) :
+  - extraction de `isCentralAdmin` (les 2 chemins R-D) et ajout de
+    `isMemberOfOrg(admin, userId, orgId)` — miroir serveur de `is_org_member`
+    (`profiles.org_id` ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE) ;
+  - tout appel ciblant un `orgId` dont l'appelant n'est pas membre → **403**
+    (« Ciblage limité à vos organisations »), sauf admin central ;
+  - le broadcast sans ciblage reste réservé à l'admin central.
+  - **Durcissement restant (backlog)** : un `targetUserId` d'une autre org reste
+    techniquement possible ; l'ajout d'un filtre `org_id` automatique (org
+    primaire de l'appelant) au payload OneSignal fermerait ce dernier interstice.
+- **Garde** : `central-broadcast-rd.test.ts` étendu (assertions `isCentralAdmin`,
+  `isMemberOfOrg`, `Ciblage limité à vos organisations`, `org_memberships`).

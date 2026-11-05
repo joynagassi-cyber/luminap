@@ -63,6 +63,19 @@
 - R160 : `registerOrg` (organizations, mort) + `claimInvitation` (profiles,
   VIVANT — InvitationClaim.tsx) corrigés.
 
+## Edge functions (verify_jwt:false → autorisation DANS le code)
+- 3 fonctions : `create_org` (v11), `onesignal-notify` (v19), `report-error` (v8).
+  Toutes `verify_jwt:false` : chacune DOIT vérifier l'appelant elle-même.
+- **R163** : `onesignal-notify` exigeait un JWT mais ne vérifiait pas
+  l'appartenance à l'org ciblée → injection de push cross-tenant. Corrigé
+  (isMemberOfOrg = profiles.org_id ∪ org_memberships ACTIVE/PENDING ∪
+  org_admins). Reste : filtre org_id auto sur targetUserId.
+- `report-error` : allowlist repo, dédup atomique (`claim_error_report`
+  service_role), filtre non-production. RPC sensibles (claim/release/
+  register_anonymous_report, handle_new_user, settle_invitation_claim) =
+  service_role only + search_path fixé. OK.
+- Déploiement : `supabase_deploy_edge_function` (MCP). `verify_jwt:false`.
+
 ## Audit backend Lumina — 2026-11-04 (R160/R161/R162)
 - **3 bugs réels** corrigés, tous « échec silencieux » côté client PowerSync :
   - R184 : colonnes locales manquantes (`profiles.status`, `org_units.updated_at`).
