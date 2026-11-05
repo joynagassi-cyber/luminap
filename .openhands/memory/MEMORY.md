@@ -55,6 +55,19 @@
 - **`password_hibp_enabled=False`** (R104) : PATCH **ignoré** → Pro Plan requis.
   CAPTCHA désactivé. Non bloquant.
 
+## Classe #317 / R184 (schéma PowerSync ↔ SQL client)
+- **Règle** : toute colonne utilisée par le SQL client DOIT être dans
+  `src/lib/powersync/schema.ts`. Garde `powersync-schema-drift-guard.test.ts`.
+- **PIÈGE** : son ALLOWLIST « code mort » peut être FAUSSE — `addOrgUnit`
+  (OrgUnits.tsx) et `updateClaimStatus` (InvitationManage.tsx) étaient du code
+  VIVANT. Toujours croiser avec `information_schema.columns` (PG) et les
+  appelants réels avant de justifier une entrée.
+- Correctifs R184 : `profiles.status` (aligné PG) + `org_units.updated_at`
+  (local) ajoutés au schéma ; `addOrgUnit` n'écrit plus updated_at (colonne
+  inexistante en PG) ; `CLIENT_SCHEMA_VERSION` 3 → 4.
+- `org_units` (PG, migration 0002) = `id,name,type,org_id,created_at`
+  (+description/is_active) — **PAS de updated_at**.
+
 ## PowerSync CLI (R147, 2026-11-04)
 - **Jeton dispo** : `POWERSYNC_TOKEN` → `PS_ADMIN_TOKEN` pour la CLI
   `npx -y powersync@0.10.3` (instance Production `6a9dd96302481fb31b945823`).

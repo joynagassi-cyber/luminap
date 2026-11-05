@@ -217,10 +217,10 @@ sans risque de casser des flux légitimes).
      sur `organizations` (vue). **Aucun appelant** en prod (code mort) → risque
      nul tant que non câblé.
   2. `src/capabilities/invitation/index.ts` `claimInvitation()` — `ON CONFLICT (id)`
-     sur `profiles` (vue) **et** colonne `status` absente du schéma PowerSync
-     local (`profiles has no column named status`). Le claim échouerait côté
-     client ; à traiter avec la table `profiles` (schéma + stream) — laissé en
-     l'état pour éviter une divergence client/serveur (cf. E1/R80).
+     sur `profiles` (vue). **Mise à jour 2026-11-04 (R184)** : la moitié
+     « colonne `status` absente » est **corrigée** (`profiles.status` ajouté au
+     schéma PowerSync local, aligné sur PostgreSQL, `CLIENT_SCHEMA_VERSION` 4).
+     Reste seul le `ON CONFLICT` sur vue → « cannot UPSERT a view ».
 - **Recommandation** : bannir `ON CONFLICT`/`INSERT OR REPLACE` des écritures
   PowerSync client ; utiliser `SELECT` + `UPDATE`/`INSERT` explicite. Envisager
   une garde statique (lint/test) qui échoue sur `ON CONFLICT` dans `src/lib` et

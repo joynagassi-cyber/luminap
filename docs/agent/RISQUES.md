@@ -4679,3 +4679,32 @@ partagée par les deux plateformes et couverte par 3 tests.
   **ne pas dropper** sans analyse par index) ; `multiple_permissive_policies`
   sur `organizations` (2 policies SELECT volontaires : fédération + membre) et
   `org_reports` (émetteur/récepteur — fusionnables en OR, non prioritaire).
+
+### R184 — 2 colonnes de SQL client absentes du schéma PowerSync local (classe #317) — ✅ CORRIGÉ
+- **Classe** : SQL client (PowerSync/SQLite) référençant une colonne absente du
+  schéma local `src/lib/powersync/schema.ts` → **« no such column: X »** à
+  l'exécution. La garde `powersync-schema-drift-guard.test.ts` les masquait via
+  une ALLOWLIST les déclarant « code mort » — **inexact**.
+- **Occurrence 1 — `org_units.updated_at`** : `addOrgUnit`
+  (`src/capabilities/organization/index.ts`) insérait `…, created_at, updated_at`
+  alors que **PostgreSQL `org_units` n'a PAS de `updated_at`** (migration 0002 :
+  `id, name, type, org_id, created_at`). Colonne absente du schéma local ET de la
+  base. **Code VIVANT** (appelé par `OrgUnits.tsx` → « Ajouter une unité » →
+  « no such column: updated_at »).
+- **Occurrence 2 — `profiles.status`** : `updateClaimStatus` / `isPendingUser`
+  (`src/capabilities/invitation/index.ts`) lisent/écrivent `profiles.status`
+  (PostgreSQL **a** la colonne), mais elle manquait au schéma local →
+  « no such column: status ». **Code VIVANT** (appelé par
+  `InvitationManage.tsx` → confirmation d'invitation).
+- **Correctif** (minimal, aligné sur PostgreSQL) :
+  1. `schema.ts` : ajout de `profiles.status` (aligné PG) et `org_units.updated_at`
+     (colonne locale pour les mises à jour client) ;
+  2. `addOrgUnit` : retrait de `updated_at` de l'INSERT (colonne inexistante) ;
+  3. `CLIENT_SCHEMA_VERSION` 3 → **4** (`schemaVersion.ts`) ;
+  4. garde : ALLOWLIST vidée + commentaire (les 2 entrées étaient du code vivant).
+- **Preuve** : garde anti-dérive **verte sans allowlist** (le code client ne
+  référence plus aucune colonne hors schéma) ; 43 tests (garde + organization +
+  schema-version) verts.
+- **Reste (classe E7, distinct)** : `claimInvitation` / `registerOrg` utilisent
+  `INSERT … ON CONFLICT` sur des VUES PowerSync (`profiles`, `organizations`) →
+  « cannot UPSERT a view ». Différé (risque : ne pas diverger client/serveur).

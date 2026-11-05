@@ -43,15 +43,14 @@ function schemaColumns(): Record<string, Set<string>> {
 }
 
 /**
- * Occurrences connues : code MORT (aucun appelant hors tests) déjà escaladé
- * (docs/agent/ESCALATIONS.md E7). Elles échouent à l'exécution mais ne sont
- * jamais atteintes en production ; les corriger exige un changement de schéma +
- * stream, hors périmètre de cette garde.
+ * Occurrences connues et justifiées. **Vide** : les 2 anciennes entrées étaient
+ * en réalité du CODE VIVANT (appelées par `OrgUnits.tsx` / `InvitationManage.tsx`),
+ * pas du code mort — elles plantaient en production avec « no such column ».
+ * Corrigées (R184) : `profiles.status` ajouté au schéma PowerSync (aligné sur
+ * PostgreSQL), écriture fantôme d'`org_units.updated_at` retirée de l'INSERT
+ * `addOrgUnit` (colonne inexistante côté PostgreSQL).
  */
-const ALLOWLIST = new Set([
-  "src/capabilities/organization/index.ts", // org_units.updated_at (addOrgUnit, mort)
-  "src/capabilities/invitation/index.ts", // profiles.status (claimInvitation, mort)
-]);
+const ALLOWLIST = new Set<string>();
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

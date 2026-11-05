@@ -20,6 +20,7 @@ const profiles = new Table(
     last_name: column.text,
     role: column.text,
     org_id: column.text,
+    status: column.text,
     created_at: column.text,
     updated_at: column.text,
   },
@@ -196,6 +197,7 @@ const org_units = new Table(
     description: column.text,
     is_active: column.integer,
     created_at: column.text,
+    updated_at: column.text,
   },
   { indexes: {} },
 );

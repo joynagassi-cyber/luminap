@@ -133,13 +133,12 @@ export class OrganizationService {
   async addOrgUnit(unit: OrgUnit): Promise<void> {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
-    // org_units: id TEXT PK (supabase/migrations/0002). The PS schema in
-    // src/lib/powersync/schema.ts omits id/description/is_active — align
-    // that schema before relying on the full column set in production.
+    // org_units : pas de colonne `updated_at` côté PostgreSQL (0002) — ne pas
+    // l'écrire (sinon « no such column » côté client PowerSync).
     await db.execute(
       `INSERT INTO org_units
-         (id, name, type, org_id, description, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, name, type, org_id, description, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         unit.id,
         unit.name,
@@ -147,7 +146,6 @@ export class OrganizationService {
         unit.orgId,
         unit.description ?? "",
         unit.isActive ? 1 : 0,
-        now,
         now,
       ],
     );
