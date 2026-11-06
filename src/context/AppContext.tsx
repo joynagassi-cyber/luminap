@@ -48,6 +48,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (session) profile = await authService.getProfile(session.user.id);
       }
       if (profile) {
+        // OFFLINE-FIRST : au démarrage à froid hors ligne, le profil vient du
+        // repli LOCAL (`getProfile` → `readStoredProfile`) et `state.profile`
+        // reste `null` (il n'est hydraté qu'au login ou via /sessions). Sans
+        // ce `setState`, `authService.getState().role` (RouteGuard) et
+        // `useCurrentUser()` retombaient sur un rôle par défaut → garde de
+        // permission fausse ET écrans vides malgré un profil local résolu.
+        if (!authService.getState().profile) {
+          authService.applyProfile(profile);
+        }
         // PM18 — PURGE AVANT TOUT le reste : si un AUTRE compte possédait cet
         // appareil, les données locales (nom d'église, prénom/nom, rôle, org
         // active, thème) appartiennent à ce compte et ne doivent PAS être

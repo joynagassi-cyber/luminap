@@ -5157,3 +5157,30 @@ partagée par les deux plateformes et couverte par 3 tests.
   FOR TABLE public.categories, …`) au lieu de `FOR ALL TABLES`. À valider côté
   intégration PowerSync Cloud (le tableau de bord provisionne la publication) ;
   consigné, non appliqué pour ne pas casser la réplication.
+
+### R175 — Hors ligne : `getProfile()` réseau sans repli → organisation jamais résolue → écrans vides — CORRIGÉ (gravité HAUTE)
+- **Symptôme produit (terrain)** : « je coupe la connexion, tout s'arrête, les listes
+  sont vides, "transaction introuvable" ». L'app était inutilisable hors ligne alors
+  que la réplique PowerSync locale contenait les données.
+- **Cause racine** : `authService.getProfile(userId)` (`src/lib/auth.ts`) interrogeait
+  `supabase.from("profiles").select("*")` — **réseau, sans repli local**. Au démarrage
+  à froid hors ligne, il rendait `null`. Or `AppContext.checkAuth()` résout
+  l'organisation à partir de ce profil : `null` → `getOrganizationId()` restait
+  `__no_org__` → **tous les hooks de lecture filtrés par `org_id` renvoyaient `[]`**
+  (Dashboard, Finance, transactions…) et les détails affichaient « … introuvable ».
+  Le profil était pourtant PERSISTÉ localement (`lumina-user`), mais rien ne le relisait.
+- **Aggravant** : `state.profile` n'était hydraté qu'au login ou via `/sessions`
+  (`hydrateProfile`), jamais au boot → le rôle lu par `RouteGuard` restait `null`.
+- **Correctif** :
+  - `readStoredProfile()` — relit `lumina-user` (forme `Profile`) SANS réseau ;
+  - `persistProfileLocally()` — persistance fusionnante (n'écrase pas une valeur
+    connue par du vide) ;
+  - `getProfile()` — hors ligne : profil local d'abord (aucune requête) ; en ligne :
+    réseau puis repli local sur échec ; la réponse réseau est mémorisée ;
+  - `AppContext` — hydrate `state.profile` (`applyProfile`) quand le profil vient du
+    repli local → rôle + contexte d'organisation corrects au boot hors ligne.
+- **Garde** : `auth-offline-profile-fallback.test.ts` (6 tests) — non-vacuité : retirer
+  le repli (retour à `return null`) fait échouer « rend le profil persisté hors ligne ».
+- **Note terrain** : l'APK **release v1.2.1** a été bâti AVANT #409 (SQLite natif) et
+  #419 (boot local-first) ; ces correctifs sont sur `main` depuis le 2026-11-04.
+  Retester impérativement un build POSTÉRIEUR.
