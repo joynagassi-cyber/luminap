@@ -1923,3 +1923,12 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - Garde `sync-stream-schema-scope-guard.test.ts`. Mergé PR #440 (`6ce61a7a`).
 - CLI PowerSync = package npm `powersync` (pas @powersync/cli), auth PS_ADMIN_TOKEN ;
   `powersync fetch config` a lancer depuis la RACINE du depot (dossier powersync/ relatif).
+
+## Audit SECDEF/triggers — surface propre (2026-11-04)
+- 7 SECDEF executables par authenticated, toutes gardees (auth.uid/initplan_uid).
+- Fonctions d'ecriture sensibles = service_role only (register_anonymous_report,
+  claim/release_error_report, settle_invitation_claim + pg_trigger_depth guard).
+- Triggers SECDEF (handle_new_user, denorm_cascade_org_id, members_audit_delete,
+  org_assert_not_last_admin, enforce_transaction_financial_guards) : corrects.
+- Surface anon : 1 seul SECDEF = keep_alive_ping ; policies anon/public a predicat
+  NULL/faux (aucune exposition). Audit backend EXHAUSTIF, aucun nouveau defaut.
