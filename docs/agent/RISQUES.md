@@ -5179,8 +5179,15 @@ partagée par les deux plateformes et couverte par 3 tests.
     réseau puis repli local sur échec ; la réponse réseau est mémorisée ;
   - `AppContext` — hydrate `state.profile` (`applyProfile`) quand le profil vient du
     repli local → rôle + contexte d'organisation corrects au boot hors ligne.
-- **Garde** : `auth-offline-profile-fallback.test.ts` (6 tests) — non-vacuité : retirer
+- **Garde** : `auth-offline-profile-fallback.test.ts` (7 tests) — non-vacuité : retirer
   le repli (retour à `return null`) fait échouer « rend le profil persisté hors ligne ».
-- **Note terrain** : l'APK **release v1.2.1** a été bâti AVANT #409 (SQLite natif) et
-  #419 (boot local-first) ; ces correctifs sont sur `main` depuis le 2026-11-04.
-  Retester impérativement un build POSTÉRIEUR.
+  Preuve d'intégration (PR #443) : reproduit le chemin `AppContext` hors ligne —
+  session persistée → `getProfile` (repli local) → `applyProfile` → `getOrganizationId()`
+  rend l'org (au lieu de `__no_org__`) et le rôle est exposé à la garde de route.
+- **Note terrain (CONFIRMÉE le 2026-11-04)** : les releases publiées s'arrêtent à
+  **v1.2.2 (2026-11-02)** ; `git merge-base --is-ancestor` prouve que **v1.2.2 ne
+  contient NI #409 (SQLite natif `@powersync/capacitor`) NI #419 (boot local-first)**,
+  tous deux mergés sur `main` le 2026-11-04. **Aucune release publiée ne contient les
+  correctifs offline.** Un APK de release ≤ v1.2.2 est donc *a fortiori* cassé hors
+  ligne, indépendamment de ce bug. Retester impérativement un build POSTÉRIEUR
+  (APK debug de `main`, ou nouvelle release).
