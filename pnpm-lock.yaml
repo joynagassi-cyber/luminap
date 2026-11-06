@@ -294,6 +294,9 @@ importers:
       '@eslint/js':
         specifier: ^9.9.0
         version: 9.24.0
+      '@faker-js/faker':
+        specifier: ^10.6.0
+        version: 10.6.0
       '@sentry/vite-plugin':
         specifier: ^11.8.0
         version: 11.8.0(rollup@4.63.1)
@@ -1023,6 +1026,10 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@faker-js/faker@10.6.0':
+    resolution: {integrity: sha512-3RQHgEtvL1Frl/d1cSreo7qhJ3Gk1OdNUai/CtZ8G+wYeRQnJih3s9xJ9/kgYekPQRdwgh0HXRPqMlzWGwivIQ==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@floating-ui/core@1.6.9':
     resolution: {integrity: sha512-uMXCuQ3BItDUbAMhIXw7UPXRfAlOAvZzdK9BWpE60MCn+Svt3aLn9jsPTi/WNGlRUu2uI0v5S7JiIUsbsvh3fw==}
@@ -6504,6 +6511,8 @@ snapshots:
   '@exodus/bytes@1.15.1(@noble/hashes@1.8.0)':
     optionalDependencies:
       '@noble/hashes': 1.8.0
+
+  '@faker-js/faker@10.6.0': {}
 
   '@floating-ui/core@1.6.9':
     dependencies:

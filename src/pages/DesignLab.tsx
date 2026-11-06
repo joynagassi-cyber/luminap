@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
 import { Bell, CalendarDays, Flame, Home, List, PieChart, Plus, Settings, ShoppingCart, X } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
+import { DEMO_ENABLED, seedDemoData } from "@/lib/demo/seedDemo";
 import { useTheme } from "@/design-system/theme/theme-context";
 import {
   LuAmount,
@@ -426,6 +427,22 @@ export default function DesignLab() {
               </div>
             </LuSheet>
           </Section>
+
+          {DEMO_ENABLED && (
+            <Section title="Démo (DEV uniquement — jamais en prod)">
+              <LuButton
+                variant="tonal"
+                size="md"
+                onClick={async () => {
+                  const n = await seedDemoData(60);
+                  window.location.hash = "#/dashboard";
+                  void n;
+                }}
+              >
+                🌱 Charger 60 transactions de démo (faker) → Dashboard
+              </LuButton>
+            </Section>
+          )}
 
           {/* Couleurs */}
           {COLOR_GROUPS.map((group) => (

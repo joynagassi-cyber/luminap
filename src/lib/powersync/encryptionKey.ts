@@ -76,6 +76,11 @@ export class EncryptionKeyError extends Error {
  */
 async function resolveSecureStore(): Promise<SecureKeyStore | null> {
   try {
+    // Sur le WEB, le proxy du plugin lève « not implemented on web » à l'appel :
+    // la clé vit dans localStorage (documenté, docs/audit-permissions.md).
+    // Le coffre natif n'est utilisé que sur plateforme native.
+    const core = await import("@capacitor/core");
+    if (!core.Capacitor.isNativePlatform()) return null;
     const mod = await import("@aparajita/capacitor-secure-storage");
     const proxy = mod.SecureStorage as unknown as SecureKeyStore;
     if (!proxy || typeof proxy.get !== "function") return null;

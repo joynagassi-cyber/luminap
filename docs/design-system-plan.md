@@ -308,3 +308,13 @@ tranchée : pile unique, BottomNav maison).
   catalogue et remplacé par `navy` (11 thèmes, navy par défaut) —
   anti-flash index.html, SettingsTheme, tests (contraste, boot, picker)
   alignés. Ratchet re-figé à 458 littéraux.
+- **Correctif boot web** : `resolveSecureStore()` n'utilise le coffre
+  natif (SecureStorage) que si `Capacitor.isNativePlatform()` — sur web
+  la clé de chiffrement passe par localStorage (le proxy Capacitor y
+  lève « not implemented on web », ce qui faisait échouer le boot).
+- **Démo fakerjs (DEV-only, jamais en prod)** : `@faker-js/faker` en
+  devDependency + `src/lib/demo/seedDemo.ts` (garde
+  `import.meta.env.DEV`, génération déterministe seed=42, écriture via
+  le chemin normal `addTransactionPS`) + bouton « 🌱 60 transactions de
+  démo » dans le Design Lab (route DEV). Aucun impact backend/logique
+  métier en production : le code est éliminé du build prod.
