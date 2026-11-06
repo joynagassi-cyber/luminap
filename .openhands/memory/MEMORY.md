@@ -1,6 +1,6 @@
 # Mémoire projet — Lumina
 
-## GOUVERNANCE PLATEFORME — audit stack (PR #444, 2026-11-04)
+## GOUVERNANCE PLATEFORME — audit stack + chantiers #1/#2 (PR #444/#445, 2026-11-04)
 - **Diagnostic utilisateur** : Lumina a été pensé comme une app WEB alors que
   c'est un client ANDROID natif offline-first. → charte `docs/PLATFORM-GOVERNANCE.md`.
 - **Versions** : quasi TOUT à jour (Capacitor 8.6.0=latest, PowerSync, sqlite…).
@@ -8,14 +8,28 @@
 - **Décision** : garder Capacitor 8 + Ionic 9 + React 19 + PowerSync 2. **NE PAS
   réécrire.** Le déficit est gouvernance/doc/pratique, pas techno.
 - **Déficit mesuré** : Ionic sous-exploité (67 `IonPage` mais 414 `<button>` vs
-  89 `IonButton`, 0 `IonIcon`, 0 `IonTabs`) ; `navigator.onLine` lu en direct 14× ;
-  `src/adapters/native/NetworkAdapter.ts` EXISTE mais MORT (importé nulle part) ;
-  **aucun test CI sur l'APK** (Maestro dans `.maestro/` mais absent CI).
-- **Doc** : 260 `.md`, 6 « FINAL » redondants ; `AGENTS.md` CONTREDIT `package.json`
-  (dit Nitro/`server/` supprimé mais `nitro`/`h3`/`@supabase/server` restent en deps).
-- **Garde active** : `platform-abstraction-guard.test.ts` — ratchet : échoue si un
-  NOUVEAU `navigator.onLine`/`navigator.connection`/`online-offline` apparaît hors
-  `src/adapters/native/`. Dette de 8 fichiers figée (diminue seulement). Non-vacuité prouvée.
+  89 `IonButton`) ; `navigator.onLine` lu en direct 14× ; **aucun test CI sur l'APK**
+  (Maestro dans `.maestro/` mais absent CI).
+- **Correction (2026-11-04)** : `AGENTS.md` n'est PAS en contradiction — il documente
+  lui-même la rétention historique de `nitro`/`h3`/`jiti`/`@supabase/server`
+  (`pg` retiré, `server/` absent). Le vrai problème doc = **volume/redondance**.
+- **#2 Couche réseau plateforme (PR #445)** :
+  - **BUG RÉEL** : `NetworkAdapter.isCapacitorEnv()` renvoyait `!!__mockNetwork` →
+    toujours `false` sur appareil → tout retombait sur `navigator.onLine`. Fix =
+    `Capacitor.isNativePlatform()`.
+  - **Façade** `src/platform/networkState.ts` : état réseau **synchrone** (cache
+    amorcé par `Network.getStatus()`, events natifs, diffusion). SEUL module autorisé
+    à lire `navigator.onLine` hors `src/adapters/native`. Amorçage `main.tsx`.
+  - 10 sites migrés ; `platform-abstraction-guard` : dette **0**, `src/platform/`
+    autorisé, scanner durci (ignore les commentaires). Tests : passer par
+    `__setOnlineForTests()` (plus `window.dispatchEvent(Event("offline"))`).
+  - **Vitest glob** : `src/platform/__tests__` NON inclus → test dans `src/lib/__tests__`.
+- **#1 Gel doc (PR #445)** : `docs/archive/` + README ; 11 snapshots « terminés »
+  archivés (MIGRATION_*, PLATFORM_COMPLETE, FINAL_ARCHITECTURE_VERIFICATION,
+  POWERSYNC_FINAL_SETUP, POST_MIGRATION_CHECKLIST). `docs/*.md` 48→37.
+- **Garde active** : `platform-abstraction-guard.test.ts` — échoue si un NOUVEAU
+  `navigator.onLine`/`navigator.connection`/`online-offline` apparaît hors
+  `src/adapters/native/` ou `src/platform/`. Non-vacuité prouvée.
 
 ## HORS LIGNE : piège récurrent « écrans vides » (R175, PR #442, 2026-11-04)
 - **Toute lecture réseau au BOOT qui n'a pas de repli local casse l'offline.**
