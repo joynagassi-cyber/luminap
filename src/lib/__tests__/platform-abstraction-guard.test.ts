@@ -42,11 +42,17 @@ const toRel = (abs: string) => relative(root, abs).split(sep).join("/");
 /** Couche plateforme : SEUL endroit autorisé à toucher les API natives. */
 const PLATFORM_LAYERS = ["src/adapters/native/", "src/platform/"];
 
-/** Motifs d'usage direct d'une API réseau navigateur. */
+/**
+ * Motifs d'usage direct d'une API web à comportement natif divergent :
+ * - réseau : `navigator.onLine` peu fiable en WebView Android ;
+ * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView.
+ */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,
   /navigator\.connection/,
   /addEventListener\(\s*["'](?:online|offline)["']/,
+  /window\.open\s*\(/,
+  /target=\{?["']_blank["']\}?/,
 ];
 
 /**
@@ -83,7 +89,8 @@ describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dériv
     const nouveaux = [...detected].filter((f) => !KNOWN_DIRECT_SITES.has(f));
     expect(
       nouveaux,
-      `Nouveau(x) site(s) hors couche plateforme. Utiliser src/adapters/native/NetworkAdapter.ts ` +
+      `Nouveau(x) site(s) hors couche plateforme. Passer par la façade : ` +
+        `src/platform/networkState (réseau) ou src/platform/openExternal (liens) ` +
         `(cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement de dette, ` +
         `mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
     ).toEqual([]);

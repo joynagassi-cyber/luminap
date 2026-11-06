@@ -94,9 +94,10 @@ La détection d'état réseau correcte sur Android passe par `@capacitor/network
   `e2e (Cypress sur dev server Chromium)`.
 - **Aucun test instrumenté Android** (`android/app/src/androidTest/` ne contient
   que l'`ExampleInstrumentedTest` généré par Capacitor).
-- **Maestro est présent** (`.maestro/work/01-home-load.yaml`,
-  `scripts/maestro-*.cjs`) mais **absent de la CI** (`grep maestro
-  .github/workflows/` = ∅).
+- **Maestro** était présent (`.maestro/work/01-home-load.yaml`,
+  `scripts/maestro-*.cjs`) mais absent de la CI. **Décision (2026-11-06) : écarté**
+  — inutile pour ce projet ; la couverture appareil repose sur la DoD §4.4
+  (vérification manuelle en mode avion / tests instrumentés).
 - Les specs `cypress/e2e/offline-write-sync.cy.ts` **documentent elles-mêmes**
   qu'elles ne peuvent pas prouver le drain de la file d'upload en headless (le
   worker WASM ne se connecte pas sous Cypress).
@@ -209,11 +210,14 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
 
 - Créer/valider `src/platform/` (ou généraliser `src/adapters/native/`) exposant
   `network`, `storage`, `notifications`, `filesystem`, `haptics`, `keyboard`,
-  `app-state`.
-- **Interdire** `navigator.onLine` et les API navigateur dans `src/` **hors** de
-  la couche plateforme (guard ESLint ou test de scan).
+  `app-state`, `external-links`.
+- **Interdire** les API navigateur à comportement natif divergent dans `src/`
+  **hors** de la couche plateforme (guard de scan) :
+  - réseau : `navigator.onLine`, `navigator.connection`, `online`/`offline` ;
+  - ouverture de lien : `window.open`, `target="_blank"` (no-op en WebView) →
+    façade `src/platform/openExternal.ts` (`@capacitor/browser` sur natif).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
-  source d'état réseau ; les 14 sites `navigator.onLine` migrent.
+  source d'état réseau ; les sites `navigator.onLine` migrent.
 
 ### 4.4 « Definition of Done » — plateforme Android
 
@@ -225,15 +229,17 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
       `docs/lumina-ionic-capacitor-permissions.md`).
 - [ ] Si UI : utilise les composants Ionic **quand ils existent** (« Ionic
       d'abord »), avec justification écrite sinon.
-- [ ] Un **test instrumenté ou Maestro** couvre le parcours (voir 4.5).
+- [ ] Les points natifs critiques sont couverts par un **test instrumenté**
+      (`androidTest/`) ou une **vérification manuelle appareil** tracée dans la PR.
 
 ### 4.5 Tests sur l'artefact réel
 
-- **Brancher Maestro en CI** sur un APK de debug (émulateur headless) : les
-  scénarios vivent déjà dans `.maestro/` mais ne tournent pas (1.5).
-- Écrire des **tests instrumentés Android** (`androidTest/`) pour les points
-  natifs critiques (stockage chiffré, insets, réseau, self-update).
-- Critère : **aucune release sans qu'un test se soit exécuté sur l'APK**.
+- **Tests instrumentés Android** (`androidTest/`) pour les points natifs
+  critiques (stockage chiffré, insets, réseau, self-update).
+- **Maestro écarté** (décision utilisateur, 2026-11-06) : jugé inutile pour ce
+  projet. Les scénarios `.maestro/` ne sont plus maintenus comme critère.
+- Critère : **aucune release sans qu'un test ou une vérification appareil se soit
+  exécuté sur l'APK** (mode avion inclus).
 
 ---
 
@@ -242,10 +248,10 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 | # | Chantier | Pourquoi | Effort | Preuve de réussite |
 |---|---|---|---|---|
 | 1 | ✅ **Geler la doc** : `docs/archive/` créé, 11 snapshots « terminés » archivés, `AGENTS.md` vérifié exact | Stoppe la dérive, réduit le bruit | fait | `docs/*.md` 48→37 ; archive documentée |
-| 2 | ✅ **Couche plateforme réseau** : façade `src/platform/networkState`, `NetworkAdapter` réparé (détection natif), 10 sites migrés, `navigator.onLine` banni hors couche (guard, dette = 0) | Corrige une cause plausible de bug offline | fait | 0 `navigator.onLine` hors `src/platform`/`adapters` ; guard vert |
-| 3 | **Maestro en CI** sur APK debug | Détecte les bugs terrain avant l'utilisateur | 2–3 j | Job CI vert sur parcours avion/allumé |
+| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau) **et** `openExternal` (liens) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
+| 3 | ~~**Maestro en CI** sur APK debug~~ **Écarté** (décision utilisateur 2026-11-06) | — | — | — |
 | 4 | **Adoption Ionic « d'abord »** écran par écran (feuilles, pull-to-refresh, haptique, transitions) | Ressenti natif | continu | Ratio `<IonButton>/<button>` en hausse ; 0 régression |
-| 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test appareil |
+| 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test/vérif appareil |
 | 6 | **ADR + guards** systématiques | Rend les règles opposables | continu | Chaque ADR a son guard |
 | 7 | Planifier **TypeScript 7** (majeur) | Sécurité de mise à jour | 1 j d'éval | ADR + CI verte |
 
@@ -255,34 +261,34 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 
 1. **Offline** : sur un APK de production, mode avion activé → l'app reste
    **utilisable** (listes peuplées depuis la réplique, écritures mises en file,
-   message « synchronisation en attente » honnête). *Mesure : test Maestro CI
-   « avion → créer une transaction → rallumer → vérifier l'upload ».*
-2. **Doc** : `docs/` contient **une** source de vérité par domaine, et
-   `AGENTS.md` ne contredit plus `package.json`.
+   message « synchronisation en attente » honnête). *Mesure : vérification
+   appareil en mode avion (DoD §4.4), tracée dans la PR de release.*
+2. **Doc** : `docs/` contient **une** source de vérité par domaine.
 3. **Plateforme** : zéro lecture directe d'API navigateur hors couche plateforme
    (guard vert).
-4. **Artefact** : au moins un test automatisé s'exécute sur l'APK à chaque PR.
+4. **Artefact** : une vérification appareil (ou un test instrumenté) s'exécute sur
+   l'APK avant chaque release.
 
-**Vérification indépendante** : les points 1 et 4 se vérifient par un job CI
-(vert/rouge), pas par une affirmation. Les points 2 et 3 par un test de scan.
+**Vérification indépendante** : les points 2 et 3 se vérifient par un test de scan
+(vert/rouge), pas par une affirmation ; les points 1 et 4 par une trace de
+vérification appareil attachée à la PR.
 
 ---
 
 ## 7. Ce qu'il me faut pour aller plus loin (accès/données manquants)
 
 - **Un appareil ou émulateur Android** accessible depuis l'environnement pour
-  exécuter Maestro / `adb logcat` et **prouver** le comportement offline réel.
-  Sans cela, je ne peux que raisonner statiquement (ce que je viens de faire).
+  exécuter `adb logcat` et **prouver** le comportement offline réel. Sans cela, je
+  ne peux que raisonner statiquement.
 - **Confirmation produit** : Android est la priorité, iOS/desktop plus tard —
   à écrire dans la charte (section 3).
-- **Arbitrage** : ce document est une **proposition**. Je ne le fais pas passer
-  pour ratifié tant que tu ne l'as pas validé.
 
 ---
 
-## 8. Prochaine action concrète proposée
+## 8. État d'avancement
 
-Si tu valides, je commence par le chantier **#1 (geler la doc)** et **#2 (couche
-plateforme réseau)** — ce sont les deux plus rentables et les plus rapides, et
-ils produisent des **preuves exécutables** (guards) qui verrouillent la
-gouvernance au lieu de la laisser sur papier.
+Chantiers **#1 (geler la doc)** et **#2 (couche plateforme : réseau + liens
+externes)** : **faits et fusionnés** (PR #445). Ils produisent des **preuves
+exécutables** (guards) qui verrouillent la gouvernance au lieu de la laisser sur
+papier. Suite : **#4 (Ionic « d'abord »)**, **#5 (DoD Android)**, **#6 (ADR +
+guards)**.

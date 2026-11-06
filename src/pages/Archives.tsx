@@ -15,6 +15,7 @@ import {
 import { uploadLuminaFile, getDocumentUrl } from "@/lib/storageService";
 import { purgeEntity, purgeAllArchived } from "@/lib/trash";
 import { useCanAccessMulti } from "@/hooks/useCanAccessMulti";
+import { openExternal } from "@/platform/openExternal";
 import { useRefreshOnViewEnter } from "@/hooks/useRefreshOnViewEnter";
 import {
   Users,
@@ -126,7 +127,7 @@ export default function Archives() {
   const handleDownloadDocument = async (doc: PSDocument) => {
     try {
       const url = await getDocumentUrl("archives", doc.file_path);
-      window.open(url, "_blank");
+      await openExternal(url);
     } catch {
       setDocError("Téléchargement impossible (hors ligne ?).");
     }
