@@ -1904,3 +1904,13 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   la table `grants` (grants ciblés user/role/tag/group_member/org_member) est VIDE.
 - Convention de liaison des membres : `members.id = user_id` (settle_invitation_claim
   insere members.id = resulting_user_id). `members` n'a AUCUN lien de compte dedie.
+
+## Audit RLS backend — surface propre (2026-11-04)
+- 0 table sans RLS ; Storage/profiles/organizations/org_reports/audit_entries/
+  transactions tous correctement cloisonnes. Seuls defauts trouves : R171 (storage
+  role), R172 (anon write), R173 (has_permission group_member).
+- `has_permission` s'appuie sur `role_permissions` (matrice canonique) ; `grants` VIDE.
+- `profiles` : 4 triggers (role/org immuables ; insert force MEMBRE + __no_org__).
+- `transactions` : RLS select = is_org_member (RBAC fin = client-side, choix assume).
+- MCP s'execute en role `postgres` SANS JWT -> impossible de tester une session
+  `authenticated` (initplan_uid()=NULL). Verification RLS limitee a l'inspection.
