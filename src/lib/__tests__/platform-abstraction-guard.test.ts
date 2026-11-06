@@ -53,8 +53,9 @@ const PLATFORM_LAYERS = [
  * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`) ;
  * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob` ;
  * - retour matériel : écoute directe `ionBackButton`/`backbutton` → `hardwareBack` ;
- * - modulateurs système : `window.prompt`/`confirm`/`alert` = no-op ou bloquants
- *   dans la WebView Android → composants Ionic (IonAlert) ou overlay maison.
+ * - modulateurs système : `window.prompt`/`confirm`/`alert` = implémentés par
+ *   Capacitor mais non thémables (hors charte) et hors i18n → composants Ionic
+ *   (IonAlert) ou overlay maison.
  */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,

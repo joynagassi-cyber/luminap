@@ -228,8 +228,9 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
     au-dessus des overlays Ionic et du routeur). Les overlays MAISON
     (`role="dialog"` : menus, feuilles, modales) s'y inscrivent via le hook
     `src/hooks/useHardwareBack.ts` — sans quoi le retour **ferme l'app**.
-  - modulateurs système : `window.prompt`/`confirm`/`alert` (no-op ou bloquants
-    en WebView) → `IonAlert`/`ConfirmModal` pour confirmer, feuille maison
+  - modulateurs système : `window.prompt`/`confirm`/`alert` — **implémentés**
+    par Capacitor (`AlertDialog` natif) mais **non thémables** (hors charte),
+    hors i18n → `IonAlert`/`ConfirmModal` pour confirmer, feuille maison
     sélectionnable pour la copie/saisie manuelle.
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.

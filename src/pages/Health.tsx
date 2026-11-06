@@ -92,9 +92,9 @@ export default function Health() {
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
   const [recovering, setRecovering] = useState(false);
-  // Repli presse-papiers : au lieu de `window.prompt` (no-op dans la WebView
-  // Android → copie MUETTE), on expose le diagnostic dans une feuille
-  // sélectionnable. Voir `copyDiagnostic`.
+  // Repli presse-papiers : on expose le diagnostic dans une feuille
+  // sélectionnable plutôt que dans un `window.prompt` système (non thémable,
+  // hors charte Lumina). Voir `copyDiagnostic`.
   const [manualCopy, setManualCopy] = useState<string | null>(null);
   useHardwareBack(manualCopy !== null, () => setManualCopy(null));
   // A6 — la confirmation passe par IonAlert : `window.confirm` est un
@@ -174,7 +174,7 @@ export default function Health() {
     } catch {
       // Repli : le presse-papiers peut être refusé (permission / contexte non
       // sécurisé). On expose le texte dans une feuille sélectionnable —
-      // `window.prompt` est un no-op dans la WebView Android (copie muette).
+      // un `window.prompt` système ne serait pas thémable (hors charte Lumina).
       setManualCopy(text);
     }
   };
