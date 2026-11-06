@@ -2001,3 +2001,29 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   org_assert_not_last_admin, enforce_transaction_financial_guards) : corrects.
 - Surface anon : 1 seul SECDEF = keep_alive_ping ; policies anon/public a predicat
   NULL/faux (aucune exposition). Audit backend EXHAUSTIF, aucun nouveau defaut.
+
+## Bouton retour matériel Android — façade `hardwareBack` (PR #450, 2026-11-06, main `18ca1434`)
+- **Bug** : aucun handler `ionBackButton` → le retour Android fermait l'APP au
+  lieu de fermer les overlays MAISON (classe « capacité native non gérée »).
+- **Façade** `src/platform/hardwareBack.ts` : `registerHardwareBack(handler)` →
+  `unregister` ; priorité **110** (`OVERLAY_BACK_PRIORITY`, > Ionic 100 >
+  routeur 0) ; `stopPropagation()` ; LIFO (`active.lastIndexOf`) ; no-op web.
+  **Hook** `src/hooks/useHardwareBack.ts` : `useHardwareBack(open, onClose)`.
+- **12 sites câblés** (FeatureSidebar, OrgChildren, EventTasks, HomeIndicator,
+  Balance, CustomFields, Reports, EventDetail ×2, Groups ×3, TransactionDetail
+  ×2, InvitationManage, GroupDetail). Overlays Ionic (IonAlert/IonActionSheet/
+  IonModal/ConfirmModal) déjà gérés → exclus.
+- **Garde** `platform-abstraction-guard.test.ts` : `ionBackButton` /
+  `addEventListener("backbutton")` réservés à la façade. Tests
+  `hardware-back-facade.test.ts` (4).
+- **PIÈGE PR** : `default_create_pr` crée en **DRAFT** → merge refusé. Le REST
+  `POST /pulls/N/ready_for_review` = **404** (token) ; passer par **GraphQL**
+  `mutation markPullRequestReadyForReview(pullRequestId: <node_id>)`.
+- **PIÈGE CI** : `Cypress Tests` échoue **déjà sur `main`** (préexistant) :
+  `theme-modes` 3 échecs + `auth-real` 3 échecs (`cy.type()` chaîne vide =
+  secrets/backend cloud live absents) → cascade `loginOrgAccount: credentials
+  absents` sur les specs dépendants. Rerun ⇒ mêmes échecs (**pas un flake**).
+  Les autres jobs (CI Pipeline, Android Debug Build, Unit Tests, TS, Lint)
+  passent ; pas de branch protection → merger. Ne PAS imputer ces rouges à sa PR.
+- **ENV** : `pnpm` absent → `corepack pnpm install --frozen-lockfile`
+  (installe `@faker-js/faker` manquant).
