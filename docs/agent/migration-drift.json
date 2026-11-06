@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 98,
-    "repo_timestamped_files": 93,
+    "repo_timestamped_files": 94,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 156,
+    "repo_total_sql_files": 157,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 96,
     "repo_file_never_applied": 86,
     "drift_ratio": "2/98",
-    "repo_filenames_sha256": "e592df56f53831076be86c1eb857880d604d94abba98a4194db7f1bb3bf8c5e9",
+    "repo_filenames_sha256": "a7aa24dc4da700e9280475682abc502c0e3e5362c4d0d48e2d1fa7b56ed1bb9e",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -119,5 +119,10 @@
   "notes_r171": [
     "1 migration ajoutee 20261104000011_guard_storage_private_permissions (R171 : aligner les permissions des BLOBS Storage sur celles des METADONNEES). La migration 20261022000013 avait corrige une faille inter-organisations (anon lisait les documents prives ; tout authenticated supprimait les documents de n'importe quelle org) mais s'etait arretee a l'axe ORGANISATION, pas ROLE : les blobs archives/expense_proofs n'exigeaient que is_org_member pour INSERT et DELETE, alors que les metadonnees exigent has_permission(...,'transaction','update') (transaction_attachments) / has_permission(...,'admin','settings') (documents). Un simple MEMBRE pouvait donc supprimer/ecraser les justificatifs de depense et les archives de son organisation via un appel Storage direct. Correctif : policies par bucket (lumina_archives_write/delete -> admin:settings ; lumina_expense_proofs_write/delete -> transaction:update) ; lecture inchangee (is_org_member). VERIFIE en base : has_permission discrimine (transaction:update=true pour ADMIN, false pour permission inconnue et org etrangere) ; MEMBRE n'a pas transaction:update (impact nul pour les roles legitimes). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 93 horodatees / 63 sequentielles / 156 total.",
     "TRACKER re-mesure le 2026-11-04 (via MCP execute_sql) : 107 versions (contre 98 au dernier releve R148). Champs tracker du present instantane non re-actualises (le garde repo-side ne verifie que les compteurs/empreinte du DEPOT) ; le ratio de derive reste exprime sur la base de reference 2/98."
+  ]
+,
+  "notes_r172": [
+    "1 migration ajoutee 20261104000012_revoke_anon_write_and_default_privileges (R172 : hygiène / defense en profondeur du role anon). ~49 tables de public portaient des grants INSERT/UPDATE/DELETE (voire TRUNCATE/REFERENCES/TRIGGER) pour anon, herites des privileges par defaut (pg_default_acl) et de GRANT historiques (0015_*). INERTES aujourd'hui (RLS activee partout + aucune policy anon ; les 3 policies TO public sont gardees par un predicat uid/org = NULL pour anon) mais bombe a retardement. Correctif : REVOKE d'ecriture ON ALL TABLES IN SCHEMA public FROM anon + durcissement des privileges par defaut. SELECT conserve (keep_alive lu par le ping anti-pause avec la cle anon ; logos public). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 94 horodatees / 63 sequentielles / 157 total.",
+    "RESIDUEL DOCUMENTE : storage.objects appartient a supabase_storage_admin (le REVOKE est un no-op) et les privileges par defaut de supabase_admin restent hors de portee (postgres n'est pas superuser ni membre de supabase_admin). Les grants d'ecriture d'anon y sont INERTES (aucune policy d'ecriture anon sur storage). A regulariser cote plateforme si l'on veut une cloture complete."
   ]
 }
