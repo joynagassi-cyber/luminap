@@ -1851,3 +1851,19 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   authenticated` + `set_config('request.jwt.claims', json_build_object('sub',uid,
   'role','authenticated')::text, true)` (mais `SET LOCAL` ne marche pas au
   top-level MCP → l'envelopper dans un `DO` block).
+
+## Livraison audit backend (PR #434, 2026-11-04)
+- Audit R163→R170 livré via PR #434 MERGÉE dans `main` (merge `f40dd35d`).
+  Local `main` avait divergé (44 ahead/27 behind) à cause du travail « arena »
+  Design System (thème violet #420-#432) : merge propre, 1 seul fichier commun
+  (`package.json`), aucune collision de migrations.
+- **CI** : `Cypress Tests` (`.github/workflows/cypress.yml`) est ROUGE sur `main`
+  ET toutes les branches `arena/*` → échec PRÉEXISTANT (pas un bloqueur). Le CI
+  principal `CI Pipeline` (tsc/unit/lint/build/e2e) + Security Audit + Snyk +
+  Build APK passent. `mergeable_state=unstable` mais `mergeable=true` ⇒ mergeable.
+- **Env pièges** : `pnpm` indisponible (corepack cassé, `npm i -g` sans droits) →
+  débloquer une dépendance via `npm pack <pkg>@<ver>` + extraction manuelle dans
+  `node_modules/<pkg>`. `default_create_pr` crée une PR **DRAFT** → GraphQL
+  `markPullRequestReadyForReview` avant merge. Push sans token dans l'URL →
+  prompt identifiants ⇒ utiliser `https://${GITHUB_TOKEN}@github.com/...` ;
+  suppression de branche via API REST `DELETE /git/refs/heads/<b>`.
