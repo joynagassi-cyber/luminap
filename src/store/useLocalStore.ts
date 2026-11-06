@@ -15,6 +15,7 @@ import { create } from "zustand";
 import { lifecycle } from "@/capabilities/lifecycle";
 import { relationship } from "@/capabilities/relationship";
 import { getOrganizationId } from "@/lib/orgContext";
+import { isOnline as platformIsOnline } from "@/platform/networkState";
 import { isMakerCheckerEnabled } from "@/lib/makerCheckerSettings";
 import { createVersement as createVersementService } from "@/lib/versement-service";
 import { createGroup as createGroupService } from "@/lib/group-service";
@@ -399,7 +400,7 @@ export const useLocalStore = create<LocalStoreState>()(
       cotisations: [],
       appConfig: { churchName: "", churchLogoUrl: "", userPhoto: "" },
       isLoading: false,
-      isOnline: navigator.onLine,
+      isOnline: platformIsOnline(),
 
       selectRole: async (role) => {
         try {

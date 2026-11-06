@@ -30,6 +30,7 @@ import { resetOrganizationId } from "@/lib/orgContext";
 import { useOrganizationContext } from "@/lib/organization-context";
 import { formatDateTime } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
+import { isOnline as platformIsOnline } from "@/platform/networkState";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
   ok: CheckCircle2,
@@ -113,7 +114,7 @@ export default function Health() {
 
   const currentInputs = () =>
     collectHealthInputs(
-      typeof navigator !== "undefined" ? navigator.onLine : true,
+      platformIsOnline(),
       orgName,
     );
 
@@ -154,7 +155,7 @@ export default function Health() {
   const copyDiagnostic = async () => {
     const text = buildDiagnosticReport(
       collectHealthInputs(
-        typeof navigator !== "undefined" ? navigator.onLine : true,
+        platformIsOnline(),
         orgName,
       ),
       getRecentErrors(),

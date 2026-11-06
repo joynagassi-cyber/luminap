@@ -35,6 +35,7 @@ import { installBreadcrumbCapture } from "@/lib/observability/breadcrumbs";
 import { installLongTaskMonitor } from "@/lib/observability/perfMonitor";
 import { flushPendingReports } from "@/lib/observability/errorReporter";
 import { Capacitor } from "@capacitor/core";
+import { initNetworkState } from "@/platform/networkState";
 
 // Arme le watchdog de démarrage AVANT tout montage React : si la coquille ne
 // signale jamais sa disponibilité (chunk manquant, échec d'hydratation, blocage
@@ -45,6 +46,10 @@ armBootWatchdog();
 // boot (initPowerSync, applyStoredTheme, loadIonicDefinitions…). Silencieux
 // si le DSN (VITE_SENTRY_DSN) n'est pas défini — le SDK reste actif sans envoi.
 initSentry();
+
+// Amorce la façade réseau plateforme (@capacitor/network) avant le montage :
+// le cache synchrone est exact sur Android (navigator.onLine y est peu fiable).
+void initNetworkState();
 
 // Observabilité — capture automatique du fil d'Ariane (clics, navigations,
 // réseau) et surveillance des tâches longues (interface gelée). Armés tôt pour

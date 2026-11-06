@@ -33,6 +33,7 @@ import { get, set, invalidate, clear, asyncGetOrSet } from "./cache";
 import { authService } from "./auth";
 import { assertPeriodOpen, getLockedUntil } from "./periodLock";
 import { isFeatureEnabled } from "./featureFlags";
+import { isOnline as platformIsOnline, subscribeOnline } from "@/platform/networkState";
 import { assertApprovable } from "./makerChecker";
 import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 import type { ExistingOrgCandidate } from "./orgCreationGuard";
@@ -3598,20 +3599,9 @@ function fallbackCurrentUser(): CurrentUser {
  * Hook to check online status
  */
 export function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(platformIsOnline);
 
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
+  useEffect(() => subscribeOnline(setIsOnline), []);
 
   return isOnline;
 }

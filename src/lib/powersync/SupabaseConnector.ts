@@ -12,6 +12,7 @@ import { AppSchema } from "./schema";
 import { recordRejectedSyncOp } from "./syncRejectedOps";
 import { coerceJsonbColumns } from "@/lib/jsonb";
 import { reportError } from "@/lib/observability/errorReporter";
+import { isOnline as platformIsOnline } from "@/platform/networkState";
 
 /**
  * Colonnes déclarées par le schéma PowerSync pour chaque table + la PK
@@ -753,7 +754,7 @@ export class SupabaseConnector
         // ligne, c'est le comportement ATTENDU (retry à la reconnexion) → on
         // ne signale pas pour ne pas noyer les vraies erreurs ; en ligne, la
         // dédup du reporter évite le spam si elle se répète.
-        if (typeof navigator === "undefined" || navigator.onLine) {
+        if (platformIsOnline()) {
           reportError(ex, {
             type: "sync",
             source: "powersync-retryable",

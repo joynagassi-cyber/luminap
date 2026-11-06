@@ -13,6 +13,7 @@ import type {
 } from "@supabase/supabase-js";
 import type { Role } from "@/types";
 import { getOrganizationId, setOrganizationId } from "./orgContext";
+import { isOnline as platformIsOnline } from "@/platform/networkState";
 
 // Use environment variables — never hardcode credentials.
 // L'application exige explicitement VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
@@ -153,9 +154,13 @@ export function readStoredSession(): Session | null {
   return null;
 }
 
-/** Le navigateur/WebView signale-t-il une absence de réseau ? */
+/**
+ * Le navigateur/WebView signale-t-il une absence de réseau ?
+ * Délègue à la façade plateforme (source unique, exacte sur natif via
+ * `@capacitor/network` — cf. docs/PLATFORM-GOVERNANCE.md §4.3).
+ */
 function isBrowserOffline(): boolean {
-  return typeof navigator !== "undefined" && navigator.onLine === false;
+  return !platformIsOnline();
 }
 
 /** Clé de persistance du profil (source locale de `lumina-user`). */

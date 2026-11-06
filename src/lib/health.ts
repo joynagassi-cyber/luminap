@@ -18,6 +18,7 @@ import { getRecentErrors, redact } from "./clientErrors";
 import { isPowerSyncReadyNow } from "./dataLayer";
 import { getOrganizationId, hasResolvedOrganization } from "./orgContext";
 import { normalizeText } from "./sanitize";
+import { isOnline as platformIsOnline, subscribeOnline } from "@/platform/networkState";
 
 export type HealthLevel = "ok" | "warn" | "error";
 
@@ -191,20 +192,9 @@ export function buildDiagnosticReport(
 
 /** Hook React : rapport santé, rafraîchi toutes les `intervalMs`. */
 export function useHealthSnapshot(intervalMs = 5000, orgName?: string): HealthReport {
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [online, setOnline] = useState(platformIsOnline);
 
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
+  useEffect(() => subscribeOnline(setOnline), []);
 
   const [report, setReport] = useState<HealthReport>(() =>
     buildHealthReport(collectHealthInputs(online, orgName), new Date().toISOString()),

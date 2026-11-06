@@ -12,6 +12,7 @@ import {
   installBreadcrumbCapture,
   MAX_BREADCRUMBS,
 } from "@/lib/observability/breadcrumbs";
+import { __setOnlineForTests, __resetNetworkStateForTests } from "@/platform/networkState";
 
 beforeEach(() => clearBreadcrumbs());
 
@@ -72,8 +73,10 @@ describe("installBreadcrumbCapture", () => {
   });
 
   it("capture un changement de connectivité", () => {
+    __resetNetworkStateForTests();
+    __setOnlineForTests(true);
     uninstall = installBreadcrumbCapture();
-    window.dispatchEvent(new Event("offline"));
+    __setOnlineForTests(false); // perte de connexion via la façade plateforme
     expect(getBreadcrumbs().some((b) => b.category === "network")).toBe(true);
   });
 

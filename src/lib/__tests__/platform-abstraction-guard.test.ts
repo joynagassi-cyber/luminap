@@ -40,7 +40,7 @@ function walk(dir: string): string[] {
 const toRel = (abs: string) => relative(root, abs).split(sep).join("/");
 
 /** Couche plateforme : SEUL endroit autorisé à toucher les API natives. */
-const PLATFORM_LAYER = "src/adapters/native/";
+const PLATFORM_LAYERS = ["src/adapters/native/", "src/platform/"];
 
 /** Motifs d'usage direct d'une API réseau navigateur. */
 const PATTERNS: RegExp[] = [
@@ -50,34 +50,30 @@ const PATTERNS: RegExp[] = [
 ];
 
 /**
- * DETTE DE MIGRATION ASSUMÉE — sites à brancher sur `NetworkAdapter`.
- * Toute entrée retirée ici doit l'être aussi dans le code (migration).
- * Toute entrée AJOUTÉE ici doit être justifiée en revue (et datée).
+ * DETTE DE MIGRATION — VIDÉE le 2026-11-04 (PR : couche réseau plateforme).
+ * Tous les sites applicatifs passent désormais par `src/platform/networkState`.
+ * Ne JAMAIS réintroduire d'entrée ici : utiliser la façade.
  */
-const KNOWN_DIRECT_SITES = new Set<string>([
-  "src/store/useLocalStore.ts", // état `isOnline` du store local
-  "src/lib/powersync/SupabaseConnector.ts", // garde d'upload
-  "src/lib/dataLayer.ts", // hook useOnlineStatus
-  "src/lib/health.ts", // diagnostic santé
-  "src/lib/observability/errorReporter.ts", // garde d'envoi de rapport
-  "src/lib/auth.ts", // isBrowserOffline()
-  "src/pages/Health.tsx", // écran santé
-  "src/context/AppContext.tsx", // écouteurs online/offline
-  "src/lib/observability/ObservabilityBridge.tsx", // flush des rapports à la reconnexion
-  "src/lib/observability/breadcrumbs.ts", // fil d'Ariane réseau
-]);
+const KNOWN_DIRECT_SITES = new Set<string>([]);
 
 function scanDirectSites(): Set<string> {
   const found = new Set<string>();
   for (const file of walk(join(root, "src"))) {
     const rel = toRel(file);
     if (rel.includes("__tests__") || rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) continue;
-    if (rel.startsWith(PLATFORM_LAYER)) continue; // la couche plateforme a le droit
+    if (PLATFORM_LAYERS.some((layer) => rel.startsWith(layer))) continue; // couche plateforme
     if (!/\.(ts|tsx)$/.test(rel)) continue;
-    const src = readFileSync(file, "utf8");
-    if (PATTERNS.some((re) => re.test(src))) found.add(rel);
+    const code = stripComments(readFileSync(file, "utf8"));
+    if (PATTERNS.some((re) => re.test(code))) found.add(rel);
   }
   return found;
+}
+
+/** Retire commentaires de bloc et de ligne : on ne juge que le CODE réel. */
+function stripComments(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
 describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dérive)", () => {
