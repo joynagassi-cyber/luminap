@@ -57,9 +57,7 @@ import {
   CheckCircle2,
   Inbox,
 } from "lucide-react";
-import TransactionCard from "@/components/TransactionCard";
-import EmptyState from "@/components/EmptyState";
-import CircleAction from "@/components/CircleAction";
+import { LuCard, LuEmptyState, LuHero, LuSectionHeader, LuTransactionRow } from "@/design-system/components";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TrendChart from "@/components/TrendChart";
@@ -152,180 +150,148 @@ function HeroCard({
   const hasSyncError = syncError !== null;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => navigate("/finance")}
-      className="w-full text-left rounded-2xl p-5 mb-6 transition-all active:scale-98"
-      style={{
-        background:
-          "linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 10%, var(--surface)) 0%, var(--surface) 100%)",
-        border: "1px solid color-mix(in srgb, var(--accent-primary) 22%, var(--border))",
-        boxShadow: "var(--shadow-card)",
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate("/finance");
+        }
       }}
+      className="mb-6 cursor-pointer rounded-[var(--lu-radius-2xl)] transition-transform active:scale-[.98] focus-visible:outline focus-visible:outline-2"
+      style={{ outlineColor: "var(--lu-focus-ring)" }}
       aria-label="Voir les détails de la caisse principale"
     >
-      {/* Ligne 1 : profil + sync pill */}
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--accent-primary) 16%, transparent)",
-            }}
+      <LuHero
+        variant="solid"
+        greeting={`${greeting} · ${userName}`}
+        avatar={
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold"
+            style={{ background: "var(--lu-overlay-ink)", color: "var(--lu-hero-fg)" }}
             aria-label={`Profil de ${userName}`}
           >
-            <span className="text-sm font-bold" style={{ color: "var(--accent-primary)" }}>
-              {userInitials}
-            </span>
-          </div>
-          <div className="min-w-0">
-            <p className="text-text-primary font-semibold text-sm truncate">
-              {greeting} <span className="text-text-tertiary font-normal">·</span>{" "}
-              {userName}
-            </p>
-            <p className="text-text-tertiary text-xs truncate">{userRoleLabel}</p>
-          </div>
-        </div>
-        {/* Sync pill (P1) */}
-        <div
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
-          style={{
-            backgroundColor: "color-mix(in srgb, var(--accent-primary) 8%, transparent)",
-            color: hasSyncError
-            ? "var(--out)"
-            : online
-              ? "var(--accent-primary)"
-              : "var(--out)",
-          }}
-          aria-label={`État de synchronisation : ${syncLabel}`}
-        >
-          {hasSyncError ? (
-            <Circle
-              className="w-1.5 h-1.5"
-              style={{ fill: "var(--out)", color: "var(--out)" }}
-            />
-          ) : syncing ? (
-            <Radio className="w-3.5 h-3.5 animate-pulse" />
-          ) : online ? (
-            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--in)", color: "var(--in)" }} />
-          ) : (
-            <Circle className="w-1.5 h-1.5" style={{ fill: "var(--out)", color: "var(--out)" }} />
-          )}
-          <span>{syncLabel}</span>
-        </div>
-      </div>
-
-      {/* Ligne 2 : résultat net + delta vs mois précédent */}
-      <div className="mb-4">
-        <p className="text-text-tertiary text-xs mb-1">Résultat net du mois</p>
-        <span
-          className="text-3xl font-black tabular-nums leading-none whitespace-nowrap"
-          style={{ color: netColor }}
-        >
-          {netResult >= 0 ? "" : "−"}
-          {formatCentsToFCFA(Math.abs(netResult))}
-        </span>
-        {previousNetResult !== null && (
-          <p
-            className="text-xs mt-1.5 flex items-center gap-1"
-            style={{ color: trendUp ? "var(--in)" : "var(--out)" }}
-          >
-            {trendUp ? (
-              <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
-            ) : (
-              <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
-            )}
-            {deltaPct !== null
-              ? `${Math.abs(deltaPct)} % vs ${previousMonthLabel}`
-              : `${netResult >= previousNetResult ? "+" : "−"}${formatCentsToFCFA(
-                  Math.abs(netResult - previousNetResult),
-                )} vs ${previousMonthLabel}`}
-          </p>
-        )}
-      </div>
-
-      {/* Ligne 2bis : sous-tuiles Entrées / Sorties (largeurs égales,
-          montants sans retour à la ligne, signe omis à zéro) */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div
-          className="rounded-xl p-3 flex items-center gap-2.5 min-w-0"
-          style={{ backgroundColor: "var(--surface-hover)" }}
-        >
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: tint("var(--in)", 12) }}
-            aria-hidden="true"
-          >
-            <ArrowUpRight className="w-4 h-4" style={{ color: "var(--in)" }} />
+            {userInitials}
           </span>
-          <span className="min-w-0">
-            <span className="block text-text-tertiary text-xs">Entrées du mois</span>
-            <span
-              className="block font-semibold text-base whitespace-nowrap"
-              style={{ color: "var(--in)" }}
-            >
-              {totalIncome > 0
-                ? `+${formatCentsToFCFA(totalIncome)}`
-                : formatCentsToFCFA(0)}
-            </span>
-          </span>
-        </div>
-        <div
-          className="rounded-xl p-3 flex items-center gap-2.5 min-w-0"
-          style={{ backgroundColor: "var(--surface-hover)" }}
-        >
-          <span
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: tint("var(--out)", 12) }}
-            aria-hidden="true"
-          >
-            <ArrowDownRight className="w-4 h-4" style={{ color: "var(--out)" }} />
-          </span>
-          <span className="min-w-0">
-            <span className="block text-text-tertiary text-xs">Sorties du mois</span>
-            <span
-              className="block font-semibold text-base whitespace-nowrap"
-              style={{ color: "var(--out)" }}
-            >
-              {totalExpense > 0
-                ? `−${formatCentsToFCFA(totalExpense)}`
-                : formatCentsToFCFA(0)}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {/* Ligne 3 : sparkline pleine largeur (6 mois) */}
-      <div className="rounded-xl p-3" style={{ backgroundColor: "var(--surface-hover)" }}>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-text-tertiary text-xs">Tendance (6 mois)</span>
-          {trendHasData &&
-            (trendUp ? (
-              <TrendingUp className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
-            ) : (
-              <TrendingDown className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
-            ))}
-        </div>
-        {trendHasData ? (
-          <TrendChart
-            values={trend}
-            labels={trendLabels}
-            height={96}
-            color={trendColor}
-            withTooltip
-            formatValue={(v) =>
-              `${v < 0 ? "−" : ""}${formatCentsToFCFA(Math.abs(v))}`
-            }
-          />
-        ) : (
+        }
+        label="Résultat net du mois"
+        amount={netResult / 100}
+        delta={
+          previousNetResult !== null
+            ? {
+                positive: trendUp,
+                children:
+                  deltaPct !== null
+                    ? `${Math.abs(deltaPct)} % vs ${previousMonthLabel}`
+                    : `${netResult >= previousNetResult ? "+" : "−"}${formatCentsToFCFA(
+                        Math.abs(netResult - previousNetResult),
+                      )} vs ${previousMonthLabel}`,
+              }
+            : undefined
+        }
+      >
+        {/* Sync pill + tuiles Entrées/Sorties + sparkline dans le bloc imbriqué */}
+        <div className="mb-3 flex justify-end">
           <div
-            className="flex items-center justify-center text-text-tertiary text-xs"
-            style={{ height: 96 }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap"
+            style={{
+              backgroundColor: "var(--lu-overlay-ink)",
+              color: hasSyncError || !online ? "var(--lu-expense)" : "var(--lu-hero-fg)",
+            }}
+            aria-label={`État de synchronisation : ${syncLabel}`}
           >
-            Pas encore assez de données
+            {hasSyncError ? (
+              <Circle className="w-1.5 h-1.5" style={{ fill: "var(--lu-expense)", color: "var(--lu-expense)" }} />
+            ) : syncing ? (
+              <Radio className="w-3.5 h-3.5 animate-pulse" />
+            ) : online ? (
+              <Circle className="w-1.5 h-1.5" style={{ fill: "var(--lu-income)", color: "var(--lu-income)" }} />
+            ) : (
+              <Circle className="w-1.5 h-1.5" style={{ fill: "var(--lu-expense)", color: "var(--lu-expense)" }} />
+            )}
+            <span>{syncLabel}</span>
           </div>
-        )}
-      </div>
-    </button>
+        </div>
+
+        {/* Sous-tuiles Entrées / Sorties (montants sans retour à la ligne) */}
+        <div className="grid grid-cols-2 gap-3 mb-3">
+          <div
+            className="rounded-[var(--lu-radius-md)] p-3 flex items-center gap-2.5 min-w-0"
+            style={{ backgroundColor: "var(--lu-overlay-ink)" }}
+          >
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "var(--lu-income-soft)" }}
+              aria-hidden="true"
+            >
+              <ArrowUpRight className="w-4 h-4" style={{ color: "var(--lu-income)" }} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs" style={{ color: "var(--lu-hero-fg)", opacity: 0.75 }}>
+                Entrées du mois
+              </span>
+              <span className="block font-semibold text-base whitespace-nowrap" style={{ color: "var(--lu-income)" }}>
+                {totalIncome > 0 ? `+${formatCentsToFCFA(totalIncome)}` : formatCentsToFCFA(0)}
+              </span>
+            </span>
+          </div>
+          <div
+            className="rounded-[var(--lu-radius-md)] p-3 flex items-center gap-2.5 min-w-0"
+            style={{ backgroundColor: "var(--lu-overlay-ink)" }}
+          >
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: "var(--lu-expense-soft)" }}
+              aria-hidden="true"
+            >
+              <ArrowDownRight className="w-4 h-4" style={{ color: "var(--lu-expense)" }} />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-xs" style={{ color: "var(--lu-hero-fg)", opacity: 0.75 }}>
+                Sorties du mois
+              </span>
+              <span className="block font-semibold text-base whitespace-nowrap" style={{ color: "var(--lu-expense)" }}>
+                {totalExpense > 0 ? `−${formatCentsToFCFA(totalExpense)}` : formatCentsToFCFA(0)}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Sparkline pleine largeur (6 mois) */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs" style={{ color: "var(--lu-hero-fg)", opacity: 0.75 }}>
+              Tendance (6 mois)
+            </span>
+            {trendHasData &&
+              (trendUp ? (
+                <TrendingUp className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5" style={{ color: trendColor }} aria-hidden="true" />
+              ))}
+          </div>
+          {trendHasData ? (
+            <TrendChart
+              values={trend}
+              labels={trendLabels}
+              height={96}
+              color={trendColor}
+              withTooltip
+              formatValue={(v) => `${v < 0 ? "−" : ""}${formatCentsToFCFA(Math.abs(v))}`}
+            />
+          ) : (
+            <div
+              className="flex items-center justify-center text-xs"
+              style={{ height: 96, color: "var(--lu-hero-fg)", opacity: 0.6 }}
+            >
+              Pas encore assez de données
+            </div>
+          )}
+        </div>
+      </LuHero>
+    </div>
   );
 }
 
@@ -1109,89 +1075,77 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Actions rapides (existant M23 CircleAction) */}
+        {/* Actions rapides (P4 : tuiles LuCard) */}
         <div className="mb-6">
-          <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider mb-3">
+          <p
+            className="text-xs font-medium uppercase tracking-wider mb-3"
+            style={{ color: "var(--lu-fg-muted)" }}
+          >
             Actions rapides
           </p>
           <div className="grid grid-cols-4 gap-3">
-            <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
-              <CircleAction
-                soft
-                tone="income"
-                onClick={() => navigate("/transaction/new?type=INCOME")}
-                aria-label="Nouvelle entrée"
-              >
-                <ArrowUpRight className="w-5 h-5" />
-              </CircleAction>
-              <span className="text-text-primary text-xs font-medium text-center">Entrée</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
-              <CircleAction
-                soft
-                tone="expense"
-                onClick={() => navigate("/transaction/new?type=EXPENSE")}
-                aria-label="Nouvelle sortie"
-              >
-                <ArrowDownRight className="w-5 h-5" />
-              </CircleAction>
-              <span className="text-text-primary text-xs font-medium text-center">Sortie</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
-              <CircleAction
-                soft
-                onClick={() => navigate("/versement")}
-                aria-label="Nouveau versement"
-              >
-                <TrendingUp className="w-5 h-5" style={{ color: "var(--accent-primary)" }} />
-              </CircleAction>
-              <span className="text-text-primary text-xs font-medium text-center">Versement</span>
-            </div>
-            <div className="flex flex-col items-center gap-2 p-1 rounded-xl w-full">
-              <CircleAction
-                soft
-                tone="advance"
-                onClick={() => navigate("/events")}
-                aria-label="Nouvel événement"
-              >
-                <Calendar className="w-5 h-5" />
-              </CircleAction>
-              <span className="text-text-primary text-xs font-medium text-center">Événement</span>
-            </div>
+            <LuCard
+              variant="tile"
+              aria-label="Nouvelle entrée"
+              label="Entrée"
+              icon={<ArrowUpRight className="w-5 h-5" style={{ color: "var(--lu-income)" }} />}
+              onClick={() => navigate("/transaction/new?type=INCOME")}
+            />
+            <LuCard
+              variant="tile"
+              aria-label="Nouvelle sortie"
+              label="Sortie"
+              icon={<ArrowDownRight className="w-5 h-5" style={{ color: "var(--lu-expense)" }} />}
+              onClick={() => navigate("/transaction/new?type=EXPENSE")}
+            />
+            <LuCard
+              variant="tile"
+              aria-label="Nouveau versement"
+              label="Versement"
+              icon={<TrendingUp className="w-5 h-5" style={{ color: "var(--lu-accent)" }} />}
+              onClick={() => navigate("/versement")}
+            />
+            <LuCard
+              variant="tile"
+              aria-label="Nouvel événement"
+              label="Événement"
+              icon={<Calendar className="w-5 h-5" />}
+              onClick={() => navigate("/events")}
+            />
           </div>
         </div>
 
-        {/* Derniers mouvements (existant, ancre Cypress) */}
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-text-primary font-semibold text-base">Derniers mouvements</p>
-          <button
-            onClick={() => navigate("/finance")}
-            className="text-sm font-medium"
-            style={{ color: "var(--accent-primary)" }}
-            aria-label="Voir toutes les transactions"
-          >
-            Tout voir
-          </button>
-        </div>
-        <div className="space-y-2 pb-4">
+        {/* Derniers mouvements (existant, ancre Cypress) — P4 : Lu* */}
+        <LuSectionHeader
+          title="Derniers mouvements"
+          actionLabel="Tout voir"
+          onAction={() => navigate("/finance")}
+        />
+        <div className="space-y-2 pb-4 mt-3">
           {recentTransactions.length === 0 && replicaPending ? (
             <ListSkeleton count={3} />
           ) : recentTransactions.length === 0 ? (
-            <EmptyState
+            <LuEmptyState
               title="Pas encore de mouvement"
-              description="Commencez par enregistrer votre première transaction"
-              icon={<PlusCircle className="w-6 h-6" />}
-              actionLabel="Créer une transaction"
-              onAction={() => navigate("/transaction/new")}
+              text="Commencez par enregistrer votre première transaction"
+              ctaLabel="Créer une transaction"
+              onCta={() => navigate("/transaction/new")}
             />
           ) : (
-            recentTransactions.map((tx) => (
-              <TransactionCard
-                key={tx.id}
-                transaction={tx as any}
-                onPress={openTransaction}
-              />
-            ))
+            recentTransactions.map((tx) => {
+              const t = tx as any;
+              return (
+                <LuTransactionRow
+                  key={t.id}
+                  title={t.label || t.note || "Transaction"}
+                  subtitle={t.date ? formatDate(t.date) : undefined}
+                  icon={t.type === "INCOME" ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+                  iconTone={t.type === "INCOME" ? "accent" : "default"}
+                  amount={(t.type === "INCOME" ? 1 : -1) * (t.amount / 100)}
+                  onClick={() => openTransaction(t.id)}
+                />
+              );
+            })
           )}
         </div>
       </div>
