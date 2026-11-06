@@ -28,6 +28,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { IonPage, IonContent, IonInput } from "@ionic/react";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 const TABS = [
   { id: "campaigns", label: "Campagnes", icon: Target },
@@ -471,6 +472,8 @@ function CampaignSheet({
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true);
+  // Retour matériel Android : ferme la feuille (sinon l'app se ferme).
+  useHardwareBack(true, onClose);
   return (
     <div className="fixed inset-0 z-overlay flex items-end justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-scrim" aria-hidden="true" />

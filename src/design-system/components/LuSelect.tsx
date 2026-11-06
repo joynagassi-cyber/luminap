@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, ChevronDown, Search } from "lucide-react";
 import { LuOptionList, type LuOption } from "./LuOptionList";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 export type LuSelectMode = "auto" | "list" | "popover" | "sheet";
 
@@ -50,6 +51,9 @@ export function LuSelect({
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const resolved = resolveMode(mode, options.length);
+  // Retour matériel Android : ferme la feuille de sélection (mode `sheet`),
+  // sinon l'app se fermerait (cf. docs/ui-exceptions.md).
+  useHardwareBack(open && resolved === "sheet", () => setOpen(false));
   const selected = options.find((o) => o.value === value);
   const filtered = useMemo(
     () =>
