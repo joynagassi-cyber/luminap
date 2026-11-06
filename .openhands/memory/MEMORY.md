@@ -1513,6 +1513,18 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `no such column: kind`. Correctif = colonne + bump de version de schéma client.
 - **Garde** : `observability-self-healing-guard.test.ts` (27).
 
+## Code mort shadcn supprimé + garde réachabilité (2026-11-04, PR #456 / a94a7e60)
+- `src/components/ui/` : 40/45 composants morts supprimés ; **5 restants**
+  (`chart`, `progress`, `skeleton`, `switch`, `tooltip`). 29 deps mortes retirées
+  (`@radix-ui/*` hors progress/switch/tooltip, cva, cmdk, embla, input-otp,
+  react-day-picker, vaul).
+- **Garde** `ui-component-reachability-guard.test.ts` : tout `ui/*` doit être
+  atteignable depuis le code de PRODUCTION. Couvre l'angle mort des overlays
+  Radix (`dialog`/`sheet`/`drawer`/`alert-dialog`) qui posent `role="dialog"` au
+  RUNTIME (invisibles au scan littéral de `overlay-hardware-back-guard`).
+- Alias `@/` = **src/** (piège de résolution dans les gardes).
+- **pnpm absent du PATH** : utiliser `corepack pnpm` (lockfile `pnpm-lock.yaml`).
+
 ## Release Lumina v1.2.1 + flake `auth-real` (2026-11-01)
 - **Release = tag `v*`** → workflow `release.yml` (prepare → build unsigned →
   sign apksigner v1+v2+v3 → GitHub Release). Body lu depuis
