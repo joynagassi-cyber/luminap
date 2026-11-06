@@ -50,13 +50,10 @@ import {
   Home,
   PlusCircle,
   FileText,
-  FolderTree,
   Radio,
   Circle,
   Clock,
-  CheckCircle2,
-  Inbox,
-} from "lucide-react";
+  } from "lucide-react";
 import { LuCard, LuEmptyState, LuHero, LuSectionHeader, LuTransactionRow } from "@/design-system/components";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
@@ -407,13 +404,6 @@ function useUnifiedTodos(
   return todos.slice(0, 5);
 }
 
-const TONE_COLOR: Record<UnifiedTodo["tone"], string> = {
-  pending: "var(--warn)",
-  planified: "var(--data-planified)",
-  advance: "var(--data-advance)",
-  income: "var(--in)",
-  expense: "var(--out)",
-};
 
 function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: ReturnType<typeof useNavigate> }) {
   if (todos.length === 0) return null;
@@ -431,69 +421,30 @@ function UnifiedTodoList({ todos, navigate }: { todos: UnifiedTodo[]; navigate: 
   };
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Inbox className="w-4 h-4" style={{ color: "var(--accent-primary)" }} />
-          <p className="text-text-primary text-sm font-semibold">À traiter</p>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-              color: "var(--accent-primary)",
-            }}
-          >
-            {todos.length}
-          </span>
-        </div>
-      </div>
-      <div className="space-y-2">
+      <LuSectionHeader
+        title="À traiter"
+        meta={`${todos.length} en attente`}
+      />
+      <div className="space-y-2 mt-3">
         {todos.map((t) => {
           const Icon = ICON[t.kind];
           return (
-            <button
+            <LuTransactionRow
               key={t.key}
+              title={t.title}
+              subtitle={[KIND_LABEL[t.kind], t.subtitle].filter(Boolean).join(" · ")}
+              icon={<Icon size={20} />}
+              iconTone={t.kind === "APPROVAL" ? "accent" : "default"}
+              amount={typeof t.amountCents === "number" ? t.amountCents / 100 : undefined}
+              chevron
               onClick={() => navigate(t.href)}
-              className="w-full text-left rounded-xl p-3 transition-all active:scale-98"
-              style={{
-                backgroundColor: "var(--surface)",
-                border: "1px solid var(--border)",
-              }}
-              aria-label={`${KIND_LABEL[t.kind]} : ${t.title}`}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: tint(TONE_COLOR[t.tone], 12) }}
-                >
-                  <Icon className="w-4.5 h-4.5" style={{ color: TONE_COLOR[t.tone] }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-text-primary text-sm font-medium truncate">{t.title}</p>
-                  {t.subtitle && (
-                    <p className="text-text-tertiary text-xs mt-0.5 truncate">{t.subtitle}</p>
-                  )}
-                </div>
-                {typeof t.amountCents === "number" && (
-                  <span
-                    className="text-xs font-semibold tabular-nums flex-shrink-0"
-                    style={{
-                      color: t.amountCents >= 0 ? "var(--in)" : "var(--out)",
-                    }}
-                  >
-                    {t.amountCents >= 0 ? "+" : "−"}
-                    {formatCentsToFCFA(Math.abs(t.amountCents))}
-                  </span>
-                )}
-              </div>
-            </button>
+            />
           );
         })}
       </div>
     </div>
   );
 }
-
-// ─── Section « Rapports reçus » (P2 / Feature 2) ─────────────────────────────
 
 function ReceivedReportsSection({
   reports,
@@ -507,83 +458,28 @@ function ReceivedReportsSection({
   const unread = reports.filter((r) => !r.read_at);
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <FolderTree className="w-4 h-4" style={{ color: "var(--data-advance)" }} />
-          <p className="text-text-primary text-sm font-semibold">
-            Rapports reçus
-          </p>
-          {unread.length > 0 && (
-            <span
-              className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--data-advance) 12%, transparent)",
-                color: "var(--data-advance)",
-              }}
-            >
-              {unread.length} non lu{unread.length > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => navigate("/admin/reports")}
-          className="text-xs font-medium"
-          style={{ color: "var(--accent-primary)" }}
-          aria-label="Voir tous les rapports reçus"
-        >
-          Voir tout →
-        </button>
-      </div>
-      <div className="space-y-2">
+      <LuSectionHeader
+        title="Rapports reçus"
+        meta={
+          unread.length > 0 ? `${unread.length} non lu${unread.length > 1 ? "s" : ""}` : undefined
+        }
+        actionLabel="Voir tout"
+        onAction={() => navigate("/admin/reports")}
+      />
+      <div className="space-y-2 mt-3">
         {reports.slice(0, 4).map((r) => (
-          <button
+          <LuTransactionRow
             key={r.id}
+            title={r.title || `Rapport ${r.format.toUpperCase()}`}
+            subtitle={`${
+              r.period_start
+                ? `${formatDate(r.period_start)} → ${r.period_end ? formatDate(r.period_end) : ""}`
+                : "Période non précisée"
+            } · ${r.format.toUpperCase()}${r.read_at ? "" : " · non lu"}`}
+            icon={<FileText size={20} />}
+            chevron
             onClick={() => navigate(`/admin/reports/${r.id}`)}
-            className="w-full text-left rounded-xl p-3 transition-all active:scale-98"
-            style={{
-              backgroundColor: "var(--surface)",
-              border: "1px solid var(--border)",
-              opacity: r.read_at ? 0.65 : 1,
-            }}
-            aria-label={`Ouvrir le rapport : ${r.title || "rapport"}${
-              r.read_at ? "" : " (non lu)"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{
-                  backgroundColor: tint("var(--data-advance)", 12),
-                }}
-              >
-                <FileText className="w-4.5 h-4.5" style={{ color: "var(--data-advance)" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-text-primary text-sm font-medium truncate">
-                  {r.title || `Rapport ${r.format.toUpperCase()}`}
-                </p>
-                <p className="text-text-tertiary text-xs mt-0.5 truncate">
-                  {r.period_start
-                    ? `${formatDate(r.period_start)} → ${r.period_end ? formatDate(r.period_end) : ""}`
-                    : "Période non précisée"}{" "}
-                  · {r.format.toUpperCase()}
-                </p>
-              </div>
-              {r.read_at ? (
-                <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "var(--in)" }} />
-              ) : (
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: "color-mix(in srgb, var(--data-advance) 16%, transparent)",
-                    color: "var(--data-advance)",
-                  }}
-                >
-                  Nouveau
-                </span>
-              )}
-            </div>
-          </button>
+          />
         ))}
       </div>
     </div>
@@ -950,117 +846,52 @@ export default function Dashboard() {
         {/* P2 : section rapports reçus (s'auto-masque si 0) */}
         <ReceivedReportsSection reports={(reports as any) ?? []} navigate={navigate} />
 
-        {/* Événements à venir (existant) */}
+        {/* Événements à venir — P4 : LuSectionHeader + LuTransactionRow */}
         {upcomingEvents.length > 0 && (
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" style={{ color: "var(--data-advance)" }} />
-                <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
-                  Événements à venir
-                </p>
-              </div>
-              <button
-                onClick={() => navigate("/events")}
-                className="text-xs font-medium"
-                style={{ color: "var(--accent-primary)" }}
-                aria-label="Voir tous les événements"
-              >
-                Voir tout →
-              </button>
-            </div>
-            <div className="space-y-2">
+            <LuSectionHeader
+              title="Événements à venir"
+              actionLabel="Voir tout"
+              onAction={() => navigate("/events")}
+            />
+            <div className="space-y-2 mt-3">
               {upcomingEvents.map((event: any) => {
                 const budgetSpent = parseBudgetItems(
                   event.budget_items ?? event.budgetItems,
                 ).reduce((s: number, i: any) => s + (i.spent ?? 0), 0);
                 const overBudget = event.budget > 0 && budgetSpent > event.budget;
-                const EVENT_COLORS: Record<string, string> = {
-                  PLANIFIED: "var(--data-planified)",
-                  ONGOING: "var(--in)",
-                };
-                const color = EVENT_COLORS[event.status] || "var(--text-tertiary)";
+                const dates =
+                  event.start_date === event.end_date
+                    ? formatDate(event.start_date)
+                    : `${formatDate(event.start_date)} → ${formatDate(event.end_date)}`;
                 return (
-                  <button
+                  <LuTransactionRow
                     key={event.id}
+                    title={event.name}
+                    subtitle={
+                      event.budget > 0
+                        ? `${dates} · ${formatCentsToFCFA(budgetSpent)}/${formatCentsToFCFA(event.budget)}${overBudget ? " · dépassé" : ""}`
+                        : dates
+                    }
+                    icon={<Calendar size={20} />}
+                    iconTone="accent"
+                    chevron
                     onClick={() => navigate(`/event/${event.id}`)}
-                    className="w-full text-left rounded-xl p-4 transition-all active:scale-95"
-                    style={{
-                      backgroundColor: "var(--surface)",
-                      border: `1px solid ${overBudget ? tint("var(--out)", 25) : "var(--border)"}`,
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: tint(color, 12) }}
-                      >
-                        <Calendar className="w-5 h-5" style={{ color }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-text-primary text-sm font-semibold truncate">
-                          {event.name}
-                        </p>
-                        <p className="text-text-tertiary text-xs mt-0.5">
-                          {event.start_date === event.end_date
-                            ? formatDate(event.start_date)
-                            : `${formatDate(event.start_date)} → ${formatDate(event.end_date)}`}
-                        </p>
-                        {event.budget > 0 && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div
-                              className="flex-1 h-1 rounded-full overflow-hidden"
-                              style={{ backgroundColor: "var(--surface-hover)" }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${Math.min(100, (budgetSpent / event.budget) * 100)}%`,
-                                  backgroundColor: overBudget
-                                    ? "var(--out)"
-                                    : "var(--accent-primary)",
-                                }}
-                              />
-                            </div>
-                            <span
-                              className={`text-xs ${overBudget ? "text-expense" : "text-text-tertiary"}`}
-                            >
-                              {formatCentsToFCFA(budgetSpent)}/
-                              {formatCentsToFCFA(event.budget)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <span
-                        className="text-xs px-2 py-1 rounded-full font-medium"
-                        style={{ backgroundColor: tint(color, 12), color }}
-                      >
-                        {event.status === "PLANIFIED" ? "Planifié" : "En cours"}
-                      </span>
-                    </div>
-                  </button>
+                  />
                 );
               })}
             </div>
           </div>
         )}
 
-        {/* Caisses des groupes (refonte P1 : + sparkline + badge attente) */}
+        {/* Caisses des groupes (P4 : en-tête LuSectionHeader) */}
         {groupAccounts.length > 0 && (
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-text-tertiary text-xs font-medium uppercase tracking-wider">
-                Caisses des groupes
-              </p>
-              <button
-                onClick={() => navigate("/versement")}
-                className="text-xs font-medium"
-                style={{ color: "var(--accent-primary)" }}
-                aria-label="Verser dans les caisses de groupe"
-              >
-                Verser →
-              </button>
-            </div>
+            <LuSectionHeader
+              title="Caisses des groupes"
+              actionLabel="Verser"
+              onAction={() => navigate("/versement")}
+            />
             <div className="space-y-2">
               {groupAccounts.map((account) => (
                 <CaisseCard
