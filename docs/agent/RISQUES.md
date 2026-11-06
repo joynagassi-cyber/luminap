@@ -5044,3 +5044,36 @@ partagée par les deux plateformes et couverte par 3 tests.
   uid arbitraire → `42501` sur les 5 ; appel interne (trigger, uid tiers)
   → **accepté** (probe `ok=f`, pas de 42501).
 - **Garde** : `migration-predicate-uid-guard-r170.test.ts`.
+
+### R171 — Permissions des blobs Storage non alignées sur les métadonnées (justificatifs & archives) — ✅ CORRIGÉ
+- **Gravité** : MOYENNE (intégrité — perte de preuves financières / documents archivés).
+- **Défaut mesuré (2026-11-04, instance `hhgovvrnalibhgpakswi`)** : la migration
+  `20261022000013` avait corrigé une faille **inter-organisations** (un visiteur
+  `anon` lisait les documents privés ; tout `authenticated` supprimait les
+  documents de n'importe quelle organisation) en bornant chaque accès à
+  `is_org_member(initplan_uid(), <org du chemin>)`. Mais elle n'a traité que
+  l'axe **ORGANISATION**, pas l'axe **RÔLE** : les blobs `archives` /
+  `expense_proofs` n'exigeaient qu'`is_org_member` pour INSERT **et** DELETE,
+  alors que les tables de métadonnées exigent une permission :
+  `transaction_attachments` → `transaction:update` ; `documents` →
+  `admin:settings`. ⇒ un simple **`MEMBRE`** pouvait, via un appel Storage direct
+  (SDK/PostgREST), **supprimer ou écraser** les justificatifs de dépense et les
+  archives de son organisation — la ligne de métadonnée, elle, reste protégée.
+  Dégât : le fichier disparaît alors que la ligne survit → justificatif cassé.
+  (Le client n'a aucune garde de rôle : `JustificatifsSection` ne désactive les
+  boutons que pendant l'opération.)
+- **Correctif** (migration `20261104000011`, réversible) : policies par bucket
+  alignées sur la métadonnée — `lumina_archives_write/delete` →
+  `has_permission(…, 'admin', 'settings')` ; `lumina_expense_proofs_write/delete`
+  → `has_permission(…, 'transaction', 'update')`. La **lecture** (`lumina_private_read`)
+  reste `is_org_member` : tout membre consulte les justificatifs/archives de son org.
+- **Hors périmètre (assumé)** : `logos` (bucket public par conception) et
+  `org_reports` (la table `org_reports` autorise déjà tout membre de l'org
+  émettrice) gardent `is_org_member`, cohérent avec leur métadonnée.
+- **Preuves mesurées** : policies en place (`pg_policies` : archives → `admin/settings`,
+  expense_proofs → `transaction/update`) ; `has_permission` **discrimine**
+  (`transaction:update` = true pour un ADMIN, **false** pour une permission
+  inconnue et **false** pour une org étrangère) ; `MEMBRE` **n'a pas**
+  `transaction:update` (impact nul pour les rôles légitimes : TREASURIER,
+  RESPONSABLE_*, ADMIN, PASTEUR_PRINCIPAL).
+- **Garde** : `migration-storage-private-permissions-r171.test.ts`.

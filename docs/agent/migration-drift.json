@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 98,
-    "repo_timestamped_files": 92,
+    "repo_timestamped_files": 93,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 155,
+    "repo_total_sql_files": 156,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 96,
     "repo_file_never_applied": 86,
     "drift_ratio": "2/98",
-    "repo_filenames_sha256": "1c1710051682ae2b66b17a573b9e5832911366947269e512a1f94ddb6f8dc043",
+    "repo_filenames_sha256": "e592df56f53831076be86c1eb857880d604d94abba98a4194db7f1bb3bf8c5e9",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -114,5 +114,10 @@
 ,
   "notes_r170": [
     "1 migration ajoutee 20261104000010_predicate_uid_guard (R170 : ferme l'oracle d'appartenance/role des predicats RLS). is_org_member/is_org_admin/has_permission/can_manage_invitations/org_descendants sont SECURITY DEFINER, executables par authenticated, et acceptaient un uid ARBITRAIRE -> un membre pouvait sonder l'appartenance/le role/une permission/la hierarchie d'un tiers. Garde interne `uid IS DISTINCT FROM initplan_uid()` (42501) ; exemption `pg_trigger_depth()=0` pour can_manage_invitations (appelee par settle_invitation_claim avec l'uid de l'emetteur). VERIFIE en base : REVOKE EXECUTE casserait la RLS (policy exige l'EXECUTE), d'ou le garde interne. Baseline RLS intacte (5742), oracle ferme (42501), appels legitimes OK. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 92 horodatees / 63 sequentielles / 155 total."
+  ]
+,
+  "notes_r171": [
+    "1 migration ajoutee 20261104000011_guard_storage_private_permissions (R171 : aligner les permissions des BLOBS Storage sur celles des METADONNEES). La migration 20261022000013 avait corrige une faille inter-organisations (anon lisait les documents prives ; tout authenticated supprimait les documents de n'importe quelle org) mais s'etait arretee a l'axe ORGANISATION, pas ROLE : les blobs archives/expense_proofs n'exigeaient que is_org_member pour INSERT et DELETE, alors que les metadonnees exigent has_permission(...,'transaction','update') (transaction_attachments) / has_permission(...,'admin','settings') (documents). Un simple MEMBRE pouvait donc supprimer/ecraser les justificatifs de depense et les archives de son organisation via un appel Storage direct. Correctif : policies par bucket (lumina_archives_write/delete -> admin:settings ; lumina_expense_proofs_write/delete -> transaction:update) ; lecture inchangee (is_org_member). VERIFIE en base : has_permission discrimine (transaction:update=true pour ADMIN, false pour permission inconnue et org etrangere) ; MEMBRE n'a pas transaction:update (impact nul pour les roles legitimes). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 93 horodatees / 63 sequentielles / 156 total.",
+    "TRACKER re-mesure le 2026-11-04 (via MCP execute_sql) : 107 versions (contre 98 au dernier releve R148). Champs tracker du present instantane non re-actualises (le garde repo-side ne verifie que les compteurs/empreinte du DEPOT) ; le ratio de derive reste exprime sur la base de reference 2/98."
   ]
 }
