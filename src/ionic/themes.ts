@@ -23,7 +23,8 @@ export type ThemeId =
   | "know"
   | "feminine"
   | "tech"
-  | "luxury";
+  | "luxury"
+  | "violet";
 
 export interface LuminaTheme {
   id: ThemeId;
@@ -116,6 +117,14 @@ export const LUMINA_THEMES: readonly LuminaTheme[] = [
     dark: "#78350F",
     inspiration: "Prestige, fondations, institutions",
   },
+  {
+    id: "violet",
+    name: "Violet dynamique",
+    primary: "#7C4DFF",
+    light: "#8A5CFF",
+    dark: "#6120DA",
+    inspiration: "Thème violet dynamique en clair et sombre",
+  },
 ] as const;
 
 export const DEFAULT_THEME_ID: ThemeId = "fire";
@@ -168,23 +177,24 @@ export function applyTheme(theme?: LuminaTheme): void {
   if (typeof document === "undefined") return;
   const t = theme ?? getThemeById(getStoredThemeId());
   const root = document.documentElement;
+  root.dataset.theme = t.id;
   const set = (k: string, v: string) => root.style.setProperty(k, v);
 
-  // ── Ionic layer ──────────────────────────────────────────────────────────
-  set("--ion-color-primary", t.primary);
+  // Pour violet, les couleurs changent selon le mode ; les variables CSS
+  // restent liées aux jetons générés. Les 10 accents historiques sont intacts.
+  const primary = t.id === "violet" ? "var(--lu-accent)" : t.primary;
+  set("--ion-color-primary", primary);
   set("--ion-color-primary-rgb", hexToRgb(t.primary));
-  set("--ion-tab-bar-color-selected", t.primary);
-
-  // ── Lumina design tokens (App.css :root) ────────────────────────────────
-  set("--accent-primary", t.primary);
-  set("--accent-light", t.light);
-  set("--accent-dark", t.dark);
-
-  // ── shadcn-ish tokens (consommés par tailwind.config.ts) ───────────────
-  set("--primary", t.primary);
-  set("--accent", t.primary);
-  set("--ring", t.primary);
-
+  set("--ion-tab-bar-color-selected", primary);
+  set("--accent-primary", primary);
+  // Les gradients existants utilisent --on-accent sur les deux extrémités :
+  // la variante claire garde l'accent accessible, pas la teinte vivid graphique.
+  set("--accent-light", t.id === "violet" ? primary : t.light);
+  set("--accent-dark", t.id === "violet" ? "var(--lu-accent-pressed)" : t.dark);
+  set("--primary", primary);
+  set("--accent", primary);
+  set("--ring", primary);
+  applyIonicThemeMode(root.dataset.mode === "light" ? "light" : "dark");
   persistThemeId(t.id);
 }
 
@@ -192,7 +202,7 @@ export function applyTheme(theme?: LuminaTheme): void {
 //
 // Orthogonal to the brand accent above: the accent is invariant between
 // modes, only the neutral surfaces / texts / borders flip. The mode is
-// applied on <html> via `data-theme` (tokens live in src/App.css),
+// applied on <html> via `data-mode` (tokens live in src/App.css),
 // mirrored onto the Ionic vars that cannot be CSS vars (src/ionic/theme.ts),
 // and persisted in localStorage.
 
@@ -262,7 +272,7 @@ function bindSystemListener(): void {
 }
 
 /**
- * Apply the light/dark mode: sets `data-theme` on <html> to the *resolved*
+ * Apply the light/dark mode: sets `data-mode` on <html> to the *resolved*
  * mode (system → OS preference), pushes the mode-specific Ionic vars, persists
  * the *choice*. Idempotent and SSR-safe.
  */
@@ -273,7 +283,7 @@ export function applyThemeMode(
   if (typeof document === "undefined") return;
   const choice: ThemeMode = mode ?? getStoredThemeMode();
   const resolved = resolveThemeMode(choice);
-  document.documentElement.dataset.theme = resolved;
+  document.documentElement.dataset.mode = resolved;
   applyIonicThemeMode(resolved);
   if (opts?.persist !== false) persistThemeMode(choice);
   if (choice === "system") bindSystemListener();

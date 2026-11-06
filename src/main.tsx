@@ -12,6 +12,13 @@ import "@fontsource/inter/latin-ext-600.css";
 import "@fontsource/inter/latin-ext-700.css";
 import "./App.css";
 import "./globals.css";
+import "./design-system/tokens/semantic.css";
+import "./design-system/tokens/themes.generated.css";
+import "./design-system/tokens/violet-legacy.css";
+import "./design-system/tokens/effects.css";
+import "./design-system/theme/transition.css";
+import { ThemeProvider } from "./design-system/theme/ThemeProvider";
+import { applyEffects, getInitialEffects } from "./design-system/theme/effects";
 // Ionic structural CSS: layout for ion-app / .ion-page / ion-content
 // (absolute positioning, flex fill). Without it, pushed views collapse to
 // the header height and the screen appears blank even though content is in
@@ -65,9 +72,12 @@ initPowerSync().catch((err) => {
 applyStoredTheme();
 
 // Restore the persisted light/dark mode (dark by default) before the first
-// paint. Sets `data-theme` on <html> so every CSS token + Ionic var is
+// paint. Sets `data-mode` on <html> so every CSS token + Ionic var is
 // already in the right state (index.html also primes it pre-bundle).
 applyStoredThemeMode();
+
+// Même résolution que l’anti-flash ; ne persiste que le choix explicite.
+applyEffects(getInitialEffects(), false);
 
 // OneSignal est initialisé à la demande (flux déclenché par l'utilisateur,
 // ex. SettingsNotifications), jamais au boot : le plugin a
@@ -109,9 +119,11 @@ if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android") {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <PowerSyncProvider>
-    <App />
-  </PowerSyncProvider>,
+  <ThemeProvider>
+    <PowerSyncProvider>
+      <App />
+    </PowerSyncProvider>
+  </ThemeProvider>,
 );
 
 // Affichage fluide : dès le départ, on préchauffe (hors du chemin critique

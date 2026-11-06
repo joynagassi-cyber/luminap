@@ -17,7 +17,7 @@ import { resolve } from "path";
 const css = readFileSync(resolve(__dirname, "../../App.css"), "utf8");
 
 /** Contenu d'un bloc `selecteur { ... }` — le sélecteur doit commencer en tête
- * de ligne (évite que `:root[data-theme="light"]` masque `[data-theme="light"]`). */
+ * de ligne (évite que `:root[data-mode="light"]` masque `[data-mode="light"]`). */
 function block(selector: string): string {
   const re = new RegExp(
     "(?:^|\\n)\\s*" +
@@ -54,8 +54,8 @@ function aliasTokens(source: string): Record<string, string> {
 
 const rootHex = hexTokens(allRootBlocks());
 const rootAlias = aliasTokens(allRootBlocks());
-const darkHex = { ...rootHex, ...hexTokens(block(':root,\n[data-theme="dark"]')) };
-const lightHex = { ...rootHex, ...hexTokens(block('[data-theme="light"]')) };
+const darkHex = { ...rootHex, ...hexTokens(block(':root,\n[data-mode="dark"]')) };
+const lightHex = { ...rootHex, ...hexTokens(block('[data-mode="light"]')) };
 
 /** Toutes les valeurs `--x: <valeur>;` (hex OU rgba), pour la présence. */
 function valueTokens(source: string): Record<string, string> {
@@ -65,8 +65,8 @@ function valueTokens(source: string): Record<string, string> {
   }
   return out;
 }
-const darkAll = { ...valueTokens(allRootBlocks()), ...valueTokens(block(':root,\n[data-theme="dark"]')) };
-const lightAll = { ...valueTokens(allRootBlocks()), ...valueTokens(block('[data-theme="light"]')) };
+const darkAll = { ...valueTokens(allRootBlocks()), ...valueTokens(block(':root,\n[data-mode="dark"]')) };
+const lightAll = { ...valueTokens(allRootBlocks()), ...valueTokens(block('[data-mode="light"]')) };
 
 /** Résout un nom de jeton vers sa valeur hex, en suivant les alias `var()`. */
 function resolveToken(

@@ -1,0 +1,99 @@
+/* P1 : alias vers les jetons historiques. Aucun impact sur les écrans tant
+   qu'ils ne consomment pas --lu-* ; les anciens noms restent opérationnels. */
+:root {
+  --lu-bg: var(--canvas);
+  --lu-surface: var(--surface);
+  --lu-surface-2: var(--surface-hover);
+  --lu-surface-inverse: var(--text-primary);
+  --lu-hero-bg: var(--accent-primary);
+  --lu-hero-fg: var(--on-accent);
+  --lu-scrim: var(--scrim);
+  /* P3 : variante dark-orb du hero (carte sombre fixe, cf. maquettes) et
+     bloc imbriqué du hero solid (overlay noir 10 %). */
+  --lu-orb-bg: #060b18;
+  --lu-on-orb: #ffffff;
+  --lu-overlay-ink: rgb(0 0 0 / 10%);
+  --lu-orb-glow: radial-gradient(circle, var(--lu-accent-vivid) 0%, var(--lu-orb-bg) 70%);
+  /* P3 : remplissage des barres de progression (dégradé vivid → accent). */
+  --lu-progress-fill: linear-gradient(90deg, var(--lu-accent-vivid), var(--lu-accent));
+  --lu-fg: var(--text-primary);
+  --lu-fg-muted: var(--text-secondary);
+  --lu-fg-subtle: var(--text-tertiary);
+  --lu-fg-inverse: var(--canvas);
+  --lu-on-accent: var(--on-accent);
+  --lu-accent: var(--accent-primary);
+  --lu-accent-pressed: var(--accent-dark);
+  --lu-accent-soft: color-mix(in srgb, var(--accent-primary) 14%, var(--surface));
+  --lu-accent-vivid: var(--accent-light);
+  --lu-income: var(--in);
+  --lu-income-soft: var(--in-bg);
+  --lu-expense: var(--out);
+  --lu-expense-soft: var(--out-bg);
+  --lu-warning: var(--warn);
+  --lu-warning-soft: var(--warn-bg);
+  --lu-info: #93c5fd;
+  --lu-info-soft: color-mix(in srgb, var(--lu-info) 14%, var(--surface));
+  --lu-border: var(--border);
+  --lu-border-strong: var(--text-tertiary);
+  --lu-focus-ring: var(--text-secondary);
+  --lu-chart-1: var(--accent-primary);
+  --lu-chart-2: var(--in);
+  --lu-chart-3: var(--data-planified);
+  --lu-chart-4: var(--warn);
+  --lu-chart-5: var(--data-pink);
+  --lu-chart-6: var(--out);
+  --lu-chart-grid: var(--border);
+  --lu-chart-muted-bar: var(--surface-active);
+  --lu-radius-xs: 8px;
+  --lu-radius-sm: 12px;
+  --lu-radius-md: 16px;
+  --lu-radius-lg: 20px;
+  --lu-radius-xl: 28px;
+  --lu-radius-2xl: 32px;
+  --lu-radius-pill: 999px;
+  --lu-shadow-sm: var(--shadow-card);
+  --lu-shadow-md: var(--shadow-card);
+  --lu-shadow-lg: var(--shadow-card);
+  --lu-glass-bg: rgba(27, 26, 32, 0.85);
+  --lu-glass-border: rgba(255, 255, 255, 0.12);
+  --lu-glass-blur: 20px;
+  --lu-font-display: var(--font-sans);
+  --lu-font-body: var(--font-sans);
+  --lu-size-display: 44px;
+  --lu-line-display: 48px;
+  --lu-size-amount-lg: 36px;
+  --lu-line-amount-lg: 40px;
+  --lu-size-h1: 28px;
+  --lu-line-h1: 34px;
+  --lu-size-h2: 20px;
+  --lu-line-h2: 26px;
+  --lu-size-title: 16px;
+  --lu-line-title: 22px;
+  --lu-size-body: 14px;
+  --lu-line-body: 20px;
+  --lu-size-caption: 12px;
+  --lu-line-caption: 16px;
+  --lu-size-micro: 11px;
+  --lu-line-micro: 14px;
+  --lu-weight-regular: 400;
+  --lu-weight-medium: 500;
+  --lu-weight-semibold: 600;
+  --lu-weight-bold: 700;
+  --lu-tracking-display: -0.02em;
+  --lu-space-1: 4px;
+  --lu-space-2: 8px;
+  --lu-space-3: 12px;
+  --lu-space-4: 16px;
+  --lu-space-5: 20px;
+  --lu-space-6: 24px;
+  --lu-dur-fast: 150ms;
+  --lu-dur-base: 250ms;
+  --lu-dur-slow: 400ms;
+  --lu-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+html[data-mode="light"] {
+  --lu-info: #1d4ed8;
+  --lu-glass-bg: rgba(255, 255, 255, 0.75);
+  --lu-glass-border: rgba(0, 0, 0, 0.12);
+}

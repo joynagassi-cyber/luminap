@@ -6,7 +6,7 @@
  *
  * Since src/ionic/theme.css already points every `--ion-*` neutral at the
  * semantic CSS tokens (`var(--canvas)`, `var(--surface)`…), switching
- * `[data-theme]` on <html> flips the whole Ionic surface automatically.
+ * `[data-mode]` on <html> flips the whole Ionic surface automatically.
  * The JS layer below only re-sets the vars that theme.css cannot express
  * as CSS vars (the `-rgb` triplets and the `ion-theme`/`color-theme`
  * attributes) and stays idempotent / SSR-safe.
@@ -14,6 +14,7 @@
 
 import type { ThemeMode } from "./themes";
 import { applyStatusBarForMode } from "@/lib/statusBar";
+import { VIOLET_BRIDGE } from "@/design-system/tokens/bridge.generated";
 
 // Lumina design tokens — dark mode (default).
 const LUMINA_TOKENS = {
@@ -24,7 +25,7 @@ const LUMINA_TOKENS = {
   border: "#2C2C30",
   textPrimary: "#F4F4F5",
   textSecondary: "#A1A1AA",
-  textTertiary: "#71717A",
+  textTertiary: "#898991",
   textPlaceholder: "#535353",
   in: "#4ADE80",
   out: "#F87171",
@@ -47,7 +48,7 @@ const LUMINA_LIGHT_TOKENS: ModeTokens = {
   border: "#E4E4E7",
   textPrimary: "#18181B",
   textSecondary: "#52525B",
-  textTertiary: "#8A8F96",
+  textTertiary: "#70757D",
   textPlaceholder: "#9AA0A8",
   in: "#166534",
   out: "#B91C1C",
@@ -79,10 +80,21 @@ export function applyIonicThemeMode(mode: ThemeMode = "dark"): void {
   // ThemeMode pour ne pas changer l'API publique.
   const resolved: "dark" | "light" = mode === "light" ? "light" : "dark";
   if (typeof document === "undefined") return;
-  const t = MODE_TOKENS[resolved];
   const root = document.documentElement;
+  const violet = root.dataset.theme === "violet" ? VIOLET_BRIDGE[resolved] : null;
+  const t = violet ? {
+    ...MODE_TOKENS[resolved], canvas: violet.bg, surface: violet.surface,
+    surfaceHover: violet["surface-2"], surfaceActive: violet["surface-2"],
+    textPrimary: violet.fg, textTertiary: violet["fg-subtle"],
+  } : MODE_TOKENS[resolved];
   const set = (k: string, v: string) => root.style.setProperty(k, v);
 
+  if (violet) {
+    set("--ion-color-primary-rgb", hexToRgbTriplets([violet.accent]));
+    set("--ion-color-primary-contrast-rgb", hexToRgbTriplets([violet["on-accent"]]));
+  } else {
+    root.style.removeProperty("--ion-color-primary-contrast-rgb");
+  }
   root.setAttribute("ion-theme", mode);
   root.setAttribute("color-theme", mode);
 

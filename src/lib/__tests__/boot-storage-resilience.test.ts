@@ -29,7 +29,7 @@ const root = document.documentElement;
 
 beforeEach(() => {
   localStorage.clear();
-  root.removeAttribute("data-theme");
+  root.removeAttribute("data-mode");
 });
 
 afterEach(() => {
@@ -71,7 +71,7 @@ describe("lecture du thème — best-effort (chaos stockage)", () => {
   it("applyStoredThemeMode garde le boot et applique dark", () => {
     breakGetItem();
     expect(() => applyStoredThemeMode()).not.toThrow();
-    expect(root.dataset.theme).toBe("dark");
+    expect(root.dataset.mode).toBe("dark");
   });
 });
 
@@ -96,7 +96,7 @@ describe("persistance du thème — best-effort (chaos stockage)", () => {
   it("applyStoredThemeMode n'interrompt pas le boot et pose le mode", () => {
     breakSetItem();
     expect(() => applyStoredThemeMode()).not.toThrow();
-    expect(root.dataset.theme).toBe("dark");
+    expect(root.dataset.mode).toBe("dark");
   });
 });
 

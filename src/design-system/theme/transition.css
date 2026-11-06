@@ -1,0 +1,6 @@
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-transition, html.theme-transition body, html.theme-transition body * {
+    transition: background-color var(--lu-dur-base) var(--lu-ease),
+      color var(--lu-dur-base) var(--lu-ease), border-color var(--lu-dur-base) var(--lu-ease);
+  }
+}

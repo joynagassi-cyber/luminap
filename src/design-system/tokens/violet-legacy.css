@@ -1,0 +1,35 @@
+/* Pont TRANSITOIRE : uniquement le thème violet. Les écrans historiques et
+   les overlays héritent des mêmes surfaces que les nouveaux jetons. */
+html[data-theme="violet"][data-mode] {
+  --canvas: var(--lu-bg);
+  --surface: var(--lu-surface);
+  --card: var(--lu-surface);
+  --surface-nav: var(--lu-surface);
+  --surface-hover: var(--lu-surface-2);
+  --surface-active: var(--lu-surface-2);
+  --border: var(--lu-border);
+  --divider: var(--lu-border);
+  --text-primary: var(--lu-fg);
+  --text-secondary: var(--lu-fg-muted);
+  --text-tertiary: var(--lu-fg-subtle);
+  --text-placeholder: var(--lu-fg-subtle);
+  --accent-primary: var(--lu-accent);
+  --accent-light: var(--lu-accent);
+  --accent-dark: var(--lu-accent-pressed);
+  --primary: var(--lu-accent);
+  --accent: var(--lu-accent);
+  --ring: var(--lu-accent);
+  --ion-color-primary-shade: var(--lu-accent-pressed);
+  --ion-color-primary-tint: var(--lu-accent);
+  --brand-text: var(--lu-accent);
+  --on-accent: var(--lu-on-accent);
+  --nav-bg: var(--lu-surface);
+  --skeleton-base: var(--lu-surface);
+  --skeleton-highlight: var(--lu-surface-2);
+  --shadow-card: var(--lu-shadow-md);
+  --scrim: var(--lu-scrim);
+  --org-chip-bg: var(--lu-accent-soft);
+  --org-chip-border: var(--lu-border);
+  --org-chip-ink: var(--lu-accent);
+  --notif-dot: var(--lu-accent);
+}

@@ -286,6 +286,13 @@ export function resolveRoute(
   // `/` is the PWA start_url → deterministic redirect to the splash screen.
   if (clean === "/") return { outcome: "redirect", to: "/splash" };
 
+  // Design Lab : route de recette réservée au build dev. Le registre reste
+  // identique en prod (la route y est inconnue → not-found) ; en dev elle est
+  // rendue sans authentification.
+  if (import.meta.env.DEV && clean === "/dev/design-lab") {
+    return { outcome: "render" };
+  }
+
   const route = findRoute(clean);
   if (!route || route.pattern === "*") return { outcome: "not-found" };
 

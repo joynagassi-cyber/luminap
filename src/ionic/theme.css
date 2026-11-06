@@ -3,7 +3,7 @@
  * de src/App.css.
  *
  * Les neutrals pointent vers var(--canvas), var(--surface)… qui basculent
- * automatiquement dark/light via [data-theme] sur <html> (appliqué par
+ * automatiquement dark/light via [data-mode] sur <html> (appliqué par
  * applyThemeMode, src/ionic/themes.ts). L'accent reste forcé à runtime
  * par applyTheme.
  */
@@ -206,7 +206,7 @@ ion-select::part(icon) {
  * d'options héritaient de fonds quasi blancs (thème clair) ou quasi noirs
  * (thème sombre) avec un texte indistinct. On force les surfaces et le
  * texte du thème courant (les variables --surface/--text-* basculent
- * déjà clair/sombre via [data-theme]) pour un contraste ≥ 4.5:1 dans les
+ * déjà clair/sombre via [data-mode]) pour un contraste ≥ 4.5:1 dans les
  * deux thèmes, option sélectionnée visiblement mise en avant. */
 :root {
   --surface-overlay: var(--surface);
