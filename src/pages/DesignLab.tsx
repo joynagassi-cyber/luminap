@@ -15,10 +15,21 @@
  */
 import { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
-import { Bell, ShoppingCart } from "lucide-react";
+import { Bell, CalendarDays, Flame, Home, Plus, ShoppingCart } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
 import { useTheme } from "@/design-system/theme/theme-context";
-import { LuBadge, LuButton, LuChip, LuChipRow, LuDelta, LuIconButton } from "@/design-system/components";
+import {
+  LuAmount,
+  LuBadge,
+  LuButton,
+  LuCard,
+  LuChip,
+  LuChipRow,
+  LuDelta,
+  LuField,
+  LuIconButton,
+  LuSegmented,
+} from "@/design-system/components";
 
 // ─── Lecture résolue des jetons ──────────────────────────────────────────────
 
@@ -229,6 +240,50 @@ export default function DesignLab() {
             <div className="mt-4 flex flex-wrap gap-3">
               <LabButton variant="solid">Continuer</LabButton>
               <LabButton variant="outline">Ignorer cette étape</LabButton>
+            </div>
+          </Section>
+
+          {/* Composants Lu* — P2 lot 2 : cartes, montant, champ, segmented */}
+          <Section title="LuCard / LuAmount (P2)">
+            <div className="grid grid-cols-2 gap-3">
+              <LuCard variant="stat" title="Solde" legend="Depuis le début" icon={<Flame size={18} />} value={<LuAmount amount={142830} size="amount-lg" />} />
+              <LuCard variant="stat" title="Dépenses" legend="Ce mois" icon={<ShoppingCart size={18} />} value={<LuAmount amount={-89931} size="amount-lg" />} />
+              <LuCard variant="inverse" title="Carte inversée">Point focal unique par écran</LuCard>
+              <LuCard variant="accent">Carte accent (aplat)</LuCard>
+              <LuCard variant="glass">Carte verre (effects=full)</LuCard>
+              <LuCard variant="surface">Surface standard</LuCard>
+            </div>
+            <div className="mt-3 flex flex-wrap items-end gap-4">
+              <LuAmount amount={142830} size="display" />
+              <LuAmount amount={-19.1} size="amount-lg" currency="EUR" />
+              <LuAmount amount={-3200} signed />
+            </div>
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              <LuCard variant="tile" icon={<Plus size={20} />} label="Ajouter" />
+              <LuCard variant="tile" icon={<Home size={20} />} label="Caisse" />
+            </div>
+          </Section>
+
+          <Section title="LuField / LuSegmented (P2)">
+            <div className="max-w-sm">
+              <LuField label="Titre" value="Achat fournitures" onChange={() => {}} helper="Visible dans l'historique" />
+              <div className="mt-3">
+                <LuField label="Montant" value="" onChange={() => {}} error="Montant requis" inputMode="decimal" trailing={<span className="text-xs font-semibold">XOF</span>} />
+              </div>
+              <div className="mt-3">
+                <LuField label="Compte" value="Caisse principale" onChange={() => {}} readOnly trailing={<CalendarDays size={18} />} />
+              </div>
+            </div>
+            <div className="mt-4 max-w-sm">
+              <LuSegmented
+                value="all"
+                onChange={() => {}}
+                options={[
+                  { value: "out", label: "Sortie" },
+                  { value: "in", label: "Entrée" },
+                  { value: "all", label: "Toutes" },
+                ]}
+              />
             </div>
           </Section>
 
