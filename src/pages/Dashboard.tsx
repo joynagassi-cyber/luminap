@@ -36,7 +36,7 @@ import {
   markReportRead,
   isPowerSyncReadyNow,
   type PSOrgReports,parseBudgetItems } from "@/lib/dataLayer";
-import { formatCentsToFCFA, getPeriodRange, formatDate, tint } from "@/lib/utils";
+import { formatCentsToFCFA, getPeriodRange, formatDate } from "@/lib/utils";
 import { useOrganizationContext, useMyOrgs } from "@/lib/organization-context";
 import { usePowerSyncIndicator } from "@/lib/hooks/usePowerSyncIndicator";
 import { IonContent, IonPage } from "@ionic/react";
@@ -54,7 +54,7 @@ import {
   Circle,
   Clock,
   } from "lucide-react";
-import { LuCard, LuEmptyState, LuHero, LuSectionHeader, LuTransactionRow } from "@/design-system/components";
+import { LuAmount, LuBadge, LuCard, LuEmptyState, LuHero, LuSectionHeader, LuTransactionRow } from "@/design-system/components";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import TrendChart from "@/components/TrendChart";
@@ -499,8 +499,6 @@ function CaisseCard({
   caisses: any[];
   navigate: ReturnType<typeof useNavigate>;
 }) {
-  const caisse = caisses.find((c) => c.id === account.id);
-  const color = caisse?.color || "var(--accent-primary)";
   const approvedTxs = transactions.filter(
     (t) =>
       (t.source_caisse_id === account.id || t.sourceCaisseId === account.id) &&
@@ -538,25 +536,35 @@ function CaisseCard({
   }
 
   return (
-    <button
-      onClick={() => navigate("/finance")}
-      className="w-full text-left rounded-xl p-4 transition-all active:scale-98"
-      style={{ backgroundColor: "var(--surface)", border: `1px solid ${tint(color, 19)}` }}
+    <LuCard
+      variant="surface"
+      role="button"
+      tabIndex={0}
       aria-label={`Voir les détails de ${account.name}`}
+      onClick={() => navigate("/finance")}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate("/finance");
+        }
+      }}
+      className="w-full p-4 text-left transition-transform active:scale-[.98]"
     >
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: tint(color, 12) }}
+            style={{ backgroundColor: "var(--lu-accent-soft)" }}
           >
-            <span className="text-sm font-bold" style={{ color }}>
+            <span className="text-sm font-bold" style={{ color: "var(--lu-accent)" }}>
               {String(account.name).charAt(0)}
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-text-primary text-sm font-semibold truncate">{account.name}</p>
-            <p className="text-text-tertiary text-xs truncate">
+            <p className="text-sm font-semibold truncate" style={{ color: "var(--lu-fg)" }}>
+              {account.name}
+            </p>
+            <p className="text-xs truncate" style={{ color: "var(--lu-fg-muted)" }}>
               {account.ownerType === "ORGANIZATION" || account.owner_type === "ORGANIZATION"
                 ? "Église"
                 : "Groupe"}
@@ -564,24 +572,15 @@ function CaisseCard({
           </div>
         </div>
         <div className="text-right flex-shrink-0">
-          <p
-            className="font-bold text-lg tabular-nums"
-            style={{
-              color: balance >= 0 ? "var(--in)" : "var(--out)",
-            }}
-          >
-            {balance >= 0 ? "" : "−"}
-            {formatCentsToFCFA(Math.abs(balance))}
-          </p>
+          <LuAmount
+            amount={balance / 100}
+            size="title"
+            className="font-bold"
+            style={{ color: balance >= 0 ? "var(--lu-income)" : "var(--lu-expense)" }}
+          />
           {pendingCount > 0 && (
-            <span
-              className="text-[10px] px-1.5 py-0.5 rounded-full font-medium inline-block mt-0.5"
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--warn) 14%, transparent)",
-                color: "var(--warn)",
-              }}
-            >
-              {pendingCount} en attente
+            <span className="block mt-0.5">
+              <LuBadge variant="soft-neutral">{pendingCount} en attente</LuBadge>
             </span>
           )}
         </div>
@@ -591,15 +590,18 @@ function CaisseCard({
           <TrendChart
             values={sparkValues}
             height={40}
-            color={balance >= 0 ? "var(--in)" : "var(--out)"}
+            color={balance >= 0 ? "var(--lu-income)" : "var(--lu-expense)"}
           />
         ) : (
-          <p className="text-text-tertiary text-[11px] flex items-center h-full">
+          <p
+            className="text-[11px] flex items-center h-full"
+            style={{ color: "var(--lu-fg-muted)" }}
+          >
             Pas encore assez de données
           </p>
         )}
       </div>
-    </button>
+    </LuCard>
   );
 }
 

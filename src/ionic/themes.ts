@@ -14,7 +14,6 @@
 import { applyIonicThemeMode } from "./theme";
 
 export type ThemeId =
-  | "fire"
   | "spirit"
   | "action"
   | "trust"
@@ -24,7 +23,8 @@ export type ThemeId =
   | "feminine"
   | "tech"
   | "luxury"
-  | "violet";
+  | "violet"
+  | "navy";
 
 export interface LuminaTheme {
   id: ThemeId;
@@ -37,14 +37,6 @@ export interface LuminaTheme {
 }
 
 export const LUMINA_THEMES: readonly LuminaTheme[] = [
-  {
-    id: "fire",
-    name: "Orange Fire",
-    primary: "#FF6B00",
-    light: "#FF8533",
-    dark: "#CC5500",
-    inspiration: "Communautés dynamiques, énergie, feu de l'Esprit",
-  },
   {
     id: "spirit",
     name: "Violet Spirit",
@@ -125,16 +117,25 @@ export const LUMINA_THEMES: readonly LuminaTheme[] = [
     dark: "#6120DA",
     inspiration: "Thème violet dynamique en clair et sombre",
   },
+  {
+    id: "navy",
+    name: "Bleu Marine phare",
+    primary: "#000080",
+    light: "#5B6CFF",
+    dark: "#000033",
+    inspiration: "Couleur phare de Lumina — marine profond, autorité, sérénité",
+  },
 ] as const;
 
-export const DEFAULT_THEME_ID: ThemeId = "fire";
+export const DEFAULT_THEME_ID: ThemeId = "navy";
 
 const STORAGE_KEY = "lumina-theme";
 
 export function getThemeById(id: ThemeId | string | null | undefined): LuminaTheme {
-  if (!id) return LUMINA_THEMES[0];
+  const fallback = LUMINA_THEMES.find((t) => t.id === DEFAULT_THEME_ID) ?? LUMINA_THEMES[0];
+  if (!id) return fallback;
   const found = LUMINA_THEMES.find((t) => t.id === id);
-  return found ?? LUMINA_THEMES[0];
+  return found ?? fallback;
 }
 
 export function getStoredThemeId(): ThemeId | null {

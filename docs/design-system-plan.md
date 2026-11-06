@@ -290,3 +290,21 @@ tranchée : pile unique, BottomNav maison).
   LuSectionHeader + **LuTransactionRow** (montant signé, chevron,
   sous-titres combinés) ; en-tête « Caisses des groupes » en
   LuSectionHeader (cartes CaisseCard laissées pour le lot 3).
+- P4 lot 3 : **CaisseCard** reconstruite sur **LuCard surface** cliquable
+  (role=button + clavier, aria-label conservé) avec **LuAmount** signé
+  coloré income/expense, **LuBadge** « n en attente », sparkline 6M
+  conservée ; calcul solde/sparkline inchangé.
+- **Identité visuelle (demande produit)** : nouvelle couleur phare
+  **navy #000080** ajoutée au catalogue (`LUMINA_THEMES`, 12 thèmes) et
+  définie **thème par défaut** (`DEFAULT_THEME_ID = "navy"`, script
+  anti-flash `index.html` aligné, `getThemeById` replié sur le défaut) ;
+  contraste AA OK (8,6:1 avec blanc). Ratchet re-figé (+3 hex du thème,
+  461 littéraux). **Nouveau logo** : `public/lumina-logo.png` (dégradé
+  marine→bleu→violet, fond transparent, 512×512) et
+  `lumina-logo-version-monochrome.png` (forme identique, aplat #151515,
+  transparent, 1024×1024, pour le splash). Tests boot/resilience mis à
+  jour sur DEFAULT_THEME_ID.
+- **Précision produit** : le thème orange `fire` (#FF6B00) est retiré du
+  catalogue et remplacé par `navy` (11 thèmes, navy par défaut) —
+  anti-flash index.html, SettingsTheme, tests (contraste, boot, picker)
+  alignés. Ratchet re-figé à 458 littéraux.
