@@ -140,6 +140,8 @@
       "#FFFFFF"
     ],
     "src/ionic/themes.ts": [
+      "#000033",
+      "#000080",
       "#064E3B",
       "#065F46",
       "#0D9488",
@@ -149,6 +151,7 @@
       "#2563EB",
       "#4C1D95",
       "#4F46E5",
+      "#5B6CFF",
       "#5EEAD4",
       "#6120DA",
       "#6EE7B7",
@@ -262,14 +265,7 @@
       "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)"
     ],
     "src/pages/Dashboard.tsx": [
-      "style.background:linear-gradient(135deg, color-mix(in srgb, var(--accent-primary) 10%, var(--surface)) 0%, var(--surface) 100%)",
-      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 12%, transparent)",
-      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 16%, transparent)",
-      "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, transparent)",
       "style.backgroundColor:color-mix(in srgb, var(--accent-primary) 8%, var(--surface))",
-      "style.backgroundColor:color-mix(in srgb, var(--data-advance) 12%, transparent)",
-      "style.backgroundColor:color-mix(in srgb, var(--data-advance) 16%, transparent)",
-      "style.backgroundColor:color-mix(in srgb, var(--warn) 14%, transparent)",
       "style.backgroundColor:color-mix(in srgb, var(--warn) 14%, transparent)"
     ],
     "src/pages/EventDetail.tsx": [

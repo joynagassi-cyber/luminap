@@ -294,3 +294,13 @@ tranchée : pile unique, BottomNav maison).
   (role=button + clavier, aria-label conservé) avec **LuAmount** signé
   coloré income/expense, **LuBadge** « n en attente », sparkline 6M
   conservée ; calcul solde/sparkline inchangé.
+- **Identité visuelle (demande produit)** : nouvelle couleur phare
+  **navy #000080** ajoutée au catalogue (`LUMINA_THEMES`, 12 thèmes) et
+  définie **thème par défaut** (`DEFAULT_THEME_ID = "navy"`, script
+  anti-flash `index.html` aligné, `getThemeById` replié sur le défaut) ;
+  contraste AA OK (8,6:1 avec blanc). Ratchet re-figé (+3 hex du thème,
+  461 littéraux). **Nouveau logo** : `public/lumina-logo.png` (dégradé
+  marine→bleu→violet, fond transparent, 512×512) et
+  `lumina-logo-version-monochrome.png` (forme identique, aplat #151515,
+  transparent, 1024×1024, pour le splash). Tests boot/resilience mis à
+  jour sur DEFAULT_THEME_ID.

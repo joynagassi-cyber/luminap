@@ -6,6 +6,7 @@ import {
   applyStoredTheme,
   applyTheme,
   applyThemeMode,
+  DEFAULT_THEME_ID,
   getThemeById,
   LUMINA_THEMES,
 } from "@/ionic/themes";
@@ -47,18 +48,18 @@ describe("anti-flash : préférences existantes", () => {
     ["dark", false, "dark"], ["light", true, "light"],
     ["invalid", true, "dark"],
   ])("résout %s avec préférence sombre=%s", (choice, matches, expected) => {
-    expect(boot({ "lumina-theme-mode": choice }, matches)).toEqual({ theme: "fire", mode: expected, effects: "full" });
+    expect(boot({ "lumina-theme-mode": choice }, matches)).toEqual({ theme: DEFAULT_THEME_ID, mode: expected, effects: "full" });
   });
 
   it("replie les valeurs invalides et l'absence de matchMedia comme le runtime", () => {
-    expect(boot({ "lumina-theme": "invalid", "lumina-theme-mode": "invalid" })).toEqual({ theme: "fire", mode: "dark", effects: "full" });
+    expect(boot({ "lumina-theme": "invalid", "lumina-theme-mode": "invalid" })).toEqual({ theme: DEFAULT_THEME_ID, mode: "dark", effects: "full" });
     localStorage.setItem("lumina-theme", "invalid");
     applyStoredTheme();
-    expect(document.documentElement.dataset.theme).toBe("fire");
+    expect(document.documentElement.dataset.theme).toBe(DEFAULT_THEME_ID);
   });
 
   it("isole les erreurs de lecture des deux préférences", () => {
-    expect(boot({ "lumina-theme-mode": "light" }, true, "lumina-theme")).toEqual({ theme: "fire", mode: "light", effects: "full" });
+    expect(boot({ "lumina-theme-mode": "light" }, true, "lumina-theme")).toEqual({ theme: DEFAULT_THEME_ID, mode: "light", effects: "full" });
     expect(boot({ "lumina-theme": "trust" }, false, "lumina-theme-mode")).toEqual({ theme: "trust", mode: "light", effects: "full" });
   });
 

@@ -18,7 +18,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   applyStoredTheme,
   applyStoredThemeMode,
+  DEFAULT_THEME_ID,
   getStoredThemeId,
+  LUMINA_THEMES,
   getStoredThemeMode,
   persistThemeId,
   persistThemeMode,
@@ -65,7 +67,8 @@ describe("lecture du thème — best-effort (chaos stockage)", () => {
   it("applyStoredTheme garde le boot et applique le thème par défaut", () => {
     breakGetItem();
     expect(() => applyStoredTheme()).not.toThrow();
-    expect(root.style.getPropertyValue("--accent-primary")).toBe("#FF6B00");
+    const def = LUMINA_THEMES.find((t) => t.id === DEFAULT_THEME_ID)!;
+    expect(root.style.getPropertyValue("--accent-primary")).toBe(def.primary);
   });
 
   it("applyStoredThemeMode garde le boot et applique dark", () => {
@@ -89,8 +92,9 @@ describe("persistance du thème — best-effort (chaos stockage)", () => {
   it("applyStoredTheme n'interrompt pas le boot et pose l'accent", () => {
     breakSetItem();
     expect(() => applyStoredTheme()).not.toThrow();
-    // Le thème par défaut (fire) est appliqué aux variables CSS du document.
-    expect(root.style.getPropertyValue("--accent-primary")).toBe("#FF6B00");
+    // Le thème par défaut (DEFAULT_THEME_ID) est appliqué aux variables CSS du document.
+    const def = LUMINA_THEMES.find((t) => t.id === DEFAULT_THEME_ID)!;
+    expect(root.style.getPropertyValue("--accent-primary")).toBe(def.primary);
   });
 
   it("applyStoredThemeMode n'interrompt pas le boot et pose le mode", () => {
