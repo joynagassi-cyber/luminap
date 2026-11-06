@@ -1557,15 +1557,59 @@ class AuthService {
   private notifyListeners(): void {
     this.listeners.forEach((cb) => cb());
   }
-}
-
-// Export singleton instance
-export const authService = new AuthService();
+}export const authService = new AuthService();
 
 // Export for React hooks
 export function useAuth() {
   return authService;
 }
+
+// Constantes de démo (DEV-only)
+export const DEMO_ORG_ID = "demo-org-local";
+
+/**
+ * DEV-ONLY : connexion fictive hors-ligne pour prévisualiser l'interface
+ * (bouton « mode démo » sur /auth ou /dev/design-lab). No-op en build prod.
+ * Ne touche à aucun backend.
+ */
+export function demoLogin(): boolean {
+  if (!import.meta.env.DEV) return false;
+  const now = Math.floor(Date.now() / 1000);
+  const fakeUser = {
+    id: DEMO_USER_ID,
+    email: "demo@lumina.local",
+    app_metadata: {},
+    user_metadata: { first_name: "Démo", last_name: "Lumina" },
+    aud: "authenticated",
+    created_at: new Date().toISOString(),
+  } as unknown as SupabaseUser;
+  const fakeSession = {
+    access_token: "demo-token",
+    refresh_token: "demo-refresh",
+    expires_at: now + 3600,
+    token_type: "bearer",
+    user: fakeUser,
+  } as unknown as Session;
+  const fakeProfile = {
+    id: DEMO_USER_ID,
+    email: "demo@lumina.local",
+    first_name: "Démo",
+    last_name: "Lumina",
+    role: "TREASURIER",
+    org_id: DEMO_ORG_ID,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } as Profile;
+  try {
+    localStorage.setItem("lumina-active-org", DEMO_ORG_ID);
+  } catch {
+    /* stockage indisponible — l'app retombe sur le repli de useCurrentUser */
+  }
+  authService.setState({ session: fakeSession, user: fakeUser, profile: fakeProfile, isLoading: false, error: null });
+  authService.notifyListeners();
+  return true;
+}
+const DEMO_USER_ID = "demo-user-local";
 
 /**
  * Identifiant RÉEL de l'acteur courant pour les écritures synchronisées

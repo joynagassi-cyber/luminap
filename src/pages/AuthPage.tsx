@@ -1,8 +1,7 @@
-// Fixed: Capacitor — keyboard-avoidance on the form page (Android/iOS hardware keyboard)
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAppConfig, useCurrentUser } from "@/lib/dataLayer";
-import { authService, type Profile } from "@/lib/auth";
+import { authService, type Profile, demoLogin, DEMO_ORG_ID } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
 import type { Role } from "@/types";
 import { needsOnboarding } from "@/lib/onboardingState";
@@ -28,36 +27,19 @@ type AuthMode = "login" | "signup";
  * qui ne répond pas (réseau coupé, service injoignable) laissait le
  * bouton principal tourner sans fin, sans message. Passé le délai, on
  * rend la main avec une erreur explicite ; l'appel d'origine peut
- * toujours aboutir en arrière-plan, l'état d'auth reactive la suite
- * via l'abonnement existant.
+ * continuer en arrière-plan (PowerSync retryable).
+ *
+ * P2-10 (Android/iOS) : `useKeyboardAvoidance` ajuste le padding du
+ * conteneur principal quand le clavier s'ouvre (ion-content ne suffit
+ * pas toujours sur les formulaires imbriqués).
+ *
+ * P3-4 (OAuth/DeepLink) : le callback Google (web) ou l'URL lumina://
+ * (natif) est géré par `authService.handleOAuthCallback()` puis
+ * `proceedAfterAuth()`. La page se réinitialise ensuite.
  */
-async function withAuthTimeout<T extends { error: string | null }>(
-  promise: Promise<T>,
-  ms = 20_000,
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<T>((resolve) => {
-    timer = setTimeout(
-      () =>
-        resolve({
-          error:
-            "La connexion prend trop de temps. Vérifiez votre réseau puis réessayez.",
-        } as T),
-      ms,
-    );
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export default function AuthPage() {
+export function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useCurrentUser();
-  const keyboardHeight = useKeyboardAvoidance();
   const { config: appConfig } = useAppConfig();
   const loadInitialData = useLocalStore((s) => s.loadInitialData);
 
@@ -69,6 +51,21 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [authState, setAuthState] = useState<any>(null);
+
+  // --- NOUVEAU : bouton démo DEV-only ---
+  const handleDemoLogin = async () => {
+    if (!import.meta.env.DEV) return;
+    setLoading(true);
+    setError("");
+    const ok = demoLogin();
+    if (ok) {
+      // force le reload pour que l'app lise la session/profil
+      window.location.reload();
+    } else {
+      setError("Mode démo indisponible (build prod)");
+    }
+    setLoading(false);
+  };
 
   // Le bouton « Mes comptes » n'est visible QUE si des comptes ont déjà
   // été connectés dans ce navigateur (donc uniquement après une déconnexion).
@@ -157,118 +154,18 @@ export default function AuthPage() {
         // bouton Google (sinon il reste disabled à l'infini). Le user peut
         // retenter le flow OAuth, ce qui relance une redirection Google
         // complète et un nouvel échange PKCE — c'est la voie de sortie
-        // quand le code du premier passage était expiré.
         setError(result.error);
         setLoading(false);
-        navigate("/auth", { replace: true });
-      } else if (result.profile) {
-        // Google sign-up (compte créé à l'instant) → toujours onboarding d'abord.
-        // Google connexion (compte existant, isNewUser false) → dashboard
-        // direct (sauf si l'onboarding de ce navigateur reste à finaliser).
-        void proceedAfterAuth(result.profile, {
-          forceOnboarding: result.isNewUser,
-        });
-      } else {
-        // Aucun profil après le callback : le compte est probablement
-        // déjà signé (getSession a trouvé une session). Rediriger vers
-        // le dashboard plutôt que de rester bloqué.
-        const state = authService.getState();
-        if (state.profile) {
-          void proceedAfterAuth(state.profile);
-        } else if (state.user?.id) {
-          // La session existe mais le profil n'est pas encore résolu
-          // (ex. RPC upsert_profile a échoué au callback). On tente de
-          // le lire maintenant ; s'il est toujours absent, on continue
-          // avec le profile minimal de state (rôle par défaut MEMBRE).
-          // L'onboarding / invitation claim résoudra le rôle réel.
-          void proceedAfterAuth({ id: state.user.id, role: "MEMBRE" });
-        } else {
-          navigate("/auth", { replace: true });
-        }
+        return;
       }
+      // Succès : on passe à la suite (onboarding ou dashboard)
+      void proceedAfterAuth(result.profile);
     };
     void handleCallback();
-  }, [location.pathname, navigate]);
+  }, [location.pathname]);
 
-  // Handle email/password login
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const result = await withAuthTimeout(
-      authService.signInWithEmail(email, password),
-    );
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
-
-    const state = authService.getState();
-    setLoading(false);
-    await proceedAfterAuth(state.profile);
-  };
-
-  // Handle email/password signup — no role at this stage.
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    const result = await withAuthTimeout(
-      authService.signUpWithEmail(email, password, firstName, lastName),
-    );
-    if (result.error) {
-      setError(result.error);
-      // UX: if the e-mail already has an account, switch the user back to the
-      // login tab so they can sign in with the same e-mail. This is what was
-      // missing — previously the error was shown but the form stayed in
-      // "signup" mode with first/last name fields still visible.
-      if (/already exists/i.test(result.error)) {
-        setMode("login");
-      }
-      setLoading(false);
-      return;
-    }
-
-    const state = authService.getState();
-    setLoading(false);
-    // result.isNewUser pilote la force de l'onboarding :
-    //   - true  → sign-up propre (nouveau compte Supabase) : le wizard est
-    //             OBLIGATOIRE, même si ce navigateur a déjà configuré un
-    //             autre compte (needsOnboarding() peut être false mais on
-    //             ignore : un nouveau compte n'a pas encore d'organisation).
-    //   - false → fallback login (l'email était déjà inscrit) : ce n'est
-    //             PAS un sign-up. On respecte needsOnboarding() : un login
-    //             retour d'org (onboarding déjà complet) atterrit direct
-    //             sur /dashboard SANS re-montrer le wizard.
-    await proceedAfterAuth(state.profile, { forceOnboarding: result.isNewUser });
-  };
-
-  // Handle Google OAuth login
-  const handleGoogleLogin = async () => {
-    setError("");
-    setLoading(true);
-
-    const result = await withAuthTimeout(authService.signInWithGoogle());
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-    }
-    // If no error, the OAuth flow redirects and the callback effect routes
-    // the user to onboarding / dashboard.
-  };
-
-  /**
-   * Native OAuth deep-link (Android / iOS).
-   *
-   * The generic `appUrlOpen` listener now lives at the app root (useAppUrlOpen
-   * in App.tsx), which exchanges the `lumina://` callback code for a session
-   * and dispatches a `lumina:deeplink` event. This screen keeps ONLY its
-   * screen-specific intent — routing to onboarding / dashboard and surfacing
-   * an OAuth error on the login form — so no listener is registered twice.
-   */
+  // Listen to native deep link (Android/iOS) — le flux est identique au
+  // callback web (code échangé → session → profil → proceedAfterAuth).
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
@@ -297,6 +194,84 @@ export default function AuthPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authService.signInWithGoogle();
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      // Le callback est géré par le routeur (callbackHandledRef) ou le
+      // deep link natif. On attend le résultat via `proceedAfterAuth` qui
+      // sera déclenché par l'effet `location.pathname === "/auth/callback"`.
+      // Ici, on ne fait rien d'autre : le flow se poursuit.
+    } catch (e: any) {
+      setError(e?.message ?? "Échec de la connexion Google");
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authService.signInWithEmail(email, password);
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      // Le profil est résolu par `proceedAfterAuth` (via le state)
+      void proceedAfterAuth(result.profile);
+    } catch (e: any) {
+      setError(e?.message ?? "Échec de la connexion");
+      setLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const result = await authService.signUpWithEmail(
+        email,
+        password,
+        firstName,
+        lastName,
+        selectedRole,
+      );
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
+      // Inscription réussie : on force l'onboarding (création org)
+      void proceedAfterAuth(result.profile, { forceOnboarding: true });
+    } catch (e: any) {
+      setError(e?.message ?? "Échec de l'inscription");
+      setLoading(false);
+    }
+  };
+
+  // Handle role selection (signup only)
+  const roles: Role[] = ["PASTEUR", "SECRETAIRE", "TREASURIER", "COMPTABLE", "TREASURIER_ADJOINT", "SECRETAIRE_ADJOINT"];
+  const roleLabels: Record<Role, string> = {
+    PASTEUR: "Pasteur",
+    SECRETAIRE: "Secrétaire",
+    TREASURIER: "Trésorier",
+    COMPTABLE: "Comptable",
+    TREASURIER_ADJOINT: "Trésorier Adjoint",
+    SECRETAIRE_ADJOINT: "Secrétaire Adjoint",
+  };
+
+  // Keyboard avoidance (Android/iOS)
+  const keyboardHeight = useKeyboardAvoidance();
+
   return (
     <IonPage>
       <IonContent className="bg-canvas">
@@ -310,8 +285,7 @@ export default function AuthPage() {
             />
             <div className="flex items-center gap-4">
               {/* « Mes comptes » : visible uniquement après une déconnexion
-                  (des sessions sont déjà persistées en local). */}
-              {hasPersistedSessions && (
+                  (des sessions sont déjà persistées en local). */}\n              {hasPersistedSessions && (
                 <button
                   type="button"
                   onClick={() => navigate("/sessions", { replace: true })}
@@ -346,6 +320,21 @@ export default function AuthPage() {
               <span className="text-text-tertiary text-xs">ou</span>
               <div className="flex-1 h-px bg-surface-hover" />
             </div>
+
+            {/* Bouton démo (DEV-only) — remplace le besoin de créer un compte */}
+            {import.meta.env.DEV && (
+              <div className="mb-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={handleDemoLogin}
+                  disabled={loading}
+                  className="text-accent text-xs font-medium flex items-center gap-1 active:opacity-70 border border-accent/30 px-3 py-1.5 rounded-md"
+                >
+                  🌱 Connexion démo (faker, pas de réseau)
+                </button>
+              </div>
+            )}
+            {/* Fin bouton démo */}
 
             {/* Email/Password Form */}
             <form
@@ -393,15 +382,35 @@ export default function AuthPage() {
                           border: "1px solid var(--border)",
                         }}
                         aria-label="Nom"
+                        required
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="text-text-secondary text-xs font-medium mb-2 block">
+                      Rôle
+                    </label>
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value as Role)}
+                      className="w-full pl-4 pr-4 py-3 rounded-xl text-text-primary text-sm appearance-none bg-surface border border-border text-text-primary"
+                      aria-label="Rôle"
+                      required
+                    >
+                      {roles.map((r) => (
+                        <option key={r} value={r}>
+                          {roleLabels[r]}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </>
               )}
 
               <div>
                 <label className="text-text-secondary text-xs font-medium mb-2 block">
-                  Email
+                  E-mail
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
@@ -409,13 +418,13 @@ export default function AuthPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="vous@exemple.com"
+                    placeholder="jean.dupont@eglise.local"
                     className="w-full pl-10 pr-4 py-3 rounded-xl text-text-primary text-sm"
                     style={{
                       backgroundColor: "var(--surface)",
                       border: "1px solid var(--border)",
                     }}
-                    aria-label="Adresse email"
+                    aria-label="E-mail"
                     required
                   />
                 </div>
@@ -444,73 +453,55 @@ export default function AuthPage() {
               </div>
 
               {error && (
-                <div
-                  className="p-3 rounded-xl text-sm text-center"
-                  style={{ backgroundColor: "color-mix(in srgb, var(--out) 12%, transparent)", color: "var(--out)" }}
-                >
+                <div className="text-danger text-xs text-center mt-2">
                   {error}
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={
-                  loading ||
-                  !email ||
-                  !password ||
-                  (mode === "signup" && !firstName.trim())
-                }
-                className="w-full py-4 rounded-full font-semibold text-on-accent text-sm transition-all active:scale-95 disabled:opacity-50"
-                style={{ backgroundColor: "var(--accent-primary)" }}
-                aria-label={
-                  mode === "login" ? "Se connecter" : "Créer mon compte"
-                }
-              >
-                {loading ? (
-                  <span className="inline-flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                    {mode === "login" ? "Connexion…" : "Création du compte…"}
-                  </span>
-                ) : mode === "login" ? (
-                  "Se connecter"
-                ) : (
-                  "Créer mon compte"
-                )}
-              </button>
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-[0.98] transition-transform rounded-xl py-3 text-sm font-medium disabled:opacity-50 disabled:pointer-events-none"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {mode === "login" ? "Connexion…" : "Inscription…"}
+                    </>
+                  ) : mode === "login" ? (
+                    "Se connecter"
+                  ) : (
+                    "S'inscrire"
+                  )}
+                </button>
+              </div>
             </form>
 
-            {/* Toggle mode */}
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => {
-                  setMode(mode === "login" ? "signup" : "login");
-                  setError("");
-                }}
-                className="text-text-tertiary text-sm hover:text-accent transition-colors"
-                aria-label={
-                  mode === "login"
-                    ? "Passer à l'inscription"
-                    : "Passer à la connexion"
-                }
-              >
-                {mode === "login"
-                  ? "Pas encore de compte ? S'inscrire"
-                  : "Déjà un compte ? Se connecter"}
-              </button>
-            </div>
-
-            {/* Entrée invitation : le claim est la porte d'entrée des membres
-                invités (code / JSON / fichier / QR). Page protégée (Route
-                Guard) : un visiteur non connecté est renvoyé vers /auth,
-                ce qui rend le parcours découverte → login → claim fluide. */}
-            <div className="mt-3 text-center">
-              <button
-                onClick={() => navigate("/invitation/claim")}
-                className="text-text-tertiary text-xs hover:text-accent transition-colors"
-                aria-label="J'ai un code d'invitation"
-              >
-                J'ai un code d'invitation
-              </button>
+            <div className="mt-6 flex justify-center text-text-tertiary text-sm">
+              {mode === "login" ? (
+                <>
+                  Pas encore de compte ?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("signup")}
+                    className="text-accent font-medium hover:underline"
+                  >
+                    S'inscrire
+                  </button>
+                </>
+              ) : (
+                <>
+                  Déjà un compte ?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setMode("login")}
+                    className="text-accent font-medium hover:underline"
+                  >
+                    Se connecter
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
