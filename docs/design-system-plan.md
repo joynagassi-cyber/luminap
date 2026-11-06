@@ -271,3 +271,9 @@ tranchée : pile unique, BottomNav maison).
   pill h56 surface-inverse, pouce 48 accent, validation à 85 % de course,
   retour élastique, alternative clavier Entrée/Espace). Entrées Design
   Lab + 10 tests.
+- P3 lot 3 : **LuSheet** (bottom sheet, poignée, rayon haut 28, snaps
+  60/92 %, backdrop scrim, fermeture Échap), **LuAmountInput** (saisie
+  40/700 tabulaire, devise préfixe muted, parse « 12 500,50 » → majeurs),
+  **LuTimeline** (points + ligne verticale, montant signé),
+  **LuChart** (barres SVG 100 % jetons --lu-chart-*, barre max accent,
+  grille chart-grid, légende). Entrées Design Lab + 6 tests.
