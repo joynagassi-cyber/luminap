@@ -1,5 +1,24 @@
 # Mémoire projet — Lumina
 
+## HORS LIGNE : piège récurrent « écrans vides » (R175, PR #442, 2026-11-04)
+- **Toute lecture réseau au BOOT qui n'a pas de repli local casse l'offline.**
+  Cas R175 : `authService.getProfile()` (`src/lib/auth.ts`) = requête réseau
+  `profiles` sans repli → `null` hors ligne → `AppContext` ne résout pas l'org →
+  `__no_org__` → **tous** les hooks filtrés par `org_id` rendent `[]`.
+  Correctif : repli `readStoredProfile()` sur `lumina-user` (forme `Profile`,
+  SANS réseau) + `persistProfileLocally()` (fusion préservante) + `applyProfile()`.
+  Garde `auth-offline-profile-fallback.test.ts`.
+- **Correctifs offline déjà sur `main`** : #409 (SQLite **natif**
+  `@powersync/capacitor`, stockage durable) et #419 (boot **local-first** :
+  session persistée rendue sans réseau). L'APK **release v1.2.1** les PRÉCÈDE →
+  toujours retester un build POSTÉRIEUR avant de conclure « rien n'a changé ».
+- **PIÈGE CI** : `pnpm lint` inclut `scripts/design-ratchet.mjs` — zéro NOUVEAU
+  littéral de couleur hors `src/design-system/tokens/`. Réutiliser un littéral
+  existant dans un NOUVEAU site échoue (étaler la valeur déjà persistée, ou
+  `pnpm lint:ratchet:update`).
+- **Branches parallèles** : plusieurs chantiers actifs sur le dépôt (Design System
+  « Lu* » P1→P4, migration Ionic A1-A8) — l'état d'un APK dépend de son commit.
+
 ## Persistance « identité d'organisation » (R48) + audit backend (2026-11-04)
 - **R48** : `organizations` n'avait pas de logo → tout vivait dans `lumina-config`
   (localStorage), invisible aux autres membres/appareils/rapports. Livré :
