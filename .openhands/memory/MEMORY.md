@@ -1894,3 +1894,13 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `supabase_admin`. `postgres` possede ses propres defaults (modifiables).
 - Le keep-alive externe = RPC `keep_alive_ping()` (SECURITY DEFINER, anon) ; le
   pg_cron `keep_alive_daily` n'empeche PAS la pause (activite interne non comptee).
+
+## R173 — has_permission : branche group_member (PR #439, 2026-11-04)
+- Dans `has_permission` (predicat RBAC central), la branche `group_member` ne liait
+  pas le membership au demandeur (`mm.id = p_uid` manquant) -> un grant groupe
+  s'appliquait a TOUTE l'org. LATENT (grants + group_memberships vides). Corrige par
+  migration `20261104000013`. Mergé PR #439 (`c6ad24b7`).
+- `has_permission` s'appuie en pratique sur `role_permissions` (matrice canonique) ;
+  la table `grants` (grants ciblés user/role/tag/group_member/org_member) est VIDE.
+- Convention de liaison des membres : `members.id = user_id` (settle_invitation_claim
+  insere members.id = resulting_user_id). `members` n'a AUCUN lien de compte dedie.
