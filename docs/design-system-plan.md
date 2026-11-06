@@ -290,3 +290,7 @@ tranchée : pile unique, BottomNav maison).
   LuSectionHeader + **LuTransactionRow** (montant signé, chevron,
   sous-titres combinés) ; en-tête « Caisses des groupes » en
   LuSectionHeader (cartes CaisseCard laissées pour le lot 3).
+- P4 lot 3 : **CaisseCard** reconstruite sur **LuCard surface** cliquable
+  (role=button + clavier, aria-label conservé) avec **LuAmount** signé
+  coloré income/expense, **LuBadge** « n en attente », sparkline 6M
+  conservée ; calcul solde/sparkline inchangé.
