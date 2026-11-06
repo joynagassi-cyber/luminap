@@ -79,6 +79,7 @@ import {
   readStoredProfile,
   persistProfileLocally,
 } from "@/lib/auth";
+import { getOrganizationId, resetOrganizationId } from "@/lib/orgContext";
 
 function setOnline(online: boolean) {
   Object.defineProperty(globalThis, "navigator", {
@@ -99,6 +100,16 @@ const LOCAL_PROFILE = {
 beforeEach(() => {
   localStorage.clear();
   vi.clearAllMocks();
+  // État du singleton réinitialisé entre les cas (sinon un profil résolu par un
+  // test précédent ferait court-circuiter `applyProfile`).
+  (authService as any).state = {
+    session: null,
+    user: null,
+    profile: null,
+    isLoading: false,
+    error: null,
+  };
+  resetOrganizationId();
   setOnline(true);
 });
 
@@ -189,5 +200,23 @@ describe("persistProfileLocally — écriture locale fusionnante", () => {
     const back = readStoredProfile("user-1");
     expect(back?.org_id).toBe("org-42");
     expect(back?.role).toBe("ADMIN");
+  });
+});
+
+describe("Chaîne hors ligne complète — profil local → résolution d'organisation", () => {
+  it("résout l'organisation sans réseau via le profil persisté (chemin AppContext)", async () => {
+    localStorage.setItem("lumina-user", JSON.stringify(LOCAL_PROFILE));
+    setOnline(false);
+    expect(getOrganizationId()).toBe("__no_org__");
+
+    // Reproduit `AppContext.checkAuth` : session persistée → getProfile → apply.
+    const profile = await authService.getProfile("user-1");
+    expect(profile).not.toBeNull();
+    if (profile) authService.applyProfile(profile);
+
+    // Résolution de l'organisation (ce qui rendait tous les écrans vides).
+    expect(getOrganizationId()).toBe("org-42");
+    // Rôle exposé pour la garde de route (avant : null → rôle par défaut faux).
+    expect(authService.getState().profile?.role).toBe("ADMIN");
   });
 });
