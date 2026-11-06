@@ -2036,6 +2036,12 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   bannit `window.(prompt|confirm|alert)(` hors couche plateforme.
   **Leçon** : vérifier le code source Capacitor (`node_modules/@capacitor/android`)
   AVANT d'affirmer un no-op — ne pas se fier à des notes non vérifiées.
+- **PIÈGE MERGE** : un merge « sans conflit » peut DÉTRUIRE du code si la branche
+  est basée AVANT des correctifs touchant les mêmes fichiers (le merge 3-way
+  remplace `main` par l'état pré-correctif). Cas #451 : supprimait `withAuthTimeout`
+  (AuthPage) ⇒ bouton connexion infini. Toujours mesurer le diff NET
+  `git merge --no-ff` puis `git diff main <merge>` — PAS `git diff main FETCH_HEAD`.
+  `git merge-tree --write-tree` (propre) et `tsc` ne détectent PAS ces régressions.
 - **PIÈGE PR** : `default_create_pr` crée en **DRAFT** → merge refusé. Le REST
   `POST /pulls/N/ready_for_review` = **404** (token) ; passer par **GraphQL**
   `mutation markPullRequestReadyForReview(pullRequestId: <node_id>)`.
