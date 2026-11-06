@@ -1914,3 +1914,12 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - `transactions` : RLS select = is_org_member (RBAC fin = client-side, choix assume).
 - MCP s'execute en role `postgres` SANS JWT -> impossible de tester une session
   `authenticated` (initplan_uid()=NULL). Verification RLS limitee a l'inspection.
+
+## R174 — Publication PowerSync FOR ALL TABLES (PR #440, 2026-11-04)
+- `powersync deploy` est ALIGNE avec le depot (fetch config = 43 streams identiques).
+- La publication Postgres `powersync` est FOR ALL TABLES (creee par l'integration
+  PowerSync Cloud, pas au depot) -> capture auth.users/vault.secrets/storage.objects ;
+  roles powersync_* rolbypassrls=true. Seule barriere = portee des streams (tous public).
+- Garde `sync-stream-schema-scope-guard.test.ts`. Mergé PR #440 (`6ce61a7a`).
+- CLI PowerSync = package npm `powersync` (pas @powersync/cli), auth PS_ADMIN_TOKEN ;
+  `powersync fetch config` a lancer depuis la RACINE du depot (dossier powersync/ relatif).
