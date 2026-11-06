@@ -5127,3 +5127,33 @@ partagée par les deux plateformes et couverte par 3 tests.
   WHERE gm.id::text = g.subject_id AND mm.org_id = p_org AND mm.id = p_uid::text)`.
   Garde `PREDICATE_UID_MISMATCH` (R170) conservée.
 - **Garde** : `migration-has-permission-group-member-r173.test.ts`.
+
+### R174 — Publication PowerSync `FOR ALL TABLES` : portée des streams = seule barrière — ⚠️ LATENT (consigné)
+- **Fait mesuré (2026-11-04, instance Production `6a9dd96302481fb31b945823`)** :
+  - `powersync deploy sync-config` est **aligné** : `powersync fetch config` renvoie
+    **43 streams identiques** au dépôt (0 différence, requêtes normalisées), service
+    config idem (edition 3, `additional_audiences: ["authenticated"]`, rôle de
+    réplication dédié `powersync_28d1d97617993b66d4ee0a3b`).
+  - La publication Postgres `powersync` est **`FOR ALL TABLES`** (`puballtables=true`,
+    propriétaire `postgres`, **créée par l'intégration PowerSync Cloud** — aucun
+    `CREATE PUBLICATION` au dépôt). Elle capture donc aussi `auth.users`,
+    `auth.refresh_tokens`, `auth.sessions`, `auth.identities`, `vault.secrets`,
+    `storage.objects`, etc.
+  - Les rôles de réplication (`powersync_role`, `powersync_*`) ont
+    **`rolbypassrls = true`** : la RLS ne les filtre PAS.
+- **Conséquence** : la SEULE barrière empêchant un appareil de recevoir `auth.users`
+  ou `vault.secrets` est la **portée des streams** (`sync-config.yaml`). Aujourd'hui
+  les 43 streams ne ciblent QUE des tables `public` → **aucune fuite**.
+- **Pourquoi latent** : aucun stream ne référence `auth`/`vault`/`storage` ; le
+  rayon d'exposition reste théorique tant qu'un stream ne les cible pas.
+- **Le risque** : un futur stream (`SELECT * FROM auth.users`) exfiltrait des
+  secrets à tout appareil authentifié, la publication le permettant déjà.
+- **Garde (dépôt)** : `sync-stream-schema-scope-guard.test.ts` — interdit toute
+  clause `FROM`/`JOIN` hors schéma `public` et toute référence à une relation
+  sensible (`users`, `secrets`, `objects`, `refresh_tokens`, `sessions`, …).
+  Non-vacuité prouvée (ajouter `FROM vault.secrets` fait échouer le test).
+- **Réduction à la source (hors dépôt)** : recréer la publication `powersync`
+  explicitement pour les seules tables `public` (ex. `CREATE PUBLICATION powersync
+  FOR TABLE public.categories, …`) au lieu de `FOR ALL TABLES`. À valider côté
+  intégration PowerSync Cloud (le tableau de bord provisionne la publication) ;
+  consigné, non appliqué pour ne pas casser la réplication.
