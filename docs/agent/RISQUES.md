@@ -4918,3 +4918,25 @@ partagée par les deux plateformes et couverte par 3 tests.
   édition du nom d'un terminal → permise ; PLANIFIED→ONGOING→COMPLETED → permis ;
   COMPLETED→ONGOING → 23514. Trigger + fonction non exécutables par anon/authenticated.
 - **Garde** : `migration-event-status-guard-r166.test.ts`.
+
+### R167 — Journal d'audit (`audit_entries`) : R140 incomplet (contournable en service_role) — ✅ CORRIGÉ
+- **Classe** : R140 incomplet — garde posée au seul niveau **RLS**, alors que
+  PowerSync écrit en **service_role** (BYPASSRLS) et que l'API REST/service_role
+  n'applique pas la RLS. Même angle mort que R102/R164/R166.
+- **Défaut** : R140 (migration `20261030000001`) a rendu `audit_entries`
+  « append-only » en **retirant les politiques RLS** `audit_entries_update`/
+  `audit_entries_delete` — sa propre note admettait que les écritures
+  service_role « restent inchangées ». Or `audit_entries` n'avait **aucun
+  trigger** : un client forgé en service_role (PowerSync) pouvait `UPDATE`/
+  `DELETE` une trace → **anti-traçabilité** (falsifier/effacer ses propres
+  actions), précisément ce que R140 voulait interdire.
+- **Correctif** : migration `20261104000009_guard_audit_entries_append_only.sql`
+  — trigger `BEFORE UPDATE OR DELETE` **inconditionnel** levant `23514`
+  (classe 23 jetée par PowerSync ; un `P0001` = retry infini) + `REVOKE` (R115).
+  Les `INSERT` (voie REST + triggers de traçabilité SECURITY DEFINER) restent
+  inchangés.
+- **Vérifié en base** (bloc `DO` auto-annulant) : `INSERT` accepté ;
+  `UPDATE` → 23514 ; `DELETE` → 23514 ; fonction non exécutable par anon/authenticated.
+- **Note exploitation** : une réécriture de masse du journal devra désactiver
+  explicitement le trigger (`ALTER TABLE … DISABLE TRIGGER`).
+- **Garde** : `migration-audit-append-only-trigger-r167.test.ts`.
