@@ -13,6 +13,7 @@ import { IonPage, IonContent, IonSelect, IonSelectOption, IonItem, IonLabel, Ion
 import EmptyState from "@/components/EmptyState";
 import { ListSkeleton } from "@/components/Skeleton";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 const PERIODS: Array<{ value: BudgetPeriod; label: string }> = [
   { value: "ANNUAL", label: "Annuel" },
@@ -311,6 +312,9 @@ function CreateBudgetSheet({
   const [cc, setCc] = useState("");
   const [total, setTotal] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Retour matériel Android : ferme la feuille de création (sinon l'app se ferme).
+  useHardwareBack(true, onClose);
 
   const submit = async () => {
     if (!name.trim() || saving) return;

@@ -10,6 +10,8 @@
  */
 import { useEffect, type ReactNode } from "react";
 
+import { useHardwareBack } from "@/hooks/useHardwareBack";
+
 export interface LuSheetProps {
   open: boolean;
   onClose: () => void;
@@ -20,6 +22,9 @@ export interface LuSheetProps {
 }
 
 export function LuSheet({ open, onClose, snap = 0.6, title, children }: LuSheetProps) {
+  // Le bouton retour matériel Android ferme la feuille au lieu de l'app
+  // (même bug que les autres overlays maison — cf. docs/ui-exceptions.md).
+  useHardwareBack(open, onClose);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {

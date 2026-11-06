@@ -27,6 +27,7 @@ import {
   IonTextarea,
 } from "@ionic/react";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 const FIELD_TYPES: { value: FormFieldDefinition["type"]; label: string }[] = [
   { value: "text", label: "Texte" },
@@ -161,6 +162,9 @@ export default function FormBuilder() {
     setFormKey("");
     setFields([]);
   };
+
+  // Retour matériel Android : ferme le modal de création (sinon l'app se ferme).
+  useHardwareBack(showCreate, closeCreateModal);
 
   /** Pré-remplit le modal (réutilisé pour création et édition DRAFT). */
   const openCreateModal = () => {
@@ -392,6 +396,9 @@ export default function FormBuilder() {
             >
               <div className="absolute inset-0 bg-scrim" />
               <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={editingForm ? "Modifier le formulaire" : "Nouveau formulaire"}
                 className="relative w-full max-w-lg rounded-t-2xl p-5 pb-8"
                 style={{ backgroundColor: "var(--card)" }}
                 onClick={(e) => e.stopPropagation()}

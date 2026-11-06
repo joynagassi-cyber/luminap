@@ -65,6 +65,12 @@ maison s'inscrit donc avec le hook `useHardwareBack(open, onClose)`
 `src/platform/hardwareBack.ts` (priorité 110, au-dessus des overlays Ionic et
 du routeur). Le hook est un no-op sur le web.
 
+Les **composants-feuilles canoniques** (`LuSheet`, `LuSelect` en mode `sheet`,
+`BottomDrawer`) s'enregistrent eux-mêmes : tout écran qui les utilise est
+couvert sans câblage supplémentaire. Une **garde de complétude**
+(`src/lib/__tests__/overlay-hardware-back-guard.test.ts`) échoue si un fichier
+rend un `role="dialog"` sans `useHardwareBack(...)` ni `registerHardwareBack(...)`.
+
 ### Modulateurs système (`window.prompt` / `confirm` / `alert`)
 
 Aucun modulateur **système** bloquant ou no-op dans la WebView Android :

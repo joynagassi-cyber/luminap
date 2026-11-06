@@ -55,6 +55,11 @@ Cas mesurés dans ce dépôt :
   `PLATFORM_LAYERS`/`PATTERNS` + la documenter ici et dans §4.3.
 - La garde est **non-vacuité-prouvée** : injecter un motif interdit dans un
   fichier hors couche fait échouer le test (vérifié à chaque extension).
+- **Overlays maison** : tout fichier rendant `role="dialog"` doit s'inscrire à
+  `useHardwareBack`/`registerHardwareBack` — vérifié par une garde de
+  complétude dédiée (`overlay-hardware-back-guard.test.ts`). Les
+  composants-feuilles (`LuSheet`, `LuSelect` sheet, `BottomDrawer`)
+  s'enregistrent eux-mêmes.
 - Les façades ne lèvent **jamais** sur un cas d'usage normal (annulation
   utilisateur, canal indisponible) : elles renvoient un statut typé
   (`"unsupported"`) que l'appelant traduit en repli.
