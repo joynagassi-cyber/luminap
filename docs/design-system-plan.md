@@ -251,3 +251,14 @@ tranchée : pile unique, BottomNav maison).
   (illustration 160 px 100 % jetons, titre, texte, CTA). Helper
   `useInversePair` partagé (LuSegmented aligné dessus). Entrées Design
   Lab + 8 tests.
+- P3 lot 1 (composites) : **LuHero** 3 variantes (`tinted` accent-soft +
+  carte remontée coins hauts 28 ; `solid` aplat hero coins bas 32, badge
+  on-hero, bloc imbriqué overlay 10 % ; `dark-orb` carte orb-bg r24,
+  valeur accent-vivid, orbe flou 24, chip verre, bouton blanc pill),
+  **LuAppBar** (56 + safe-area, 3 slots, variantes tinted/transparent/
+  solid, grand titre 28/700 + méta), **LuTransactionRow** (carte r16,
+  icône 44, titre 15/600, montant signé ▲/▼, chevron, mode `grouped`
+  avec séparateurs pour les thèmes clairs), **LuTabBar** flottante HTML
+  natif (marges 12 + safe-area, h64 r32, ombre lg, styles actif
+  pill/soft/text). 3 nouveaux jetons (--lu-orb-bg/on-orb/overlay-ink/
+  orb-glow). Entrées Design Lab + 9 tests.

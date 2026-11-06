@@ -12,3 +12,7 @@ export { LuSelect, type LuSelectProps, type LuSelectMode } from "./LuSelect";
 export { LuSectionHeader, type LuSectionHeaderProps } from "./LuSectionHeader";
 export { LuEmptyState, type LuEmptyStateProps } from "./LuEmptyState";
 export { useInversePair } from "./inverse";
+export { LuHero, type LuHeroProps, type LuHeroVariant } from "./LuHero";
+export { LuAppBar, type LuAppBarProps, type LuAppBarVariant } from "./LuAppBar";
+export { LuTransactionRow, type LuTransactionRowProps } from "./LuTransactionRow";
+export { LuTabBar, type LuTabBarProps, type LuTab, type LuTabBarActiveStyle } from "./LuTabBar";
