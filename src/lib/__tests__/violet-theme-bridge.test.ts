@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 describe("violet — pont Ionic et retour aux accents historiques", () => {
-  it("applique les couleurs et triplets générés dans les deux modes puis restaure fire", () => {
+  it("applique les couleurs et triplets générés dans les deux modes puis restaure l’accent historique", () => {
     applyThemeMode("dark");
     applyTheme(getThemeById("violet"));
     expect(root.dataset.theme).toBe("violet");
@@ -32,9 +32,9 @@ describe("violet — pont Ionic et retour aux accents historiques", () => {
       expect(root.style.getPropertyValue("--ion-color-primary-contrast-rgb")).toBe(rgb(t["on-accent"]));
       expect(wcagContrast(t.accent, t["on-accent"])).toBeGreaterThanOrEqual(4.5);
     }
-    applyTheme(getThemeById("fire"));
-    expect(root.dataset.theme).toBe("fire");
-    expect(root.style.getPropertyValue("--accent-primary")).toBe("#FF6B00");
+    applyTheme(getThemeById("trust"));
+    expect(root.dataset.theme).toBe("trust");
+    expect(root.style.getPropertyValue("--accent-primary")).toBe("#2563EB");
     expect(root.style.getPropertyValue("--ion-color-primary-contrast-rgb")).toBe("");
     expect(root.style.getPropertyValue("--ion-background-color")).toBe(LUMINA_LIGHT_TOKENS.canvas);
     applyThemeMode("dark");

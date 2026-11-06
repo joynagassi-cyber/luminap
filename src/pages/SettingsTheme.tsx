@@ -5,11 +5,11 @@ import ThemePicker from "@/components/ThemePicker";
 import { EffectsToggle } from "@/components/EffectsToggle";
 import BadgeGallery from "@/components/BadgeGallery";
 import MoneyFormatPicker from "@/components/MoneyFormatPicker";
-import { getStoredThemeId, type ThemeId } from "@/ionic/themes";
+import { DEFAULT_THEME_ID, getStoredThemeId, type ThemeId } from "@/ionic/themes";
 
 export default function SettingsTheme() {
   const [themeId, setThemeId] = useState<ThemeId>(
-    () => getStoredThemeId() ?? "fire",
+    () => getStoredThemeId() ?? DEFAULT_THEME_ID,
   );
 
   return (

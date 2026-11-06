@@ -105,7 +105,7 @@ describe("P1 lot 5 — audit du catalogue historique (porté à l'identique en P
   // passent pas AA avec du blanc ; c'est l'écart documenté (tokens/README),
   // à corriger lors de l'unification des catalogues (P4/P5), pas en P1 pour
   // ne pas changer l'apparence du thème actuel.
-  const KNOWN_SUB_AA_WITH_WHITE = new Set(["fire", "emerald", "care", "know"]);
+  const KNOWN_SUB_AA_WITH_WHITE = new Set(["emerald", "care", "know"]);
 
   it("chaque accent historique atteint AA avec noir OU blanc (correctif disponible)", () => {
     for (const theme of LUMINA_THEMES) {

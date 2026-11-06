@@ -9,7 +9,7 @@ afterEach(() => cleanup());
 
 function withTheme(ui: React.ReactElement, effects: "full" | "lite" = "full", mode: "dark" | "light" = "dark") {
   const value: ThemeContextValue = {
-    themeId: "fire",
+    themeId: "navy",
     mode,
     effects,
     setTheme: vi.fn(),

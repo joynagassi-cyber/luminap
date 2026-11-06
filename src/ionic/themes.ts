@@ -14,7 +14,6 @@
 import { applyIonicThemeMode } from "./theme";
 
 export type ThemeId =
-  | "fire"
   | "spirit"
   | "action"
   | "trust"
@@ -38,14 +37,6 @@ export interface LuminaTheme {
 }
 
 export const LUMINA_THEMES: readonly LuminaTheme[] = [
-  {
-    id: "fire",
-    name: "Orange Fire",
-    primary: "#FF6B00",
-    light: "#FF8533",
-    dark: "#CC5500",
-    inspiration: "Communautés dynamiques, énergie, feu de l'Esprit",
-  },
   {
     id: "spirit",
     name: "Violet Spirit",

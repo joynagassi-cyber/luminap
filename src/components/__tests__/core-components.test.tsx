@@ -66,7 +66,7 @@ import * as themes from "@/ionic/themes";
 };
 
 (globalThis as Record<string, unknown>).__luminaThemes = [
-  { id: "fire", name: "Orange Fire", primary: "#FF6B00", light: "#FF8533", dark: "#CC5500", inspiration: "communauté" },
+  { id: "navy", name: "Bleu Marine phare", primary: "#000080", light: "#5B6CFF", dark: "#000033", inspiration: "marine" },
   { id: "spirit", name: "Violet Spirit", primary: "#7C3AED", light: "#A78BFA", dark: "#4C1D95", inspiration: "mystique" },
   { id: "action", name: "Rouge Action", primary: "#DC2626", light: "#FCA5A5", dark: "#991B1B", inspiration: "ONG" },
   { id: "trust", name: "Bleu Confiance", primary: "#2563EB", light: "#93C5FD", dark: "#1E40AF", inspiration: "fintech" },
@@ -149,9 +149,9 @@ vi.mock("@/ionic/themes", () => {
     },
     applyTheme: vi.fn(),
     applyStoredTheme: vi.fn(),
-    getStoredThemeId: vi.fn(() => "fire"),
+    getStoredThemeId: vi.fn(() => "navy"),
     persistThemeId: vi.fn(),
-    DEFAULT_THEME_ID: "fire",
+    DEFAULT_THEME_ID: "navy",
     hexToRgb: (hex: string) => {
       const h = hex.replace("#", "");
       const n = parseInt(h, 16);
@@ -424,7 +424,7 @@ describe("ThemePicker", () => {
     const labels = Array.from(container.querySelectorAll("span")).map(
       (s) => s.textContent
     );
-    expect(labels).toContain("Orange");
+    expect(labels).toContain("Bleu");
     expect(labels).toContain("Violet");
     expect(labels).toContain("Rouge");
   });
@@ -439,10 +439,10 @@ describe("ThemePicker", () => {
 
   it("shows theme name + inspiration in the footer caption", () => {
     const { container } = render(
-      <ThemePicker value="fire" onChange={() => {}} />
+      <ThemePicker value="navy" onChange={() => {}} />
     );
-    expect(container.textContent).toContain("Orange Fire");
-    expect(container.textContent).toContain("communauté");
+    expect(container.textContent).toContain("Bleu Marine phare");
+    expect(container.textContent).toContain("marine");
   });
 });
 

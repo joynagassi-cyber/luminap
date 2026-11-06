@@ -304,3 +304,7 @@ tranchée : pile unique, BottomNav maison).
   `lumina-logo-version-monochrome.png` (forme identique, aplat #151515,
   transparent, 1024×1024, pour le splash). Tests boot/resilience mis à
   jour sur DEFAULT_THEME_ID.
+- **Précision produit** : le thème orange `fire` (#FF6B00) est retiré du
+  catalogue et remplacé par `navy` (11 thèmes, navy par défaut) —
+  anti-flash index.html, SettingsTheme, tests (contraste, boot, picker)
+  alignés. Ratchet re-figé à 458 littéraux.
