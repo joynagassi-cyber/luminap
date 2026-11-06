@@ -1811,3 +1811,19 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   scopées ; seule `role_permissions_read` globale = catalogue non sensible) ;
   Storage (4 buckets) ; RPC SECURITY DEFINER ; edge functions create_org/
   onesignal-notify/report-error.
+
+- **R166/R167 (CORRIGÉS)** : même classe que R164 (garde CLIENT-only → trigger).
+  R166 = statut d'un événement terminal COMPLETED/CANCELLED (migration
+  `20261104000008`) ; R167 = journal d'audit `audit_entries` append-only
+  (migration `20261104000009`) — R140 n'avait retiré que les politiques RLS,
+  contournables en service_role. Les 2 lèvent `23514` + REVOKE R115.
+- **R168 (risque ACCEPTÉ, PAS de correctif)** : gel de période, verrou de
+  cotisation (30 j), maker-checker et REJECTED→APPROVED restent CLIENT-only
+  **volontairement**. Un trigger les refuserait `23514` → PowerSync JETTE la
+  ligne déjà écrite localement (offline) → **perte silencieuse**. Règle : ne
+  porter en trigger QUE les mutations *jamais légitimes* (R164/R166/R167), pas
+  les règles temporelles/contextuelles (fail-open).
+- **Pattern récurrent « service_role »** : PowerSync écrit en service_role
+  (BYPASSRLS) → toute garde posée au seul niveau **RLS** est CONTOURNABLE. Le
+  dernier rempart pour un invariant d'intégrité = un **trigger** BEFORE
+  (INSERT/)UPDATE/DELETE levant une classe **23xxx** (PowerSync jette) + REVOKE.

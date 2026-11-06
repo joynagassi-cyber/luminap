@@ -4940,3 +4940,40 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Note exploitation** : une réécriture de masse du journal devra désactiver
   explicitement le trigger (`ALTER TABLE … DISABLE TRIGGER`).
 - **Garde** : `migration-audit-append-only-trigger-r167.test.ts`.
+
+### R168 — Invariants « client-only » restants : analyse + risques ACCEPTÉS (2026-11-04)
+- **Contexte** : suite R164/R166/R167, on a systématiquement cherché les règles
+  appliquées uniquement côté client (contournables en service_role). Trois
+  familles restent client-only mais **ne doivent PAS être portées en trigger**,
+  pour une raison de fond (distincte de R164/R166/R167).
+- **Différence de fond** : R164/R166/R167 bloquent des mutations **jamais
+  légitimes** (altérer une pièce approuvée, rouvrir un événement terminal,
+  réécrire le journal). En revanche, les règles ci-dessous sont **contextuelles
+  et temporelles** : une écriture peut être légitime au moment où l'appareil
+  l'a faite (hors ligne) puis devenir interdite quand le contexte serveur change
+  (verrou posé entre-temps). Un trigger la refuserait alors `23514`, et le
+  connecteur PowerSync la **jetterait** (`FATAL_RESPONSE_CODES` 23xxx) — **perte
+  silencieuse** de la donnée déjà écrite localement. On ne peut donc pas les
+  durcir en base sans introduire un risque de perte de données pire que le
+  défaut.
+- **Règles concernées (client-only, VOLONTAIREMENT non appliquées en base)** :
+  1. **Gel de période** (`periodLock.ts` / `assertTransactionWritable`, PR13) :
+     refuse toute écriture sur une transaction datée ≤ `org_settings.period_locked_until`.
+     FAIL-OPEN par conception ; le verrou peut être posé APRÈS une écriture
+     offline légitime. Kill-switch `period-lock`.
+  2. **Verrou de cotisation** (`cotisationCanModify`, culte > 30 j) : règle
+     temporelle, même profil de risque.
+  3. **Maker-checker** (`makerChecker.ts`, PR8) : approbation en deux étapes
+     (séparation des tâches). Règle d'organisation, pas d'intégrité de donnée
+     unitaire ; l'imposer en base casserait le rattrapage légitime d'une file
+     offline. Réglage `org_settings.maker_checker_enabled` (défaut off).
+  4. **`REJECTED` → `APPROVED`** : `transactionGuard` impose un retour par
+     `DRAFT`, mais le trigger R164 autorise toute transition *vers* APPROVED
+     depuis un statut non-APPROVED. Non bloqué : impact FAIBLE (re-approbation
+     directe d'une pièce rejetée), et bloquer exigerait de connaître le statut
+     cible sans casser le flux d'approbation normal.
+- **Mesure de compensation** : ces règles restent appliquées côté client (chemin
+  nominal) ; leur contournement exige un client **forgé** écrivant en service_role
+  (RLS + TS contournés) — vecteur déjà identifié (R102/R164). Le risque résiduel
+  est **documenté et accepté** au nom de la protection contre la perte de données.
+- **Statut** : **ANALYSÉ — risque accepté** (pas de correctif ; décision tracée).
