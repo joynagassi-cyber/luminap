@@ -1823,7 +1823,17 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   ligne déjà écrite localement (offline) → **perte silencieuse**. Règle : ne
   porter en trigger QUE les mutations *jamais légitimes* (R164/R166/R167), pas
   les règles temporelles/contextuelles (fail-open).
-- **Pattern récurrent « service_role »** : PowerSync écrit en service_role
-  (BYPASSRLS) → toute garde posée au seul niveau **RLS** est CONTOURNABLE. Le
-  dernier rempart pour un invariant d'intégrité = un **trigger** BEFORE
-  (INSERT/)UPDATE/DELETE levant une classe **23xxx** (PowerSync jette) + REVOKE.
+- **R169 (ERRATUM modèle de menace — IMPORTANT)** : PowerSync n'écrit **PAS**
+  en service_role. `SupabaseConnector.pushCrudTransaction` = `createClient(url,
+  supabaseAnonKey)` + JWT utilisateur → PostgREST rôle **`authenticated`**, RLS
+  **APPLIQUÉE**. Aucun `createClient` client n'utilise la clé service_role
+  (seuls `auth.ts` + connecteur, en clé anon). `powersync_role` est BYPASSRLS
+  mais **LECTURE seule** (streams). Donc : contournement réaliste = appelant
+  PostgREST direct avec JWT valide (RLS s'applique ; les **triggers** R164/R166
+  sont la vraie barrière) ; service_role fuitée = cas extrême (alors triggers =
+  seule barrière). R164/R166/R167 restent valides (défense en profondeur).
+- **Pattern garde d'intégrité** : pour un invariant « jamais légitime », poser un
+  **trigger** BEFORE (INSERT/)UPDATE/DELETE levant une classe **23xxx**
+  (PowerSync jette) + REVOKE (R115). MAIS ne PAS porter en trigger les règles
+  **temporelles** (gel de période, verrou cotisation) : perte de données offline
+  (R168).

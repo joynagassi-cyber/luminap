@@ -4977,3 +4977,38 @@ partagée par les deux plateformes et couverte par 3 tests.
   (RLS + TS contournés) — vecteur déjà identifié (R102/R164). Le risque résiduel
   est **documenté et accepté** au nom de la protection contre la perte de données.
 - **Statut** : **ANALYSÉ — risque accepté** (pas de correctif ; décision tracée).
+
+### R169 — ERRATUM de modèle de menace : PowerSync n'écrit PAS en `service_role` (2026-11-04)
+- **Correction d'un postulat erroné** répété dans R164/R166/R167 et en mémoire :
+  « PowerSync écrit en `service_role` (BYPASSRLS) → la RLS est contournée ».
+  **C'est FAUX.** Mesuré dans le code : le connecteur d'upload
+  (`src/lib/powersync/SupabaseConnector.ts`, `pushCrudTransaction`) utilise
+  `createClient(url, supabaseAnonKey)` + le **JWT utilisateur**, puis
+  `this.client.from(table).upsert/update/delete(...)` → PostgREST sous le rôle
+  **`authenticated`**, **RLS APPLIQUÉE**. Vérifié aussi : **aucun** `createClient`
+  côté app n'utilise la clé `service_role` (seuls `auth.ts` et le connecteur,
+  tous deux en clé anon) ; la clé `service_role` n'apparaît que côté serveur
+  (edge functions `create_org`, `report-error`).
+- **Ce qui EST vrai** : le rôle de réplication `powersync_role` est bien
+  `BYPASSRLS`, mais il ne sert qu'à **LIRE** la base source (streams) et à
+  écrire dans le stockage interne PowerSync — **jamais** à écrire les tables
+  métier. Le vecteur d'écriture réel côté client reste PostgREST.
+- **Modèle de menace corrigé** (pour les gardes d'intégrité) :
+  1. chemin NOMINAL : le client passe par la logique TS (gardes métier) **et**
+     PostgREST `authenticated` (RLS). Double barrière ;
+  2. contournement RÉALISTE : un appelant **direct PostgREST** (REST/SDK) avec
+     un **JWT utilisateur valide** et un rôle disposant de la permission
+     d'écriture — il saute les gardes TS, mais la RLS s'applique. **Les triggers
+     R164/R166 sont la barrière réelle** pour ces appelants (les policies
+     UPDATE de `transactions`/`events` exigent seulement `*:update`, pas un
+     statut) ;
+  3. contournement EXTRÊME : clé `service_role` fuitée (BYPASSRLS). Alors, **et
+     seulement alors**, les triggers sont la SEULE barrière — c'est le sens de
+     R164/R166/R167.
+- **Conséquence sur R164/R166/R167** : ils restent **valides et nécessaires**
+  (défense en profondeur contre 2 et 3), mais leur justification « RLS déjà
+  contournée au quotidien » était fausse. Pour `audit_entries` (R167), la RLS
+  bloque déjà UPDATE/DELETE (aucune policy) : le trigger est une
+  **ceinture-et-bretelles** supplémentaire, pas la barrière principale.
+- **Statut** : **DOCUMENTÉ — modèle de menace corrigé** (pas de correctif code ;
+  les gardes existantes restent pertinentes).
