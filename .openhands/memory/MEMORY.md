@@ -10,8 +10,10 @@
   Garde `auth-offline-profile-fallback.test.ts`.
 - **Correctifs offline déjà sur `main`** : #409 (SQLite **natif**
   `@powersync/capacitor`, stockage durable) et #419 (boot **local-first** :
-  session persistée rendue sans réseau). L'APK **release v1.2.1** les PRÉCÈDE →
-  toujours retester un build POSTÉRIEUR avant de conclure « rien n'a changé ».
+  session persistée rendue sans réseau), mergés le 2026-11-04. **Aucune release
+  publiée ne les contient** (dernière = **v1.2.2, 2026-11-02** ; `merge-base
+  --is-ancestor` le prouve). ⇒ toujours retester un build POSTÉRIEUR (APK debug de
+  `main`) avant de conclure « rien n'a changé ».
 - **PIÈGE CI** : `pnpm lint` inclut `scripts/design-ratchet.mjs` — zéro NOUVEAU
   littéral de couleur hors `src/design-system/tokens/`. Réutiliser un littéral
   existant dans un NOUVEAU site échoue (étaler la valeur déjà persistée, ou
