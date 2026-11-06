@@ -277,3 +277,11 @@ tranchée : pile unique, BottomNav maison).
   **LuTimeline** (points + ligne verticale, montant signé),
   **LuChart** (barres SVG 100 % jetons --lu-chart-*, barre max accent,
   grille chart-grid, légende). Entrées Design Lab + 6 tests.
+- P4 lot 1 (migration Dashboard, zéro logique métier) : le héro
+  « executive » devient **LuHero solid** (salutation + avatar, résultat
+  net en LuAmount display, badge delta on-hero, bloc imbriqué overlay :
+  pill sync + tuiles Entrées/Sorties + sparkline 6M) ; **Actions
+  rapides** en tuiles **LuCard tile** ; **Derniers mouvements** en
+  LuSectionHeader + **LuTransactionRow** (+ LuEmptyState). Ancres
+  Cypress conservées (« Derniers mouvements », aria-label héro,
+  BottomNav natif inchangé).
