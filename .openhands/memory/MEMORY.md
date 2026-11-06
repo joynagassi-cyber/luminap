@@ -2016,6 +2016,20 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
 - **Garde** `platform-abstraction-guard.test.ts` : `ionBackButton` /
   `addEventListener("backbutton")` réservés à la façade. Tests
   `hardware-back-facade.test.ts` (4).
+- **COMPLÉTUDE (#453, main `f9c28180`)** : #450 était INCOMPLET. Overlays
+  oubliés : **`LuSheet`** (feuille canonique !), **`LuSelect`** (mode `sheet`),
+  **`BottomDrawer`**, **Budgets** (CreateBudgetSheet), **Giving** (Sheet),
+  **FormBuilder** (modal). Les 3 composants-feuilles **s'auto-enregistrent**
+  → tout écran qui les utilise est couvert. **Garde de complétude**
+  `src/lib/__tests__/overlay-hardware-back-guard.test.ts` (env node) : tout
+  `role="dialog"` sans `useHardwareBack(`/`registerHardwareBack(` ⇒ rouge
+  (non-vacuité prouvée). Méthode d'audit :
+  `grep -rln 'role="dialog"' src --include=*.tsx` + comptage par fichier.
+- **`window.prompt` (#452, main `9d32020a`)** : **no-op en WebView Android**
+  (Capacitor n'implémente pas `onJsPrompt`) → repli de copie du diagnostic
+  `Health.tsx` MUET. Remplacé par une feuille maison `role="dialog"` +
+  `<textarea readOnly>` + `useHardwareBack`. `platform-abstraction-guard`
+  bannit désormais `window.(prompt|confirm|alert)(` hors couche plateforme.
 - **PIÈGE PR** : `default_create_pr` crée en **DRAFT** → merge refusé. Le REST
   `POST /pulls/N/ready_for_review` = **404** (token) ; passer par **GraphQL**
   `mutation markPullRequestReadyForReview(pullRequestId: <node_id>)`.
