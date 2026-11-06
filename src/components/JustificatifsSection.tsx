@@ -24,6 +24,7 @@ import {
 } from "@/lib/receipts";
 import { getDocumentUrl } from "@/lib/storageService";
 import { captureClientError } from "@/lib/clientErrors";
+import { openExternal } from "@/platform/openExternal";
 
 function ReceiptIcon({ mime }: { mime?: string | null }) {
   const cls = "w-4 h-4 flex-shrink-0";
@@ -160,14 +161,13 @@ export default function JustificatifsSection({
               )}
               <div className="flex-1 min-w-0">
                 {urls[r.id] ? (
-                  <a
-                    href={urls[r.id]}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-sm text-accent-primary truncate block"
+                  <button
+                    type="button"
+                    onClick={() => void openExternal(urls[r.id])}
+                    className="text-sm text-accent-primary truncate block text-left"
                   >
                     {r.mime === "application/pdf" ? "Voir le PDF" : "Voir l'image"}
-                  </a>
+                  </button>
                 ) : (
                   <span className="text-sm text-text-tertiary">
                     Indisponible hors ligne

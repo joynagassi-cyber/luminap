@@ -84,6 +84,7 @@ import { formatCurrencyCompact, formatDate } from "@/lib/utils";
 import PdfPreview from "@/components/PdfPreview";
 import { downloadBlob } from "@/lib/download";
 import { showError } from "@/utils/toast";
+import { openExternal } from "@/platform/openExternal";
 
 /** Vue locale d'un rapport `org_reports` (PowerSync — snake_case). */
 interface OrgReportRow {
@@ -765,9 +766,8 @@ function JoinedDocCard({ doc }: { doc: PSDocument }) {
     try {
       const signed = await getDocumentUrl(doc.bucket as "archives", doc.file_path);
       setUrl(signed);
-      // Déclenche le téléchargement (ouverture dans un nouvel onglet /
-      // trigger du navigateur mobile).
-      window.open(signed, "_blank", "noopener,noreferrer");
+      // Ouvre dans le navigateur externe (natif = @capacitor/browser).
+      await openExternal(signed);
     } catch {
       /* hors-ligne — l'URL signée n'a pas pu être obtenue */
     } finally {
@@ -775,7 +775,7 @@ function JoinedDocCard({ doc }: { doc: PSDocument }) {
     }
   };
 
-  void url; // l'URL est ouverte via window.open ; pas de rendu <a>
+  void url; // l'URL est ouverte via la façade openExternal ; pas de rendu <a>
 
   return (
     <button
