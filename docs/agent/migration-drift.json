@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 98,
-    "repo_timestamped_files": 89,
+    "repo_timestamped_files": 90,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 152,
+    "repo_total_sql_files": 153,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 96,
     "repo_file_never_applied": 86,
     "drift_ratio": "2/98",
-    "repo_filenames_sha256": "054eea8039e3213889823414190bd701df87a7a92fad22d4bc7166c2361d7e6c",
+    "repo_filenames_sha256": "152234bfd41646f4ef18c51d1f3da9248fc1903b11f5c6dbc2943e3562ea81fc",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -102,5 +102,9 @@
   "notes_r164": [
     "1 migration ajoutee 20261104000007_guard_approved_transaction_update (R164 : immuabilite d'une transaction APPROVED a l'UPDATE). CLASSE R102 mais pour UPDATE : la regle n'etait appliquee que cote CLIENT (updateTransactionPS) et en base uniquement pour le DELETE. Trigger BEFORE UPDATE qui refuse TOUTE modification d'une ligne OLD.status='APPROVED' (23514, classe 23, jete par PowerSync ; P0001 tomberait en retry infini). La transition VERS APPROVED reste permise (flux d'approbation). Appliquee via MCP apply_migration -> version tracker = horodatage d'application. Empreinte de noms re-mesuree : 89 horodatees / 63 sequentielles / 152 total.",
     "PIEGE (garde de non-vacuite) : une 1re version utilisait `OLD.status='APPROVED' AND NEW.status IS DISTINCT FROM 'APPROVED'` -> une edition de MONTANT seul (statut inchange) passait encore. Corrige en `IF OLD.status='APPROVED'`."
+  ]
+,
+  "notes_r166": [
+    "1 migration ajoutee 20261104000008_guard_event_status_terminal (R166 : immuabilite du STATUT d'un evenement terminal COMPLETED/CANCELLED a l'UPDATE). CLASSE R102/R164 (garde CLIENT-only) : la regle n'etait appliquee que par eventStatusGuard (capabilities/workflow), la table events n'ayant AUCUN trigger de statut. Trigger BEFORE UPDATE qui refuse tout CHANGEMENT de statut d'une ligne OLD.status IN ('COMPLETED','CANCELLED') (23514, classe 23, jete par PowerSync ; P0001 tomberait en retry infini). Portee minimale : les autres colonnes restent modifiables, transitions depuis PLANIFIED/ONGOING inchangees (miroir exact du client). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 90 horodatees / 63 sequentielles / 153 total."
   ]
 }

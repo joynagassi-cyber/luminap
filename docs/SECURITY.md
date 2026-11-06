@@ -200,6 +200,7 @@ Source : `docs/agent/RISQUES.md`.
 | **R16** | `profiles.role` ↔ `org_memberships.role` : **tranché** — source de vérité d'**autorisation** = `org_memberships.role` (2026-11-04) ; données actuelles cohérentes ; risque structurel documenté. | **TRANCHÉ** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
 | **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
+| **R166** | Statut d'un événement terminal (COMPLETED/CANCELLED) modifiable par `UPDATE` (garde client-only) — **corrigé** : trigger `guard_event_status_terminal` (`BEFORE UPDATE`, bloque le changement de statut, `23514`, REVOKE R115). | **CORRIGÉ** |
 | **R165** | Stream PowerSync `invitations`/`invitation_claims` excluait `ADMIN` (pourtant `invitation:manage`) → écran vide pour l'ADMIN. **Corrigé** + redéployé ; garde `sync-stream-invitation-roles-r165`. | **CORRIGÉ** |
 | **R164** | Transaction `APPROVED` modifiable par `UPDATE` (garde client-only, base ne couvrait que le DELETE) — **corrigé** : trigger `guard_approved_transaction_update` (`BEFORE UPDATE`, refuse toute modif d'une ligne APPROVED, `23514`, REVOKE R115). | **CORRIGÉ** |
 | **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** : cloisonnement forcé à l'org de l'appelant (`isMemberOfOrg` + `effectiveOrgId` toujours scoppé), déployé **v20**. | **CORRIGÉ** |

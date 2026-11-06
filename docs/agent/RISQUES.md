@@ -4897,3 +4897,24 @@ partagée par les deux plateformes et couverte par 3 tests.
 - **Note d'outillage** : la CLI est le package npm `powersync` (pas
   `@powersync/cli`) ; auth via `PS_ADMIN_TOKEN` (ici `$POWERSYNC_TOKEN`).
   `powersync deploy sync-config --dry-run` montre le diff avant déploiement.
+
+### R166 — Statut d'un événement terminal modifiable par `UPDATE` en base — ✅ CORRIGÉ
+- **Classe** : garde d'intégrité **client-only** (même famille que R102/R164).
+  La règle « un événement COMPLETED/CANCELLED est terminal » n'était appliquée
+  que côté client (`eventStatusGuard`, `src/capabilities/workflow/index.ts`,
+  appelé par `EventDetail` via `workflow.transition`). La table `events`
+  n'avait **aucun** trigger de statut (`on_event_created` + `trg_events_cascade_org`
+  seulement).
+- **Défaut** : un `UPDATE events SET status = 'PLANIFIED' WHERE id = <event
+  CANCELLED>` (PowerSync en service_role contourne la RLS, ou API REST)
+  ré-ouvrait un événement annulé/terminé — aucune garde serveur.
+- **Correctif** : migration `20261104000008_guard_event_status_terminal.sql` —
+  trigger `BEFORE UPDATE` refusant tout **changement de statut** d'une ligne
+  `OLD.status IN ('COMPLETED','CANCELLED')`. Portée **minimale** (miroir exact
+  du client) : les autres colonnes (nom, dates, budget) restent modifiables et
+  les transitions depuis PLANIFIED/ONGOING sont inchangées. Code `23514` (classe
+  23 jetée par PowerSync ; un `P0001` = retry infini) + `REVOKE` (R115).
+- **Vérifié en base** (bloc `DO` auto-annulant) : réouverture terminale → 23514 ;
+  édition du nom d'un terminal → permise ; PLANIFIED→ONGOING→COMPLETED → permis ;
+  COMPLETED→ONGOING → 23514. Trigger + fonction non exécutables par anon/authenticated.
+- **Garde** : `migration-event-status-guard-r166.test.ts`.
