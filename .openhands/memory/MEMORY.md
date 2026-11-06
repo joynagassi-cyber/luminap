@@ -1867,3 +1867,16 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `markPullRequestReadyForReview` avant merge. Push sans token dans l'URL →
   prompt identifiants ⇒ utiliser `https://${GITHUB_TOKEN}@github.com/...` ;
   suppression de branche via API REST `DELETE /git/refs/heads/<b>`.
+
+## R171 — Storage : permissions des blobs alignées sur les métadonnées (PR #436, 2026-11-04)
+- Les blobs `archives`/`expense_proofs` n'exigeaient qu'`is_org_member` (INSERT+DELETE)
+  alors que les métadonnées exigent `has_permission` (`transaction_attachments`→
+  `transaction:update` ; `documents`→`admin:settings`) ⇒ un MEMBRE pouvait
+  supprimer/écraser justificatifs + archives via un appel Storage direct.
+- Correctif = migration `20261104000011` (policies par bucket : `lumina_archives_write/delete`
+  →admin:settings ; `lumina_expense_proofs_write/delete`→transaction:update ; lecture
+  `lumina_private_read` inchangée). Mergée PR #436 (`3fd22ffe`).
+- RAPPEL : la migration `20261022000013` n'avait corrigé que l'axe ORGANISATION
+  (cross-tenant), pas l'axe RÔLE. Vérifier les DEUX axes pour Storage.
+- Buckets : `logos`=PUBLIC (par conception) ; `archives`/`expense_proofs`/`org_reports`=privés.
+  `org_reports` garde is_org_member (cohérent avec la table `org_reports`).
