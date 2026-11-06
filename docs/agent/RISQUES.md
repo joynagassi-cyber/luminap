@@ -5077,3 +5077,32 @@ partagée par les deux plateformes et couverte par 3 tests.
   `transaction:update` (impact nul pour les rôles légitimes : TREASURIER,
   RESPONSABLE_*, ADMIN, PASTEUR_PRINCIPAL).
 - **Garde** : `migration-storage-private-permissions-r171.test.ts`.
+
+### R172 — Rôle `anon` : écriture accordée par défaut (bombe à retardement) — ✅ DURCI (résiduel documenté)
+- **Gravité** : FAIBLE aujourd'hui / MOYENNE en scénario de régression (défense en profondeur).
+- **Défaut mesuré (2026-11-04, instance `hhgovvrnalibhgpakswi`)** : ~49 tables de
+  `public` portaient des grants **INSERT/UPDATE/DELETE** (voire TRUNCATE/REFERENCES/
+  TRIGGER) pour le rôle `anon`, hérités des **privilèges par défaut** (`pg_default_acl`)
+  et de quelques `GRANT` historiques (`0015_*` sur `events`/`org_units`).
+- **Pourquoi ce n'est PAS une fuite active** : RLS est activée sur **toutes** les tables
+  de `public` et **aucune policy** n'accorde quoi que ce soit à `anon` (vérifié :
+  `pg_policies … roles ~ anon` = vide). Les 3 policies visant le pseudo-rôle `public`
+  (`event_tasks_select`, `org_reports_emitter/receiver`) sont gardées par un prédicat
+  uid/org qui vaut **NULL** (= faux) pour `anon`. Aucune donnée n'est exposée.
+- **Le risque** : toute table qui perdrait RLS, ou toute policy écrite par erreur
+  `TO public`/`anon`, rendrait **immédiatement** l'écriture anonyme possible.
+- **Correctif (migration `20261104000012`, réversible)** : `REVOKE` d'écriture à `anon`
+  sur les tables existantes de `public` + **durcissement des privilèges par défaut**
+  (aucune écriture auto-accordée aux futures tables). **SELECT conservé** : le ping
+  anti-pause (`.github/workflows/keep-alive.yml`) lit `/rest/v1/keep_alive` avec la clé
+  anon, et le bucket public `logos` expose une policy SELECT anon.
+- **Preuves mesurées** : `anon` ne détient plus que **SELECT** sur `public`
+  (48 tables) ; défauts `postgres`/`public`/tables → `SELECT` seul ; `keep_alive_ping()`
+  (RPC anon) intacte ; `authenticated` **non modifié** (`authenticated` n'est pas membre
+  de `anon`).
+- **Résiduel (non atteignable depuis le rôle d'application)** : `storage.objects`
+  appartient à `supabase_storage_admin` (le `REVOKE` est un **no-op**) et les privilèges
+  par défaut de `supabase_admin` restent posés (`postgres` n'est ni superuser ni membre
+  de `supabase_admin`). Les grants d'écriture d'`anon` y sont **inertes** (aucune policy
+  d'écriture anon sur `storage`). À régulariser côté plateforme si l'on veut clore.
+- **Garde** : `migration-anon-write-revocation-r172.test.ts`.
