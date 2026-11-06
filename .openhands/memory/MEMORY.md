@@ -13,7 +13,7 @@
 - **Correction (2026-11-04)** : `AGENTS.md` n'est PAS en contradiction — il documente
   lui-même la rétention historique de `nitro`/`h3`/`jiti`/`@supabase/server`
   (`pg` retiré, `server/` absent). Le vrai problème doc = **volume/redondance**.
-- **#2 Couche réseau plateforme (PR #445)** :
+- **#2 Couche plateforme (PR #445 réseau, #447 liens, #448 partage)** :
   - **BUG RÉEL** : `NetworkAdapter.isCapacitorEnv()` renvoyait `!!__mockNetwork` →
     toujours `false` sur appareil → tout retombait sur `navigator.onLine`. Fix =
     `Capacitor.isNativePlatform()`.
@@ -24,6 +24,17 @@
     autorisé, scanner durci (ignore les commentaires). Tests : passer par
     `__setOnlineForTests()` (plus `window.dispatchEvent(Event("offline"))`).
   - **Vitest glob** : `src/platform/__tests__` NON inclus → test dans `src/lib/__tests__`.
+  - **Façade** `src/platform/openExternal.ts` (PR #447) : natif `@capacitor/browser`,
+    web `window.open`. Motifs bannis : `window.open(`, `target="_blank"` (no-op WebView).
+  - **Façade** `src/platform/shareLink.ts` (PR #448) : natif `@capacitor/share`, web
+    `navigator.share` (absent WebView), `"unsupported"` sinon. Motif banni : `navigator.share`.
+  - **Classe de bug** : API web no-op/absente en WebView Capacitor. Audit clôturé :
+    OK = downloadBlob, clipboard (contexte `https`), safe-areas, bouton retour
+    (IonReactRouter), tel:/mailto: (aucun), CameraScanner (branche déjà par plateforme :
+    natif `Camera.getPhoto`). localStorage (129, session Supabase) : durable Android,
+    faible risque, non migré.
+  - **Env vitest** : les tests de façade utilisant `window`/`navigator` exigent
+    `// @vitest-environment jsdom` (défaut = node, pas de `window`).
 - **#1 Gel doc (PR #445)** : `docs/archive/` + README ; 11 snapshots « terminés »
   archivés (MIGRATION_*, PLATFORM_COMPLETE, FINAL_ARCHITECTURE_VERIFICATION,
   POWERSYNC_FINAL_SETUP, POST_MIGRATION_CHECKLIST). `docs/*.md` 48→37.
