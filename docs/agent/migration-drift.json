@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 98,
-    "repo_timestamped_files": 94,
+    "repo_timestamped_files": 95,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 157,
+    "repo_total_sql_files": 158,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 96,
     "repo_file_never_applied": 86,
     "drift_ratio": "2/98",
-    "repo_filenames_sha256": "a7aa24dc4da700e9280475682abc502c0e3e5362c4d0d48e2d1fa7b56ed1bb9e",
+    "repo_filenames_sha256": "e91de773ce114f515dc623769c3f567ac09e3718b1d67f40c4507bfe165414a8",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -124,5 +124,9 @@
   "notes_r172": [
     "1 migration ajoutee 20261104000012_revoke_anon_write_and_default_privileges (R172 : hygiène / defense en profondeur du role anon). ~49 tables de public portaient des grants INSERT/UPDATE/DELETE (voire TRUNCATE/REFERENCES/TRIGGER) pour anon, herites des privileges par defaut (pg_default_acl) et de GRANT historiques (0015_*). INERTES aujourd'hui (RLS activee partout + aucune policy anon ; les 3 policies TO public sont gardees par un predicat uid/org = NULL pour anon) mais bombe a retardement. Correctif : REVOKE d'ecriture ON ALL TABLES IN SCHEMA public FROM anon + durcissement des privileges par defaut. SELECT conserve (keep_alive lu par le ping anti-pause avec la cle anon ; logos public). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 94 horodatees / 63 sequentielles / 157 total.",
     "RESIDUEL DOCUMENTE : storage.objects appartient a supabase_storage_admin (le REVOKE est un no-op) et les privileges par defaut de supabase_admin restent hors de portee (postgres n'est pas superuser ni membre de supabase_admin). Les grants d'ecriture d'anon y sont INERTES (aucune policy d'ecriture anon sur storage). A regulariser cote plateforme si l'on veut une cloture complete."
+  ]
+,
+  "notes_r173": [
+    "1 migration ajoutee 20261104000013_fix_has_permission_group_member (R173 : has_permission, branche group_member non liee au demandeur). La branche reso lvait le sujet par `g.subject_id IN (SELECT gm.id FROM group_memberships gm JOIN members mm ON mm.id=gm.member_id WHERE mm.org_id=p_org)` SANS jamais contraindre mm.id = p_uid : une autorisation ciblee sur un membership de groupe accordait la permission a TOUS les membres de l'organisation (elevation horizontale). LATENT (aucune fuite mesuree) : table grants VIDE (0 ligne), group_memberships VIDE, aucun members.id ne correspond a un profil. Correctif : EXISTS liant `gm.id::text = g.subject_id AND mm.org_id = p_org AND mm.id = p_uid::text` ; garde PREDICATE_UID_MISMATCH (R170) conservee. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 95 horodatees / 63 sequentielles / 158 total."
   ]
 }
