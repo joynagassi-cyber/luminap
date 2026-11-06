@@ -1880,3 +1880,17 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (cross-tenant), pas l'axe RÔLE. Vérifier les DEUX axes pour Storage.
 - Buckets : `logos`=PUBLIC (par conception) ; `archives`/`expense_proofs`/`org_reports`=privés.
   `org_reports` garde is_org_member (cohérent avec la table `org_reports`).
+
+## R172 — rôle `anon` : écriture par défaut (PR #437, 2026-11-04)
+- ~49 tables `public` avaient des grants INSERT/UPDATE/DELETE pour `anon` (privileges
+  par defaut pg_default_acl + GRANT historiques 0015_*). INERTES (RLS partout, aucune
+  policy anon) mais bombe a retardement. Corrige par migration `20261104000012`
+  (REVOKE ecriture + durcissement des defaults). Mergé PR #437 (`17549231`).
+- NE JAMAIS revoquer SELECT a anon : `keep_alive` est lu par le ping anti-pause
+  (`.github/workflows/keep-alive.yml`, cle anon) et `logos` est public.
+- LIMITE PLATEFORME : le role MCP est `postgres`, NON superuser, PAS membre de
+  `supabase_admin`. Consequence : impossible de REVOKE sur `storage.objects`
+  (owner `supabase_storage_admin` → no-op) ni de durcir les defaults de
+  `supabase_admin`. `postgres` possede ses propres defaults (modifiables).
+- Le keep-alive externe = RPC `keep_alive_ping()` (SECURITY DEFINER, anon) ; le
+  pg_cron `keep_alive_daily` n'empeche PAS la pause (activite interne non comptee).
