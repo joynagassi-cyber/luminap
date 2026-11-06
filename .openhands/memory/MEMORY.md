@@ -1837,3 +1837,17 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   (PowerSync jette) + REVOKE (R115). MAIS ne PAS porter en trigger les règles
   **temporelles** (gel de période, verrou cotisation) : perte de données offline
   (R168).
+
+- **R170 (CORRIGÉ)** : oracle d'appartenance/rôle. `is_org_member`/`is_org_admin`/
+  `has_permission`/`can_manage_invitations`/`org_descendants` = SECURITY DEFINER
+  exécutables par `authenticated`, acceptaient un `uid` ARBITRAIRE → sonder
+  appartenance/rôle/permission/hiérarchie d'un tiers. Correctif = garde interne
+  `uid IS DISTINCT FROM initplan_uid()` (42501) ; exemption `pg_trigger_depth()=0`
+  pour `can_manage_invitations` (appelée par `settle_invitation_claim` avec l'uid
+  de l'émetteur). **PIÈGE MESURÉ** : `REVOKE EXECUTE` casserait TOUTE la RLS
+  (une policy exige l'EXECUTE sur le prédicat → `permission denied for function`)
+  → garde interne, pas REVOKE. `initplan_uid()` = `request.jwt.claims->>'sub'` =
+  `auth.uid()`. Test de session RLS possible via MCP : `SET LOCAL ROLE
+  authenticated` + `set_config('request.jwt.claims', json_build_object('sub',uid,
+  'role','authenticated')::text, true)` (mais `SET LOCAL` ne marche pas au
+  top-level MCP → l'envelopper dans un `DO` block).

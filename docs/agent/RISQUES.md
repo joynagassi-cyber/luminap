@@ -5012,3 +5012,35 @@ partagée par les deux plateformes et couverte par 3 tests.
   **ceinture-et-bretelles** supplémentaire, pas la barrière principale.
 - **Statut** : **DOCUMENTÉ — modèle de menace corrigé** (pas de correctif code ;
   les gardes existantes restent pertinentes).
+
+### R170 — Oracle d'appartenance/rôle via les prédicats RLS (RPC `authenticated`) — ✅ CORRIGÉ
+- **Gravité** : MOYENNE-HAUTE (reconnaissance / fuite de métadonnées d'accès).
+- **Défaut mesuré (2026-11-04, instance `hhgovvrnalibhgpakswi`)** : les prédicats
+  `is_org_member(uid, org_id)`, `is_org_admin(p_uid, p_org_id)`,
+  `has_permission(p_uid, …)`, `can_manage_invitations(p_uid, …)` et
+  `org_descendants(p_uid)` sont `SECURITY DEFINER` et **exécutables par
+  `authenticated`** (PostgREST les expose en RPC). Ils acceptaient un **`uid`
+  arbitraire** : un membre authentifié pouvait appeler
+  `is_org_member('<uuid X>', '<org Y>')` et lire `true/false` — révélant
+  l'appartenance, le rôle admin, une permission ou la **hiérarchie
+  d'organisation** d'un tiers. Vérifié : depuis une session `authenticated`,
+  `is_org_member(<uuid arbitraire>, <org réelle>)` renvoyait sans erreur.
+- **Correctif** (migration `20261104000010`, réversible) : **garde interne**
+  `uid IS DISTINCT FROM initplan_uid()` (→ `42501`). Un appel direct avec un uid
+  arbitraire est refusé ; les policies (qui passent TOUJOURS `initplan_uid()` —
+  vérifié : 0 policy n'utilise un uid ≠ `initplan_uid()`) continuent de
+  fonctionner.
+- **Contrainte clé (vérifiée en base)** : un `REVOKE EXECUTE` **casserait la
+  RLS** — l'évaluation d'une policy exige l'`EXECUTE` sur le prédicat (sinon
+  `permission denied for function`). D'où le garde interne plutôt qu'un retrait
+  de privilège.
+- **Cas `can_manage_invitations`** : appelée par `settle_invitation_claim`
+  (SECURITY DEFINER, via trigger) avec l'uid de l'**émetteur** (≠ JWT de
+  l'accepteur) → garde conditionnée à `pg_trigger_depth() = 0` (appel direct
+  refusé ; appel interne au déclencheur permis).
+- **Preuves mesurées (transaction/session simulée)** : baseline RLS intacte
+  (`SELECT transactions` → 5742) ; `is_org_member(own, own)=true`,
+  `has_permission(own,…)=true`, `can_manage_invitations(own,own)=true` ;
+  uid arbitraire → `42501` sur les 5 ; appel interne (trigger, uid tiers)
+  → **accepté** (probe `ok=f`, pas de 42501).
+- **Garde** : `migration-predicate-uid-guard-r170.test.ts`.

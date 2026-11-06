@@ -5,9 +5,9 @@
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
     "applied_versions_in_tracker": 98,
-    "repo_timestamped_files": 91,
+    "repo_timestamped_files": 92,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 154,
+    "repo_total_sql_files": 155,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
@@ -16,7 +16,7 @@
     "applied_without_repo_file": 96,
     "repo_file_never_applied": 86,
     "drift_ratio": "2/98",
-    "repo_filenames_sha256": "903ac8b6b0f726086ee90509ed8053c602d2329597490bb34a8180b2761b9c0d",
+    "repo_filenames_sha256": "1c1710051682ae2b66b17a573b9e5832911366947269e512a1f94ddb6f8dc043",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -110,5 +110,9 @@
 ,
   "notes_r167": [
     "1 migration ajoutee 20261104000009_guard_audit_entries_append_only (R167 : journal d'audit REELLEMENT en ajout seul). R140 n'avait retire que les politiques RLS UPDATE/DELETE, or PowerSync ecrit en service_role (BYPASSRLS) et audit_entries n'avait AUCUN trigger : un client forge pouvait UPDATE/DELETE une trace. Trigger BEFORE UPDATE OR DELETE inconditionnel (23514, classe 23 jetee par PowerSync ; P0001 = retry infini). INSERT preserve. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 91 horodatees / 63 sequentielles / 154 total."
+  ]
+,
+  "notes_r170": [
+    "1 migration ajoutee 20261104000010_predicate_uid_guard (R170 : ferme l'oracle d'appartenance/role des predicats RLS). is_org_member/is_org_admin/has_permission/can_manage_invitations/org_descendants sont SECURITY DEFINER, executables par authenticated, et acceptaient un uid ARBITRAIRE -> un membre pouvait sonder l'appartenance/le role/une permission/la hierarchie d'un tiers. Garde interne `uid IS DISTINCT FROM initplan_uid()` (42501) ; exemption `pg_trigger_depth()=0` pour can_manage_invitations (appelee par settle_invitation_claim avec l'uid de l'emetteur). VERIFIE en base : REVOKE EXECUTE casserait la RLS (policy exige l'EXECUTE), d'ou le garde interne. Baseline RLS intacte (5742), oracle ferme (42501), appels legitimes OK. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 92 horodatees / 63 sequentielles / 155 total."
   ]
 }
