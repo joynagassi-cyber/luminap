@@ -39,6 +39,10 @@ import {
   LuFab,
   LuProgress,
   LuSwipeToConfirm,
+  LuAmountInput,
+  LuChart,
+  LuSheet,
+  LuTimeline,
   LuTransactionRow,
 } from "@/design-system/components";
 
@@ -132,6 +136,7 @@ function LabButton({ variant, children }: { variant: "solid" | "outline"; childr
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function DesignLab() {
+  const [sheetOpen, setSheetOpen] = useState(false);
   const { themeId, mode, effects, setTheme, setMode, setEffects } = useTheme();
   const accentValue = useTokenValue("accent");
 
@@ -374,6 +379,52 @@ export default function DesignLab() {
               </div>
             </div>
             <LuFab onClick={() => {}} />
+          </Section>
+
+          {/* Composites Lu* — P3 lot 3 : sheet, amount input, timeline, chart */}
+          <Section title="LuSheet / LuAmountInput / LuTimeline / LuChart (P3)">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-[var(--lu-radius-md)] p-4" style={{ background: "var(--lu-surface)" }}>
+                <LuAmountInput value={12500} onAmountChange={() => {}} />
+              </div>
+              <div className="rounded-[var(--lu-radius-md)] p-4" style={{ background: "var(--lu-surface)" }}>
+                <LuChart
+                  data={[
+                    { label: "Lun", value: 40, amount: 40000 },
+                    { label: "Mar", value: 65 },
+                    { label: "Mer", value: 100, amount: 100000 },
+                    { label: "Jeu", value: 55 },
+                    { label: "Ven", value: 80, amount: 80000 },
+                  ]}
+                />
+              </div>
+            </div>
+            <div className="mt-4 rounded-[var(--lu-radius-md)] p-4" style={{ background: "var(--lu-surface)" }}>
+              <LuTimeline
+                items={[
+                  { id: "1", title: "Vente du matin", subtitle: "Caisse principale · 9 transactions", amount: 45000 },
+                  { id: "2", title: "Achat fournitures", subtitle: "Aujourd'hui · 14:32", amount: -12000 },
+                  { id: "3", title: "Clôture période", subtitle: "Septembre 2026", amount: 0 },
+                ]}
+              />
+            </div>
+            <div className="mt-4 max-w-sm">
+              <LuButton onClick={() => setSheetOpen(true)}>Ouvrir LuSheet</LuButton>
+            </div>
+            <LuSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Nouvelle transaction">
+              <LuSegmented
+                value="out"
+                onChange={() => {}}
+                options={[
+                  { value: "out", label: "Sortie" },
+                  { value: "in", label: "Entrée" },
+                  { value: "transfer", label: "Transfert" },
+                ]}
+              />
+              <div className="mt-4">
+                <LuAmountInput value={0} onAmountChange={() => {}} />
+              </div>
+            </LuSheet>
           </Section>
 
           {/* Couleurs */}
