@@ -5,6 +5,7 @@
 import { captureClientError } from "@/lib/clientErrors";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import {
   IonPage,
   IonHeader,
@@ -71,6 +72,7 @@ export default function InvitationManage() {
     invId: string;
     claim: InvitationClaim;
   } | null>(null);
+  useHardwareBack(rejecting !== null, () => setRejecting(null));
   const [rejectReason, setRejectReason] = useState("");
   const [claimBusy, setClaimBusy] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);

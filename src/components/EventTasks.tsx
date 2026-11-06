@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { IonItem, IonLabel, IonInput, IonSelect, IonSelectOption, IonTextarea, IonCheckbox } from "@ionic/react";
 import { Plus, CheckCircle, Circle, Clock, Lock, Play } from "lucide-react";
 import {
@@ -10,6 +10,7 @@ import { getOrganizationId } from "@/lib/orgContext";
 import { formatDate } from "@/lib/utils";
 import type { PSEventTask } from "@/lib/dataLayer";
 import EmptyState from "@/components/EmptyState";
+import { registerHardwareBack } from "@/platform/hardwareBack";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 interface EventTasksProps {
@@ -83,6 +84,21 @@ export default function EventTasks({
     setParentId("");
     setError("");
   };
+
+  // Bouton retour matériel Android : ferme la feuille « Nouvelle tâche ».
+  useEffect(() => {
+    if (!showAdd) return;
+    return registerHardwareBack(() => {
+      setShowAdd(false);
+      setTitle("");
+      setDueDate("");
+      setGroupId("");
+      setDescription("");
+      setIsSub(false);
+      setParentId("");
+      setError("");
+    });
+  }, [showAdd]);
 
   const handleAdd = async () => {
     if (!title.trim()) {

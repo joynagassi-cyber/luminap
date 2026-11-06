@@ -1,6 +1,7 @@
 import { captureClientError } from "@/lib/clientErrors";
 import { useCallback, memo, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import {
   useTransactions,
   useCaisses,
@@ -279,6 +280,7 @@ export default function Reports() {
   const [activeTab, setActiveTab] = useState<Tab>("global");
   const [period, setPeriod] = useState<Period>("month");
   const [showExport, setShowExport] = useState(false);
+  useHardwareBack(showExport, () => setShowExport(false));
   const [savedReports, setSavedReports] = useState<ReportDefinition[]>([]);
   // R52.o — `reportDefinitionRepo.list()` est asynchrone : « Aucun rapport
   // personnalisé » serait un fait FAUX avant la fin de la lecture.

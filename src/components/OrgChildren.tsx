@@ -29,6 +29,7 @@ import {
   type FederationOrg,
 } from "@/capabilities/federation";
 import { bootstrapOrganization } from "@/lib/orgBootstrap";
+import { registerHardwareBack } from "@/platform/hardwareBack";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
 
 /** Types acceptés par la colonne `type` de `organizations`
@@ -91,6 +92,13 @@ export default function OrgChildren({
     loadChildren();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parentOrgId]);
+
+  // Bouton retour matériel Android : ferme la feuille « Créer une annexe »
+  // au lieu de quitter l'app.
+  useEffect(() => {
+    if (!showCreate) return;
+    return registerHardwareBack(() => setShowCreate(false));
+  }, [showCreate]);
 
   /**
    * Création d'une annexe — passe par la fonction serveur (`create_org`) :

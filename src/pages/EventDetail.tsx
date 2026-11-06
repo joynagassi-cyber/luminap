@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import {
   useEvents,
   useTransactions,
@@ -77,6 +78,8 @@ export default function EventDetail() {
   const [showDelete, setShowDelete] = useState(false);
   const [success, setSuccess] = useState("");
   const [showAddExpense, setShowAddExpense] = useState(false);
+  useHardwareBack(showAddExpense, () => setShowAddExpense(false));
+  useHardwareBack(showDelete, () => setShowDelete(false));
   const [selectedBudgetItemId, setSelectedBudgetItemId] = useState<
     string | null
   >(null);

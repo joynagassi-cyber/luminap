@@ -21,6 +21,7 @@ Cas mesurés dans ce dépôt :
 | `window.open` / `target="_blank"` | **no-op** (aucun onglet, aucun DownloadListener) |
 | `<a download>` | **muet** (bug P0-2 : exports inopérants) |
 | `navigator.share` | **absent** de la WebView |
+| bouton retour matériel | événement natif `backbutton` **non écouté** par les overlays maison → ferme l'app |
 
 ## Décision
 
@@ -33,11 +34,13 @@ Cas mesurés dans ce dépôt :
    | Liens externes | `src/platform/openExternal.ts` | `@capacitor/browser` | `window.open` |
    | Partage | `src/platform/shareLink.ts` | `@capacitor/share` | `navigator.share` |
    | Sortie fichier | `src/lib/download.ts` (`downloadBlob`) | Filesystem + Share | `<a download>` |
+   | Retour matériel | `src/platform/hardwareBack.ts` (`registerHardwareBack`) | `ionBackButton` (prio 110) | no-op |
 
 2. **Interdiction** d'appeler ces API web en direct hors de la couche
    plateforme. Le scan de la garde échoue sur les motifs :
    `navigator.onLine`, `navigator.connection`, `addEventListener("online"|"offline")`,
-   `window.open(`, `target="_blank"`, `navigator.share`, `.download =`.
+   `window.open(`, `target="_blank"`, `navigator.share`, `.download =`,
+   `ionBackButton`, `addEventListener("backbutton")`.
 
 3. **Ratchet** : la liste de dette (`KNOWN_DIRECT_SITES`) est **vide** et ne
    doit jamais être ré-ouverte. Un site migré doit être retiré de la liste

@@ -19,6 +19,7 @@ import {
   visibleFeaturesInCategory,
   ungroupedFeatureIds,
 } from "@/lib/feature-categories";
+import { registerHardwareBack } from "@/platform/hardwareBack";
 
 /**
  * Menu latéral (sidebar) premium — remplace l'ancienne liste plate « Plus ».
@@ -91,11 +92,14 @@ export default function FeatureSidebar({
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
+    // Bouton retour matériel Android : ferme le menu au lieu de quitter l'app.
+    const unregisterBack = registerHardwareBack(onClose);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const t = window.setTimeout(() => panelRef.current?.focus(), 0);
     return () => {
       document.removeEventListener("keydown", onKey);
+      unregisterBack();
       document.body.style.overflow = prev;
       window.clearTimeout(t);
     };

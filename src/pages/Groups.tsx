@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import { useCurrentUser } from "@/lib/dataLayer";
 import { useGroups, useOrgUnits, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { persistCreateGroup, persistUpdateGroup, persistDeleteGroup } from "@/lib/group-lifecycle";
@@ -48,6 +49,9 @@ export default function Groups() {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState<string | null>(null);
+  useHardwareBack(showCreate, () => setShowCreate(false));
+  useHardwareBack(showEdit !== null, () => setShowEdit(null));
+  useHardwareBack(showDelete !== null, () => setShowDelete(null));
   const [createName, setCreateName] = useState("");
   const [createType, setCreateType] = useState("groupe");
   const [createDesc, setCreateDesc] = useState("");

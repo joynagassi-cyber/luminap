@@ -54,6 +54,17 @@ volontairement ponctuelle).
   canonique — il ne reste aucun sélecteur HTML natif dans l'app. Les
   dates passent par `DatePicker` (IonDatetime en feuille, fr-FR).
 
+### Bouton retour matériel (Android)
+
+Un overlay MAISON (`role="dialog"` : menu latéral, feuilles, modales) **doit**
+se fermer sur le bouton retour matériel Android, sinon l'app se ferme
+(brutal). Ionic gère le retour via l'événement DOM `ionBackButton` (registre
+priorisé) mais **ne voit pas** ces overlays maison. Toute nouvelle feuille
+maison s'inscrit donc avec le hook `useHardwareBack(open, onClose)`
+(`src/hooks/useHardwareBack.ts`), adossé à la façade
+`src/platform/hardwareBack.ts` (priorité 110, au-dessus des overlays Ionic et
+du routeur). Le hook est un no-op sur le web.
+
 ### Permissions et erreurs (rappel, phases A2/A4)
 
 Aucune demande de permission hors `PermissionService`, jamais au démarrage

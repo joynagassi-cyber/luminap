@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, X, Trash2, Edit3 } from "lucide-react";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import BottomNav from "@/components/BottomNav";
 import TopHeader from "@/components/TopHeader";
 import { customFieldRepo, customFieldValueRepo } from "@/lib/customFields";
@@ -48,6 +49,7 @@ export default function CustomFields() {
   // première lecture (sinon on annonce un fait faux pendant le chargement).
   const [fieldsLoaded, setFieldsLoaded] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
+  useHardwareBack(showCreate, () => setShowCreate(false));
   const [entityType, setEntityType] = useState("Transaction");
   const [key, setKey] = useState("");
   const [label, setLabel] = useState("");
