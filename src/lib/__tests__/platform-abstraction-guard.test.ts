@@ -40,13 +40,18 @@ function walk(dir: string): string[] {
 const toRel = (abs: string) => relative(root, abs).split(sep).join("/");
 
 /** Couche plateforme : SEUL endroit autorisé à toucher les API natives. */
-const PLATFORM_LAYERS = ["src/adapters/native/", "src/platform/"];
+const PLATFORM_LAYERS = [
+  "src/adapters/native/",
+  "src/platform/",
+  "src/lib/download.ts", // façade de sortie fichier (bug P0-2 : <a download> muet)
+];
 
 /**
  * Motifs d'usage direct d'une API web à comportement natif divergent :
  * - réseau : `navigator.onLine` peu fiable en WebView Android ;
  * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView ;
- * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`).
+ * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`) ;
+ * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob`.
  */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,
@@ -55,6 +60,7 @@ const PATTERNS: RegExp[] = [
   /window\.open\s*\(/,
   /target=\{?["']_blank["']\}?/,
   /navigator\.share\b/,
+  /\.download\s*=/,
 ];
 
 /**
@@ -87,13 +93,14 @@ function stripComments(src: string): string {
 describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dérive)", () => {
   const detected = scanDirectSites();
 
-  it("aucun NOUVEAU site ne lit navigator.onLine / online-offline en direct", () => {
+  it("aucun NOUVEAU site n'utilise une API web divergente en direct", () => {
     const nouveaux = [...detected].filter((f) => !KNOWN_DIRECT_SITES.has(f));
     expect(
       nouveaux,
       `Nouveau(x) site(s) hors couche plateforme. Passer par la façade : ` +
-        `src/platform/networkState (réseau), openExternal (liens) ou shareLink ` +
-        `(partage) (cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement ` +
+        `src/platform/networkState (réseau), openExternal (liens), shareLink ` +
+        `(partage) ou downloadBlob (sortie fichier) ` +
+        `(cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement ` +
         `de dette, mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
     ).toEqual([]);
   });
