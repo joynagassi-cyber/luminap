@@ -235,3 +235,11 @@ tranchée : pile unique, BottomNav maison).
   avec tous les états. Tests de comportement (19 tests ciblés). La baseline
   ratchet a été re-figée pour absorber uniquement les 3 hex du violet
   (merge #424) : 465 littéraux, toujours 0 nouveau depuis.
+- P2 lot 2 : **LuCard** (surface / inverse / accent / glass avec repli
+  surface-2 en effects=lite / stat / tile cliquable clavier), **LuAmount**
+  (Intl fr-FR, XOF sans décimales, signe − U+2212, décimales en
+  --lu-fg-subtle, tabular-nums, tailles display 44 / amount-lg 36),
+  **LuField** (label au-dessus DANS le champ, h 56, états
+  focus/erreur/disabled/readonly, message sous le champ), **LuSegmented**
+  (indicateur animé 200 ms, état = classe sur l'hôte + aria-selected,
+  variante signed income/expense). Entrées Design Lab + 16 tests.
