@@ -5106,3 +5106,24 @@ partagée par les deux plateformes et couverte par 3 tests.
   de `supabase_admin`). Les grants d'écriture d'`anon` y sont **inertes** (aucune policy
   d'écriture anon sur `storage`). À régulariser côté plateforme si l'on veut clore.
 - **Garde** : `migration-anon-write-revocation-r172.test.ts`.
+
+### R173 — `has_permission` : branche `group_member` non liée au demandeur — ✅ CORRIGÉ (latent)
+- **Gravité** : MOYENNE en principe (octroi de privilège), **latente** en pratique.
+- **Défaut** : dans `has_permission` (prédicat RBAC central, SECURITY DEFINER), la
+  branche `group_member` résolvait `g.subject_id IN (SELECT gm.id FROM
+  group_memberships gm JOIN members mm ON mm.id = gm.member_id WHERE mm.org_id = p_org)`
+  **sans jamais contraindre `mm.id = p_uid`**. Une autorisation ciblant un membership
+  de groupe accordait donc la permission à **tous** les membres de l'organisation
+  (élévation horizontale), au lieu du seul titulaire.
+- **Pourquoi latent** (mesuré 2026-11-04) : `grants` est **vide** (0 ligne → aucun
+  grant `group_member`) ; `group_memberships` est **vide** ; aucun `members.id` ne
+  correspond à un profil. La convention de liaison est `members.id = user_id`
+  (cf. `settle_invitation_claim` qui insère `members.id = resulting_user_id`), ce qui
+  rend le correctif `mm.id = p_uid` cohérent.
+- **Le risque** : dès qu'un grant `group_member` serait créé, le privilège fuiterait
+  à toute l'organisation.
+- **Correctif (migration `20261104000013`, réversible)** : la branche devient
+  `EXISTS (SELECT 1 FROM group_memberships gm JOIN members mm ON mm.id = gm.member_id
+  WHERE gm.id::text = g.subject_id AND mm.org_id = p_org AND mm.id = p_uid::text)`.
+  Garde `PREDICATE_UID_MISMATCH` (R170) conservée.
+- **Garde** : `migration-has-permission-group-member-r173.test.ts`.
