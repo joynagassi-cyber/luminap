@@ -31,9 +31,10 @@
  * filtre local sur les ids + `getDocumentUrl` pour chaque → cards
  * miniatures (titre + icône par `mime_type`).
  *
- * Bouton « Partager » : `navigator.share` (Web Share API) sur l'URL
- * signée du rapport (si `pdf_path`) ou le contenu JSON (si pas de
- * fichier) — fallback `navigator.clipboard` si `share` est absent.
+ * Bouton « Partager » : feuille système via la façade `shareLink`
+ * (natif = @capacitor/share, web = Web Share API) sur l'URL signée du
+ * rapport (si `pdf_path`) ou le contenu JSON — repli `navigator.clipboard`
+ * quand aucun canal de partage n'est disponible.
  *
  * Tokens Lumina uniquement (zéro couleur brute). Non-régression : la
  * page n'impacte ni `CentralAdmin.tsx` ni `OrgReportSend.tsx` (le
@@ -85,6 +86,7 @@ import PdfPreview from "@/components/PdfPreview";
 import { downloadBlob } from "@/lib/download";
 import { showError } from "@/utils/toast";
 import { openExternal } from "@/platform/openExternal";
+import { shareLink } from "@/platform/shareLink";
 
 /** Vue locale d'un rapport `org_reports` (PowerSync — snake_case). */
 interface OrgReportRow {
@@ -326,7 +328,7 @@ export default function OrgReportDetail() {
     ? `${report.title}.${report.format}`
     : `rapport-${report.period_start}-${report.format}`;
 
-  // Bouton « Partager » (Web Share API ou fallback clipboard).
+  // Bouton « Partager » : feuille système (natif = @capacitor/share) ou repli clipboard.
   const handleShare = async () => {
     if (!report) return;
     setShareState("idle");
@@ -335,16 +337,17 @@ export default function OrgReportDetail() {
       if (report.pdf_path) {
         shareUrl = await getReportUrl(report.pdf_path);
       }
-      if (shareUrl && typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({
-          title: report.title,
-          text: `Rapport de gestion ${report.period_start} → ${report.period_end} (${report.format.toUpperCase()})`,
-          url: shareUrl,
-        });
+      const outcome = await shareLink({
+        title: report.title ?? undefined,
+        text: `Rapport de gestion ${report.period_start} → ${report.period_end} (${report.format.toUpperCase()})`,
+        url: shareUrl ?? undefined,
+        dialogTitle: "Partager le rapport",
+      });
+      if (outcome === "shared") {
         setShareState("shared");
         return;
       }
-      // Fallback : copier l'URL signée ou le contenu JSON.
+      // Aucun canal de partage (web sans Web Share) : copier l'URL ou le contenu.
       const payload = shareUrl ?? report.content;
       if (typeof navigator !== "undefined" && navigator.clipboard) {
         await navigator.clipboard.writeText(payload);
@@ -353,8 +356,11 @@ export default function OrgReportDetail() {
       }
       setShareState("error");
     } catch (e: unknown) {
-      // `AbortError` = l'utilisateur a annulé le partage — pas une erreur.
-      if (e instanceof Error && e.name === "AbortError") {
+      // Partage annulé par l'utilisateur (AbortError web / « cancel » natif).
+      if (
+        (e instanceof Error && e.name === "AbortError") ||
+        /cancel/i.test(String((e as Error)?.message ?? ""))
+      ) {
         setShareState("idle");
         return;
       }

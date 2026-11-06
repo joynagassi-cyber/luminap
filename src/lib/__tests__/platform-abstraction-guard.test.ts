@@ -45,7 +45,8 @@ const PLATFORM_LAYERS = ["src/adapters/native/", "src/platform/"];
 /**
  * Motifs d'usage direct d'une API web à comportement natif divergent :
  * - réseau : `navigator.onLine` peu fiable en WebView Android ;
- * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView.
+ * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView ;
+ * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`).
  */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,
@@ -53,6 +54,7 @@ const PATTERNS: RegExp[] = [
   /addEventListener\(\s*["'](?:online|offline)["']/,
   /window\.open\s*\(/,
   /target=\{?["']_blank["']\}?/,
+  /navigator\.share\b/,
 ];
 
 /**
@@ -90,9 +92,9 @@ describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dériv
     expect(
       nouveaux,
       `Nouveau(x) site(s) hors couche plateforme. Passer par la façade : ` +
-        `src/platform/networkState (réseau) ou src/platform/openExternal (liens) ` +
-        `(cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement de dette, ` +
-        `mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
+        `src/platform/networkState (réseau), openExternal (liens) ou shareLink ` +
+        `(partage) (cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement ` +
+        `de dette, mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
     ).toEqual([]);
   });
 

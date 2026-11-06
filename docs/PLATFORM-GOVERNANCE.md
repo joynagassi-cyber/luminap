@@ -210,12 +210,14 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
 
 - Créer/valider `src/platform/` (ou généraliser `src/adapters/native/`) exposant
   `network`, `storage`, `notifications`, `filesystem`, `haptics`, `keyboard`,
-  `app-state`, `external-links`.
+  `app-state`, `external-links`, `share`.
 - **Interdire** les API navigateur à comportement natif divergent dans `src/`
   **hors** de la couche plateforme (guard de scan) :
   - réseau : `navigator.onLine`, `navigator.connection`, `online`/`offline` ;
   - ouverture de lien : `window.open`, `target="_blank"` (no-op en WebView) →
-    façade `src/platform/openExternal.ts` (`@capacitor/browser` sur natif).
+    façade `src/platform/openExternal.ts` (`@capacitor/browser` sur natif) ;
+  - partage : `navigator.share` (absent de la WebView) →
+    façade `src/platform/shareLink.ts` (`@capacitor/share` sur natif).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
@@ -248,7 +250,7 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 | # | Chantier | Pourquoi | Effort | Preuve de réussite |
 |---|---|---|---|---|
 | 1 | ✅ **Geler la doc** : `docs/archive/` créé, 11 snapshots « terminés » archivés, `AGENTS.md` vérifié exact | Stoppe la dérive, réduit le bruit | fait | `docs/*.md` 48→37 ; archive documentée |
-| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau) **et** `openExternal` (liens) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
+| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau), `openExternal` (liens) **et** `shareLink` (partage) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank`/`navigator.share` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
 | 3 | ~~**Maestro en CI** sur APK debug~~ **Écarté** (décision utilisateur 2026-11-06) | — | — | — |
 | 4 | **Adoption Ionic « d'abord »** écran par écran (feuilles, pull-to-refresh, haptique, transitions) | Ressenti natif | continu | Ratio `<IonButton>/<button>` en hausse ; 0 régression |
 | 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test/vérif appareil |
