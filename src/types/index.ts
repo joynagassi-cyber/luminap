@@ -86,7 +86,8 @@ export type OrgUnit = {
   description: string;
   orgId: string;
   isActive: boolean;
-  // Local-only enrichment (org_units has no updated_at column in the DB).
+  // Local-only enrichment ; `updated_at` n'existe pas côté PostgreSQL (0002)
+  // et n'est plus écrit par `addOrgUnit` (cf. R184).
   updatedAt?: string;
 };
 

@@ -188,18 +188,17 @@ describe("restauration au remontage", () => {
     await waitFor(() => expect(result.current.config.churchName).toBe("Nom Enregistré"));
   });
 
-  it("CARACTÉRISATION (R3) : le champ « nom d'organisation » ne se restaure PAS au remontage (valeur capturée au 1er rendu, jamais resynchronisée)", async () => {
+  it("CORRIGÉ (R48) : le nom d'organisation SE RESTAURE dès le 1er rendu (lecture synchrone du storage)", async () => {
     localStorage.setItem(
       CONFIG_KEY,
       JSON.stringify({ churchName: "Nom Enregistré", churchLogoUrl: "", userPhoto: "" }),
     );
     render(<SettingsPersonalisation />);
     const el = document.getElementById("org-name") as HTMLInputElement;
-    // Le hook `useAppConfig` charge le storage APRÈS le 1er rendu ; la page a
-    // figé `churchName` dans un `useState` initialisé au 1er rendu (vide) et ne
-    // resynchronise jamais. Le nom enregistré n'apparaît donc pas.
-    await waitFor(() => expect(h.exec).not.toHaveBeenCalled()); // laisse passer l'effet
-    expect(el.value).toBe("");
+    // `useAppConfig` lit `lumina-config` de façon SYNCHRONE à l'initialisation :
+    // la page capture donc la valeur enregistrée dès le 1er rendu (avant, l'état
+    // partait de "" puis était resynchronisé après coup → champ vide).
+    expect(el.value).toBe("Nom Enregistré");
   });
 });
 

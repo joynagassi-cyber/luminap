@@ -17,6 +17,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const require2 = createRequire(import.meta.url);
 
+// Charge `.env.local` (gitignoré) : les identifiants du compte E2E n'ont plus
+// de valeur par défaut COMMITÉE (R-B — le littéral en clair dans le dépôt
+// public servait de mot de passe réel). Priorité : vraie variable
+// d'environnement > `.env.local` > chaîne vide (le spec échoue clairement).
+function loadEnvLocal() {
+  const file = path.join(projectRoot, '.env.local');
+  if (!fs.existsSync(file)) return;
+  for (const line of fs.readFileSync(file, 'utf8').split('\n')) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/.exec(line);
+    if (!m) continue;
+    const [, key, rawVal] = m;
+    if (process.env[key] !== undefined) continue;
+    process.env[key] = rawVal.replace(/^["']|["']$/g, '');
+  }
+}
+loadEnvLocal();
+
 // Same defaults as cypress/run.sh — env vars win when set.
 const DEFAULTS = {
   CYPRESS_BASE_URL: process.env.CYPRESS_BASE_URL || 'https://lumina-76un.onrender.com',
@@ -29,11 +46,13 @@ const DEFAULTS = {
     process.env.CYPRESS_POWERSYNC_URL ||
     'https://6a9dd96302481fb31b945823.powersync.journeyapps.com',
   CYPRESS_ORG_EMAIL: process.env.CYPRESS_ORG_EMAIL || 'lumina-org-e2e@lumina.dev',
-  CYPRESS_ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || 'E2e-Lumina!1',
+  // R-B : plus de mot de passe en clair — fournir CYPRESS_ORG_PASSWORD
+  // (env ou .env.local). Vide = le spec d'auth échoue explicitement.
+  CYPRESS_ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || '',
   CYPRESS_ORG_UNCONFIGURED_EMAIL:
     process.env.CYPRESS_ORG_UNCONFIGURED_EMAIL || 'lumina-org-unconfigured@lumina.dev',
   CYPRESS_ORG_UNCONFIGURED_PASSWORD:
-    process.env.CYPRESS_ORG_UNCONFIGURED_PASSWORD || 'E2e-Unconfigured!1',
+    process.env.CYPRESS_ORG_UNCONFIGURED_PASSWORD || '',
 };
 
 // --- Resolve cypress CLI (pnpm shims swallow argv — run the real bin

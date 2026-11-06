@@ -67,10 +67,14 @@ export interface OrgCreds {
   password: string;
 }
 
-/** Identité par défaut — override par CYPRESS_ORG_* dans cypress.config.ts. */
+/** Identité par défaut — override par CYPRESS_ORG_* dans cypress.config.ts.
+ *  R-B : `password` n'a PLUS de défaut en clair (le littéral commité dans le
+ *  dépôt public servait de mot de passe réel). Il vient de
+ *  `CYPRESS_ORG_PASSWORD` (expose → env / .env.local). Vide = login échoue
+ *  explicitement plutôt que d'utiliser un secret divulgué. */
 const DEFAULT_ORG: OrgCredentials = {
   email: 'lumina-org-e2e@lumina.dev',
-  password: 'E2e-Lumina!1',
+  password: '',
   orgName: 'Lumina E2E',
   orgType: 'Église',
   role: 'PASTEUR_PRINCIPAL',
@@ -123,7 +127,8 @@ export function getOrgCredentials(): OrgCredentials {
 export function getUnconfiguredOrgCredentials(): OrgCredentials {
   const main = getOrgCredentials();
   let email = 'lumina-org-unconfigured@lumina.dev';
-  let password = 'E2e-Unconfigured!1';
+  // R-B : plus de mot de passe en clair (vient de CYPRESS_ORG_UNCONFIGURED_PASSWORD).
+  let password = '';
   try {
     const e = Cypress.expose('ORG_UNCONFIGURED_EMAIL');
     const p = Cypress.expose('ORG_UNCONFIGURED_PASSWORD');

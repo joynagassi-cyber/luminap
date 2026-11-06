@@ -382,23 +382,35 @@ export class InvitationService {
     // Le profil Auth existe déjà (créé par `handle_new_user` au signup). On le
     // passe PENDING SANS toucher role/org_id (gardes ROLE/ORG_IMMUTABLE) : le
     // trigger de règlement réconciliera le rôle et l'organisation de
-    // l'invitation. UPSERT : si la ligne n'est pas encore visible localement,
-    // l'INSERT pose les valeurs par défaut tolérées (role MEMBRE, org
-    // `__no_org__` — miroir exact de `handle_new_user`).
-    await db.execute(
-      `INSERT INTO profiles (
-        id, email, first_name, last_name, role, org_id, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, 'MEMBRE', '__no_org__', 'PENDING', ?, ?)
-      ON CONFLICT (id) DO UPDATE SET status = 'PENDING', updated_at = excluded.updated_at`,
-      [
-        userId,
-        session?.user?.email ?? `pending-${userId.slice(0, 8)}@lumina.local`,
-        "",
-        "",
-        now,
-        now,
-      ],
+    // l'invitation. PowerSync expose `profiles` comme une VUE → pas d'`ON
+    // CONFLICT` (« cannot UPSERT a view », cf. E7) : SELECT puis UPDATE-ou-INSERT.
+    // Si la ligne n'est pas encore visible localement, l'INSERT pose les valeurs
+    // par défaut tolérées (role MEMBRE, org `__no_org__` — miroir exact de
+    // `handle_new_user`).
+    const existingProfile = await db.execute(
+      "SELECT id FROM profiles WHERE id = ?",
+      [userId],
     );
+    if ((existingProfile?.array?.length ?? 0) > 0) {
+      await db.execute(
+        "UPDATE profiles SET status = 'PENDING', updated_at = ? WHERE id = ?",
+        [now, userId],
+      );
+    } else {
+      await db.execute(
+        `INSERT INTO profiles (
+          id, email, first_name, last_name, role, org_id, status, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 'MEMBRE', '__no_org__', 'PENDING', ?, ?)`,
+        [
+          userId,
+          session?.user?.email ?? `pending-${userId.slice(0, 8)}@lumina.local`,
+          "",
+          "",
+          now,
+          now,
+        ],
+      );
+    }
 
     // Create the claim (resulting_user_id = auth.uid())
     const claimId = await claimInvitationPS(

@@ -408,6 +408,44 @@ squelette `loading` que le crawler accepte : **aucun écran noir**. La suite res
 donc un excellent détecteur de régression **UI/routage/rendu**, mais pas de
 synchronisation.
 
+## Purger les artefacts E2E (R-A)
+
+La suite Cypress tourne contre la base de **production** et crée, à chaque run,
+des comptes `ss-e2e-*@lumina.dev` et des organisations `Self-Serve E2E %` /
+`Annexe %`. Le nettoyage côté spec (`cy.cleanupTestArtifacts`) est **non fatal**
+et n'efface **ni** les organisations **ni** les `auth.users` : sans balayage, la
+pollution est illimitée (mesuré le 2026-11-04 : **262 orgs vides + 97 comptes**,
+265 orgs au total).
+
+Outillage :
+
+- `scripts/e2e-purge.sql` — purge atomique et **idempotente** (orgs E2E +
+  comptes `ss-e2e-*`), désactive puis **réactive** le trigger « dernier
+  administrateur ». Ne touche **jamais** aux comptes/orgs partagés
+  (`lumina-org-e2e@lumina.dev`, `lumina-org-unconfigured@lumina.dev`) ni aux
+  organisations réelles.
+- `scripts/e2e-purge.sh` — exécute le SQL via l'API Management
+  (`SUPABASE_ACCESS_TOKEN`, service token).
+- `.github/workflows/e2e-purge.yml` — déclenché **après chaque run** de
+  « Cypress Tests » (`workflow_run`) + **filet quotidien** (04:30 UTC).
+
+Mise en service (une fois) : *Settings → Secrets and variables → Actions* →
+`SUPABASE_ACCESS_TOKEN` (service token Supabase). Tant que le secret est absent,
+le workflow avertit sans échouer (comme `backup.yml`).
+
+Purge manuelle :
+
+```bash
+SUPABASE_ACCESS_TOKEN=<service-token> pnpm run e2e:purge
+```
+
+> ⚠️ **Pansement, pas isolation.** La vraie isolation (R-A) est un **projet
+> Supabase de TEST dédié** pour la CI. Les workflows préfèrent déjà les secrets
+> `TEST_SUPABASE_URL` / `TEST_SUPABASE_ANON_KEY` / `TEST_POWERSYNC_URL` (repli
+> prod tant qu'ils n'existent pas). Provisionner ce projet exige un **token
+> Management ayant une organisation** (le token actuel n'en liste aucune) — voir
+> `docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md` § R-A.
+
 ## Vérifier le type (piège de l'environnement)
 
 - **`npx tsc --noEmit` ne vérifie RIEN** dans ce dépôt : `tsconfig.json` a

@@ -195,12 +195,19 @@ Source : `docs/agent/RISQUES.md`.
 | Risque | Sujet | Statut |
 |---|---|---|
 | **R104** | Protection des mots de passe compromis (HaveIBeenPwned) désactivée — `auth_leaked_password_protection` (advisor WARN). Non activable sur le plan Free (« available on Pro Plans and up »). | **OUVERT** (escalade propriétaire) |
-| **R109** | Rôle `ADMIN` présent en données/RLS mais absent du modèle TS → le compte admin central n'a **aucun** droit `has_permission`. Choix de modèle de rôles non tranché. | **OUVERT** (décision propriétaire) |
-| **R107** | `needs-membership` (et `forbidden`) déclarés mais **inertes** : `App.tsx` n'alimente pas `isOrgMember`/`hasPermission` → défense en profondeur côté client absente. | **OUVERT** (dépend R109/R16) |
-| **R16** | `profiles.role` et `org_memberships.role` divergent (deux sources de vérité du rôle). | **OUVERT** |
+| **R109** | Rôle `ADMIN` **tranché = 15e rôle canonique** (décision propriétaire 2026-10-29, migration `20261029000001`) : présent dans `Role` TS + `PERMISSION_MATRIX` (29 perms) + `role_permissions` (29 lignes, mesuré via MCP). Garde `role-model-drift.test.ts`. | **CORRIGÉ** |
+| **R107** | `needs-membership`/`forbidden` désormais **alimentés** : `App.tsx` fournit `isOrgMember` (via `useOrgMembership`) et `hasPermission` (via `roleHasPermission`) au routeur. | **CORRIGÉ** |
+| **R16** | `profiles.role` ↔ `org_memberships.role` : **tranché** — source de vérité d'**autorisation** = `org_memberships.role` (2026-11-04) ; données actuelles cohérentes ; risque structurel documenté. | **TRANCHÉ** |
 | **R18** | Aucune sauvegarde ni PITR sur le projet Supabase. | **OUVERT** (critique) |
-| **R80** | Le stream `profiles` ne synchronise que le profil de l'utilisateur connecté (choix assumé, D-S6-1). | **OUVERT** (moyenne) |
-| **R97** | Advisors `rls_enabled_no_policy` : 2 tables *deny-all* volontaires (`keep_alive`, `_jsonb_backfill_20261024`) — non modifiées (D-S9-4). | **ASSUMÉ** |
+| **R80** | Stream `profiles` org-wide : profil propre ∪ `org_memberships` ACTIVE/PENDING ∪ `org_admins` ACTIVE (soumetteur résolu). **Confirmé conforme (2026-11-04, re-vérifié via MCP).** | **CORRIGÉ** |
+| **R170** | Oracle d'appartenance/rôle : `is_org_member`/`is_org_admin`/`has_permission`/`can_manage_invitations`/`org_descendants` acceptaient un `uid` arbitraire (RPC `authenticated`) — **corrigé** : garde `uid = initplan_uid()` (`42501`), exemption trigger pour `can_manage_invitations`. | **CORRIGÉ** |
+| **R169** | Erratum modèle de menace : PowerSync écrit en rôle `authenticated` (clé anon + JWT, RLS **appliquée**), **pas** en `service_role`. R164/R166/R167 restent valides (barrière pour appelant PostgREST direct / clé service_role fuitée). | **DOCUMENTÉ** |
+| **R167** | Journal d'audit `audit_entries` non append-only au niveau trigger (R140 ne couvrait que la RLS, contournable en service_role) — **corrigé** : trigger `guard_audit_entries_append_only` (`BEFORE UPDATE OR DELETE`, `23514`, REVOKE R115). | **CORRIGÉ** |
+| **R166** | Statut d'un événement terminal (COMPLETED/CANCELLED) modifiable par `UPDATE` (garde client-only) — **corrigé** : trigger `guard_event_status_terminal` (`BEFORE UPDATE`, bloque le changement de statut, `23514`, REVOKE R115). | **CORRIGÉ** |
+| **R165** | Stream PowerSync `invitations`/`invitation_claims` excluait `ADMIN` (pourtant `invitation:manage`) → écran vide pour l'ADMIN. **Corrigé** + redéployé ; garde `sync-stream-invitation-roles-r165`. | **CORRIGÉ** |
+| **R164** | Transaction `APPROVED` modifiable par `UPDATE` (garde client-only, base ne couvrait que le DELETE) — **corrigé** : trigger `guard_approved_transaction_update` (`BEFORE UPDATE`, refuse toute modif d'une ligne APPROVED, `23514`, REVOKE R115). | **CORRIGÉ** |
+| **R163** | `onesignal-notify` : injection de push cross-tenant (ciblage non vérifié) — **corrigé** : cloisonnement forcé à l'org de l'appelant (`isMemberOfOrg` + `effectiveOrgId` toujours scoppé), déployé **v20**. | **CORRIGÉ** |
+| **R97** | Advisors `rls_enabled_no_policy` : **5** tables *deny-all* volontaires (RLS activée, aucune policy ⇒ refus par défaut) : `keep_alive`, `_jsonb_backfill_20261024`, `_jsonb_null_literal_20261027`, `error_report_dedupe`, `error_report_throttle`. Non modifiées (D-S9-4). | **ASSUMÉ** |
 
 Risques **corrigés** (pour mémoire) : R100 (code d'invitation CSPRNG), R101/R102
 (triggers finance), R103 (escalade RPC), R111 (claim ↔ `auth.users`), R113

@@ -85,3 +85,23 @@ describe("R109 — modèle de rôles (anti-dérive TS ↔ DB)", () => {
     expect(adminPerms.size).toBeGreaterThanOrEqual(union.size);
   });
 });
+
+describe("R16/R62 — source de vérité du rôle d'AUTORISATION (anti-dérive)", () => {
+  // Décision tranchée (2026-11-04, audit backend LIVE) : l'autorité est
+  // `org_memberships.role` (rôle dans l'organisation). `profiles.role` est un
+  // cache d'affichage lu par l'UI (`useCurrentUser`), PAS une source
+  // d'autorisation. `has_permission` ne doit JAMAIS lire `profiles.role`.
+  const sql = readFileSync(
+    resolve(repoRoot, "supabase/migrations/20261026000002_rbac_has_permission.sql"),
+    "utf8",
+  );
+
+  it("has_permission résout le rôle canonique via org_memberships", () => {
+    expect(sql).toMatch(/FROM public\.org_memberships m/);
+    expect(sql).toMatch(/rp\.role = m\.role/);
+  });
+
+  it("has_permission ne lit JAMAIS profiles.role (pas de double autorité)", () => {
+    expect(sql).not.toMatch(/profiles[\s\S]{0,80}\.role/);
+  });
+});

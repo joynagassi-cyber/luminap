@@ -9,7 +9,7 @@ set -e
 APP_ID="com.lumina.mfejc"
 KS="android/app/release.keystore"
 ALIAS="lumina-release"
-PASS="lumina1234"
+PASS="${LUMINA_KEYSTORE_PASSWORD:-lumina1234}"
 
 mkdir -p android/app
 

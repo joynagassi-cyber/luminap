@@ -66,6 +66,72 @@ function fail(status: number, message: string) {
 
 type OSFilter = Record<string, string>;
 
+/** Type minimal du client admin (évite d'importer le type Supabase en Deno). */
+type AdminClient = ReturnType<typeof createClient>;
+
+/**
+ * L'appelant est-il ADMIN CENTRAL ? Deux chemins (cf. R-D) :
+ *   1. grant `org_admins` ACTIVE sur `org-central` ;
+ *   2. `profiles.role='ADMIN'` rattaché à `org-central`.
+ * NE PAS élargir à « ADMIN d'une org racine » : toute église self-serve a
+ * `parent_org_id IS NULL`, ce critère autoriserait un admin d'église à diffuser
+ * à TOUS les tenants (escalade mesurée).
+ */
+async function isCentralAdmin(admin: AdminClient, userId: string): Promise<boolean> {
+  const { data: grants } = await admin
+    .from("org_admins")
+    .select("id")
+    .eq("admin_profile_id", userId)
+    .eq("org_id", "org-central")
+    .eq("status", "ACTIVE")
+    .limit(1);
+  if ((grants?.length ?? 0) > 0) return true;
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("role, org_id")
+    .eq("id", userId)
+    .maybeSingle();
+  return prof?.role === "ADMIN" && prof?.org_id === "org-central";
+}
+
+/**
+ * L'appelant appartient-il à `orgId` ? Miroir serveur de `is_org_member` :
+ * `profiles.org_id` (org primaire) ∪ `org_memberships` ACTIVE/PENDING ∪
+ * `org_admins` ACTIVE. Couvre le cas multi-org (membre d'une org secondaire).
+ */
+async function isMemberOfOrg(
+  admin: AdminClient,
+  userId: string,
+  orgId: string | undefined | null,
+): Promise<boolean> {
+  if (!orgId || orgId === "__no_org__" || orgId === "no-org") return false;
+
+  const { data: prof } = await admin
+    .from("profiles")
+    .select("org_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (prof?.org_id === orgId) return true;
+
+  const { data: memberships } = await admin
+    .from("org_memberships")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("org_id", orgId)
+    .in("status", ["ACTIVE", "PENDING"])
+    .limit(1);
+  if ((memberships?.length ?? 0) > 0) return true;
+
+  const { data: grants } = await admin
+    .from("org_admins")
+    .select("id")
+    .eq("admin_profile_id", userId)
+    .eq("org_id", orgId)
+    .eq("status", "ACTIVE")
+    .limit(1);
+  return (grants?.length ?? 0) > 0;
+}
+
 /**
  * Build the OneSignal v2 `filters` array from targetRole / targetUserId / orgId.
  *
@@ -154,19 +220,53 @@ serve(async (req) => {
     const message = String(body?.message ?? "").trim();
     if (!title || !message) return fail(400, "title et message sont requis");
 
-    const filters = buildFilters(body?.targetRole, body?.targetUserId, body?.orgId);
+    // 2bis. Autorisation de l'envoi.
+    //
+    // CLOISONNEMENT PAR ORGANISATION (correctif R163) : l'appelant ne peut
+    // cibler QUE les organisations dont il est membre, et le filtre envoyé à
+    // OneSignal est TOUJOURS scoppé à une organisation. Sans cette garde, tout
+    // utilisateur authentifié pouvait forger `{ targetRole: "TREASURIER" }`
+    // SANS `orgId` et déclencher un push sur les trésoriers de TOUS les tenants
+    // (hameçonnage / injection de notification inter-organisations).
+    //
+    // Règle :
+    //   • non admin central → l'org cible = `orgId` fourni (appartenance
+    //     vérifiée) sinon l'org PRIMAIRE de l'appelant ; absente → 403. Le
+    //     filtre OneSignal inclut toujours `org_id` (jamais de ciblage nu).
+    //   • admin central → ciblage libre (toute org, ou broadcast « All »).
+    const { data: callerProfile } = await admin
+      .from("profiles")
+      .select("org_id")
+      .eq("id", userId)
+      .maybeSingle();
+    const callerOrgId =
+      typeof callerProfile?.org_id === "string" &&
+      callerProfile.org_id &&
+      callerProfile.org_id !== "__no_org__" &&
+      callerProfile.org_id !== "no-org"
+        ? callerProfile.org_id
+        : null;
+
+    const central = await isCentralAdmin(admin, userId);
+
+    let effectiveOrgId: string | undefined = body?.orgId;
+    if (!central) {
+      const targetOrg = body?.orgId ?? callerOrgId ?? undefined;
+      if (!targetOrg) {
+        return fail(403, "Organisation requise pour cibler");
+      }
+      if (!(await isMemberOfOrg(admin, userId, targetOrg))) {
+        return fail(403, "Ciblage limité à vos organisations");
+      }
+      effectiveOrgId = targetOrg;
+    }
+
+    const filters = buildFilters(body?.targetRole, body?.targetUserId, effectiveOrgId);
     if (!filters) {
-      // No targeting at all → OneSignal would broadcast to "All" (every tenant).
-      // Only a CENTRAL admin (org_id "org-central") may do that; an org admin
-      // must scope their push to a role, a user or their own organisation.
-      const { data: grants } = await admin
-        .from("org_admins")
-        .select("id")
-        .eq("admin_profile_id", userId)
-        .eq("org_id", "org-central")
-        .eq("status", "ACTIVE")
-        .limit(1);
-      if (!grants || grants.length === 0) {
+      // Aucun ciblage → OneSignal diffuserait à « All » (tous les tenants).
+      // Réservé à un admin CENTRAL : un admin d'organisation doit scoper son
+      // push à un rôle, un utilisateur ou sa propre organisation.
+      if (!central) {
         return fail(403, "Ciblage requis (rôle, utilisateur ou organisation)");
       }
     }

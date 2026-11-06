@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Building2, Check, ImageIcon, AlertCircle } from "lucide-react";
 import SettingsShell from "@/components/SettingsShell";
-import { useAppConfig, useCurrentUser, renameOrganizationPS } from "@/lib/dataLayer";
+import { useAppConfig, useCurrentUser, setOrganizationBrandingPS } from "@/lib/dataLayer";
 import { uploadLuminaFile } from "@/lib/storageService";
 import { supabase } from "@/integrations/supabase/client";
 import { getOrganizationId, hasResolvedOrganization } from "@/lib/orgContext";
@@ -42,7 +42,13 @@ export default function SettingsPersonalisation() {
         return;
       }
       try {
-        await renameOrganizationPS(getOrganizationId(), churchName.trim());
+        await setOrganizationBrandingPS(getOrganizationId(), {
+          name: churchName.trim(),
+          // R48 : le logo est désormais persisté EN BASE (partagé), et non plus
+          // seulement dans `lumina-config`. `""` efface volontairement le logo ;
+          // `undefined` (état initial) le laisse inchangé.
+          ...(churchLogo ? { logoUrl: churchLogo } : {}),
+        });
       } catch (e: any) {
         setSaving(false);
         setError(

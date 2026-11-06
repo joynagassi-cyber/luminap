@@ -22,11 +22,13 @@ vi.mock("@/lib/orgContext", () => ({
 
 // Mock PowerSync — mirrors the shape used by resource.test.ts.
 // index.ts writes:
-//   registerOrg → INSERT INTO organizations (id, name, 'CHURCH', 'ACTIVE', ?, ?)
-//                ON CONFLICT (id) DO UPDATE SET name = excluded.name, ...
+//   registerOrg → SELECT id FROM organizations WHERE id = ?  puis
+//                 UPDATE organizations SET name=?, updated_at=? WHERE id=?
+//                 ou INSERT INTO organizations (id, name, 'CHURCH', 'ACTIVE', ?, ?)
+//                 (pattern vue-safe, cf. E7 : pas d'ON CONFLICT sur une vue PS)
 //   addOrgUnit  → INSERT INTO org_units (id, name, type, org_id, description,
-//                                            is_active, created_at, updated_at)
-//                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+//                                            is_active, created_at)
+//                VALUES (?, ?, ?, ?, ?, ?, ?)
 //   removeOrgUnit → DELETE FROM org_units WHERE id = ? AND org_id = ?
 // Reads:
 //   getContext  → SELECT name FROM organizations WHERE id = ?
@@ -35,34 +37,25 @@ vi.mock("@/lib/orgContext", () => ({
 //   listOrgs    → SELECT id, name FROM organizations ORDER BY name
 const mockDb = {
   execute: async (sql: string, params: any[] = []) => {
-    const table = sql.match(/(?:FROM|INTO)\s+(\w+)/i)?.[1] ?? "unknown";
+    const table = sql.match(/(?:FROM|INTO|UPDATE)\s+(\w+)/i)?.[1] ?? "unknown";
     const data = mockRows[table] ?? (mockRows[table] = []);
 
     // ── INSERT ──
     if (/^\s*INSERT/i.test(sql)) {
-      if (sql.includes("ON CONFLICT")) {
-        // organizations upsert: params [id, name, created_at, updated_at]
-        const id = params[0];
-        const idx = data.findIndex((r: any) => r.id === id);
-        if (idx >= 0) {
-          data[idx] = {
-            ...data[idx],
-            name: params[1],
-            updated_at: params[3] ?? data[idx].updated_at,
-          };
-        } else {
-          data.push({
-            id,
-            name: params[1],
-            type: "CHURCH",
-            status: "ACTIVE",
-            created_at: params[2],
-            updated_at: params[3],
-          });
-        }
+      if (table === "organizations") {
+        // INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+        //   VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?) → params [id, name, now, now]
+        data.push({
+          id: params[0],
+          name: params[1],
+          type: "CHURCH",
+          status: "ACTIVE",
+          created_at: params[2],
+          updated_at: params[3],
+        });
       } else {
         // org_units: params [id, name, type, org_id, description, is_active,
-        //            created_at, updated_at]
+        //            created_at]
         data.push({
           id: params[0],
           name: params[1],
@@ -71,10 +64,21 @@ const mockDb = {
           description: params[4],
           is_active: params[5],
           created_at: params[6],
-          updated_at: params[7],
         });
       }
       return { array: [], rowsAffected: 1 };
+    }
+
+    // ── UPDATE ── (pattern vue-safe : UPDATE … SET … WHERE id = ?)
+    if (/^\s*UPDATE/i.test(sql)) {
+      // UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?
+      const id = params[params.length - 1];
+      const row = data.find((r: any) => r.id === id);
+      if (row) {
+        row.name = params[0];
+        row.updated_at = params[1];
+      }
+      return { array: [], rowsAffected: row ? 1 : 0 };
     }
 
     // ── DELETE ──

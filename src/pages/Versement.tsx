@@ -110,6 +110,7 @@ export default function Versement() {
 
       // Notify the treasurers that a versement was recorded
       notification.sendNotification({
+        actionType: "VERSEMENT_RECORDED",
         title: "Versement enregistré",
         message: `${amountNum.toLocaleString()} FCFA versés dans ${selectedCaisse}`,
         targetRole: "TREASURIER",

@@ -117,13 +117,25 @@ export class OrganizationService {
   async registerOrg(orgId: string, name: string): Promise<void> {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
-    // Use INSERT … ON CONFLICT (id) to keep the SQL canonical and idempotent.
-    await db.execute(
-      `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
-       VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)
-       ON CONFLICT (id) DO UPDATE SET name = excluded.name, updated_at = excluded.updated_at`,
-      [orgId, name, now, now],
+    // PowerSync expose les tables comme des VUES → `ON CONFLICT`/`INSERT OR
+    // REPLACE` échoue (« cannot UPSERT a view », cf. E7 / setOrgSetting). On
+    // fait donc SELECT puis UPDATE-ou-INSERT explicite.
+    const existing = await db.execute(
+      "SELECT id FROM organizations WHERE id = ?",
+      [orgId],
     );
+    if ((existing?.array?.length ?? 0) > 0) {
+      await db.execute(
+        "UPDATE organizations SET name = ?, updated_at = ? WHERE id = ?",
+        [name, now, orgId],
+      );
+    } else {
+      await db.execute(
+        `INSERT INTO organizations (id, name, type, status, created_at, updated_at)
+         VALUES (?, ?, 'CHURCH', 'ACTIVE', ?, ?)`,
+        [orgId, name, now, now],
+      );
+    }
   }
 
   /**
@@ -133,13 +145,12 @@ export class OrganizationService {
   async addOrgUnit(unit: OrgUnit): Promise<void> {
     const db = getPowerSyncDatabase();
     const now = new Date().toISOString();
-    // org_units: id TEXT PK (supabase/migrations/0002). The PS schema in
-    // src/lib/powersync/schema.ts omits id/description/is_active — align
-    // that schema before relying on the full column set in production.
+    // org_units : pas de colonne `updated_at` côté PostgreSQL (0002) — ne pas
+    // l'écrire (sinon « no such column » côté client PowerSync).
     await db.execute(
       `INSERT INTO org_units
-         (id, name, type, org_id, description, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, name, type, org_id, description, is_active, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         unit.id,
         unit.name,
@@ -147,7 +158,6 @@ export class OrganizationService {
         unit.orgId,
         unit.description ?? "",
         unit.isActive ? 1 : 0,
-        now,
         now,
       ],
     );

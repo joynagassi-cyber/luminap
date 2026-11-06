@@ -1,0 +1,71 @@
+name: Purge des artefacts E2E (R-A)
+
+# La suite Cypress tourne contre la base de PRODUCTION (cypress.yml) et crée
+# des comptes `ss-e2e-*@lumina.dev` + organisations `Self-Serve E2E %` /
+# `Annexe %` à chaque run. Le nettoyage côté spec (`cy.cleanupTestArtifacts`)
+# est NON FATAL et n'efface NI les organisations NI les `auth.users` : sans
+# balayage, la pollution est illimitée (mesuré le 2026-11-04 : 262 orgs vides
+# + 97 comptes, 265 orgs au total).
+#
+# Ce workflow exécute scripts/e2e-purge.sql :
+#   - après CHAQUE run de « Cypress Tests » (workflow_run) ;
+#   - une fois par jour (cron), filet de sécurité.
+#
+# MISE EN SERVICE (une fois, par le propriétaire) :
+#   Settings → Secrets and variables → Actions → New repository secret :
+#     SUPABASE_ACCESS_TOKEN = service token Supabase (jamais exposé au client)
+# Tant que le secret est absent, le workflow avertit et se termine sans échec
+# (comme backup.yml) pour ne pas rougir la CI.
+#
+# ⚠️ Ceci est un PANSEMENT. La vraie isolation (R-A) est un projet Supabase de
+# TEST dédié pour la CI — impossible à provisionner avec le token actuel
+# (aucune organisation listée). Voir docs/agent/AUDIT-BACKEND-LIVE-2026-11-04.md.
+
+on:
+  workflow_run:
+    workflows: ["Cypress Tests"]
+    types: [completed]
+  schedule:
+    - cron: '30 4 * * *' # Quotidien 04:30 UTC (après le backup de 03:00).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    name: Purge ss-e2e / Self-Serve E2E / Annexe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Vérifier la configuration
+        id: cfg
+        run: |
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN absent — purge E2E NON configurée. Ajouter le secret (RUNBOOK.md §E2E)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Purge (SQL via API Management)
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        run: bash scripts/e2e-purge.sh
+
+      - name: Résumé
+        if: always()
+        run: |
+          {
+            echo "## Purge des artefacts E2E (R-A)"
+            if [ "${{ steps.cfg.outputs.ready }}" != "true" ]; then
+              echo "- ⚠️ Non configurée : secret \`SUPABASE_ACCESS_TOKEN\` absent."
+            else
+              echo "- Déclencheur : ${{ github.event_name }}"
+              echo "- Purge exécutée (voir le log du step précédent pour les compteurs)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

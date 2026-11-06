@@ -209,6 +209,7 @@ export default function TransactionDetail() {
       // B.7 — notification locale app (persistée dans `notifications` PowerSync,
       // visible dans l'UI in-app. L'audit APPROVED est géré côté trigger serveur.
       await notification.sendNotification({
+        actionType: "TRANSACTION_APPROVED",
         title: "Transaction approuvée",
         message: `${tx.description || tx.id} a été approuvée.`,
         targetRole: "TREASURIER",
@@ -229,6 +230,7 @@ export default function TransactionDetail() {
     return runWrite(async () => {
       await updateTransactionPS(tx.id, { status: "REJECTED", comment: rejectComment.trim() });
       await notification.sendNotification({
+        actionType: "TRANSACTION_REJECTED",
         title: "Transaction rejetée",
         message: `${tx.description || tx.id} a été rejetée : ${rejectComment.trim()}`,
         targetRole: "TREASURIER",
@@ -255,6 +257,7 @@ export default function TransactionDetail() {
       await purgeReceiptsForTransaction(tx.id);
       await deleteTransactionPS(tx.id);
       await notification.sendNotification({
+        actionType: "TRANSACTION_DELETED",
         title: "Transaction supprimée",
         message: `${tx.description || tx.id} a été supprimée.`,
         targetRole: "TREASURIER",
@@ -275,6 +278,7 @@ export default function TransactionDetail() {
     return runWrite(async () => {
       await reverseTransactionPS(tx.id, user?.id || "", reverseReason.trim());
       await notification.sendNotification({
+        actionType: "TRANSACTION_REVERSED",
         title: "Transaction inversée",
         message: `${tx.description || tx.id} a été inversée : ${reverseReason.trim()}`,
         targetRole: "TREASURIER",

@@ -57,11 +57,13 @@ export default defineConfig({
       userJwt: null,
       // IDENTIFIANT UNIQUE du compte d'organisation de test (source de
       // vérité : CYPRESS_ORG_EMAIL / CYPRESS_ORG_PASSWORD, jamais
-      // éphémère). Par défaut = lumina-org-e2e@lumina.dev / E2e-Lumina!1
-      // (voir cypress/support/orgCreds.ts). Le 1er run absolu fait le
-      // sign-up COMPLET par l'UI ; les runs suivants font login direct.
+      // éphémère). R-B : le mot de passe n'a PLUS de défaut commité (le
+      // littéral en clair dans le dépôt public servait de mot de passe
+      // réel) — fournir CYPRESS_ORG_PASSWORD via .env.local (gitignoré) ou
+      // l'environnement. Le 1er run absolu fait le sign-up COMPLET par
+      // l'UI ; les runs suivants font login direct.
       ORG_EMAIL: process.env.CYPRESS_ORG_EMAIL || "lumina-org-e2e@lumina.dev",
-      ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || "E2e-Lumina!1",
+      ORG_PASSWORD: process.env.CYPRESS_ORG_PASSWORD || "",
       // Compte d'organisation dédié au scénario "registered but
       // unconfigured" (spec 3 auth-real) : ISOLÉ du compte principal
       // (lumina-org-e2e@...) pour que son onboarding puisse être
@@ -71,7 +73,7 @@ export default defineConfig({
         process.env.CYPRESS_ORG_UNCONFIGURED_EMAIL ||
         "lumina-org-unconfigured@lumina.dev",
       ORG_UNCONFIGURED_PASSWORD:
-        process.env.CYPRESS_ORG_UNCONFIGURED_PASSWORD || "E2e-Unconfigured!1",
+        process.env.CYPRESS_ORG_UNCONFIGURED_PASSWORD || "",
     },
     // Same testDir shape as before; specs live under cypress/e2e.
     specPattern: "cypress/e2e/**/*.cy.{ts,tsx}",

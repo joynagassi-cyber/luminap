@@ -277,5 +277,7 @@ jobs:
           CYPRESS_BASE_URL: http://localhost:8080
           CYPRESS_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
           CYPRESS_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
-          CYPRESS_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          CYPRESS_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # R-A : viser le projet de TEST (repli prod tant qu'il n'existe pas).
+          CYPRESS_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL || secrets.SUPABASE_URL }}
+          CYPRESS_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+          CYPRESS_POWERSYNC_URL: ${{ secrets.TEST_POWERSYNC_URL || secrets.POWERSYNC_URL }}

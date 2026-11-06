@@ -1,22 +1,22 @@
 {
   "version": 1,
-  "generated": "2026-11-03",
+  "generated": "2026-11-04",
   "purpose": "Instantane MESURE de la derive migrations <-> base (R17). Le tracker Supabase n'est pas accessible en CI : ce fichier fige l'etat mesure pour qu'une garde repo-side puisse detecter tout CHANGEMENT de derive (nouvelle migration tracee ou non tracee).",
   "source_of_truth": "Base = source de verite (schema applique via editeur SQL / MCP, pas via `supabase db push`). Le tracker `supabase_migrations.schema_migrations` et les fichiers `supabase/migrations/` sont deux historiques disjoints.",
   "measured": {
-    "applied_versions_in_tracker": 95,
-    "repo_timestamped_files": 82,
+    "applied_versions_in_tracker": 98,
+    "repo_timestamped_files": 92,
     "repo_sequential_files": 63,
-    "repo_total_sql_files": 145,
+    "repo_total_sql_files": 155,
     "versions_in_common": 2,
     "common_versions": [
       "20261001000001",
       "20261027000003"
     ],
-    "applied_without_repo_file": 71,
-    "repo_file_never_applied": 65,
-    "drift_ratio": "2/95",
-    "repo_filenames_sha256": "fdee4809b001b7bddcedb4016d69f788d6431d36071838353dce63d29aa15f47",
+    "applied_without_repo_file": 96,
+    "repo_file_never_applied": 86,
+    "drift_ratio": "2/98",
+    "repo_filenames_sha256": "1c1710051682ae2b66b17a573b9e5832911366947269e512a1f94ddb6f8dc043",
     "repo_db_object_delta": {
       "measured": "2026-10-31",
       "method": "recoupement exhaustif depot <-> base (tables, fonctions, triggers, vues)",
@@ -83,5 +83,36 @@
   ],
   "notes_b07_notify_amount": [
     "1 migration ajoutee 20261103000001 (B-07 : notify_transaction_change affichait le montant brut en centimes, x100 ; division par 100 + REVOKE re-enonce pour la garde R115). Appliquee via API de migration Supabase -> version tracker 20261103125333 (horodatage d'application, mecanisme de derive deja documente). Tracker re-mesure le 2026-11-03 via API Management : 95 versions (91 au 2026-11-01 + 3 des 2026-11-01/02 + celle-ci) ; versions communes toujours 2 (20261001000001, 20261027000003) -> drift_ratio 2/95. Empreinte de noms re-mesuree : 82 horodatees / 145 total. Objets : delta nul maintenu (CREATE OR REPLACE d'une fonction existante, ACL durcies preservees — anon/authenticated EXECUTE = false verifies)."
+  ],
+  "notes_pending_dedup_and_r_h": [
+    "2 migrations ajoutees (2026-11-04) : 20261104000001_drop_duplicate_pending_notification_trigger (R-I/R-J : DROP du trigger redondant `on_transaction_pending` + fonction `create_pending_transaction_notification` — `on_transaction_change` couvre deja INSERT PENDING) et 20261104000002_notifications_read_policy (R-H : policy `notifications_update` elargie a `is_org_member` + GRANT UPDATE(is_read) colonne seule).",
+    "Les deux ont ete appliquees via MCP `apply_migration` -> versions tracker = horodatages d'application 20261105124717 et 20261105125246 (mecanisme de derive deja documente). Objets verifies en base : triggers transactions = on_transaction_change / on_transaction_approved / prevent_approved_transaction_delete ; notifications_update qual = is_org_member(auth.uid(), org_id) ; authenticated updatable_columns = {is_read}.",
+    "Tracker re-mesure le 2026-11-04 : 94 versions (92 precedentes + 2). drift_ratio 2/94. Empreinte de noms re-mesuree : 84 horodatees / 63 sequentielles / 147 total."
+  ],
+  "notes_rl_and_rk": [
+    "2 migrations ajoutees (2026-11-04) : 20261104000003_drop_duplicate_approved_notification_trigger (R-L : l'approbation produisait 2 notifications TRANSACTION_APPROVED — `on_transaction_change` ET `on_transaction_approved` ; 1090 notifs / 1037 tx, 3 tx avec les DEUX messages). La fonction `notify_transaction_change` exige desormais une TRANSITION (OLD.status IS DISTINCT FROM 'APPROVED') et le trigger/fonction `on_transaction_approved`/`create_approved_transaction_notification` sont supprimes.",
+    "20261104000004_transaction_financial_guards (R-K) : trigger BEFORE INSERT OR UPDATE sur `transactions` portant en base (1) le gel de periode (`org_settings.period_locked_until`, date <= cloture -> PERIOD_LOCKED) et (2) l'anti auto-approbation maker-checker sur la TRANSITION vers APPROVED (`maker_checker_enabled`, approved_by_id = created_by_id -> MAKER_CHECKER_SELF_APPROVAL). Fail-open (reglage absent = aucun blocage), ignore le role de replication (auth.uid() NULL).",
+    "CHOIX DE CODE : `23514` (classe 23) et NON `P0001` — le connecteur PowerSync ne JETTE que les 22xxx/23xxx/42501 ; un P0001 tomberait en retry infini et bloquerait la file d'upload.",
+    "Empreinte de noms re-mesuree : 86 horodatees / 63 sequentielles / 149 total."
+  ],
+  "notes_r148_initplan": [
+    "1 migration ajoutee 20261104000006_notifications_update_initplan (R148 : realignement de notifications_update sur initplan_uid(), seule policy hors convention auth.uid() introduite par 20261104000002). Appliquee via MCP apply_migration -> version tracker = horodatage d'application 20261105215449 (mecanisme de derive documente). Objets verifies en base : notifications_update qual = is_org_member(initplan_uid(), org_id) ; advisor auth_rls_initplan disparu.",
+    "Tracker RE-MESURE le 2026-11-04 (accessible via MCP execute_sql) : 98 versions. drift_ratio 2/98. Empreinte de noms re-mesuree : 88 horodatees / 63 sequentielles / 151 total."
+  ],
+  "notes_r164": [
+    "1 migration ajoutee 20261104000007_guard_approved_transaction_update (R164 : immuabilite d'une transaction APPROVED a l'UPDATE). CLASSE R102 mais pour UPDATE : la regle n'etait appliquee que cote CLIENT (updateTransactionPS) et en base uniquement pour le DELETE. Trigger BEFORE UPDATE qui refuse TOUTE modification d'une ligne OLD.status='APPROVED' (23514, classe 23, jete par PowerSync ; P0001 tomberait en retry infini). La transition VERS APPROVED reste permise (flux d'approbation). Appliquee via MCP apply_migration -> version tracker = horodatage d'application. Empreinte de noms re-mesuree : 89 horodatees / 63 sequentielles / 152 total.",
+    "PIEGE (garde de non-vacuite) : une 1re version utilisait `OLD.status='APPROVED' AND NEW.status IS DISTINCT FROM 'APPROVED'` -> une edition de MONTANT seul (statut inchange) passait encore. Corrige en `IF OLD.status='APPROVED'`."
+  ]
+,
+  "notes_r166": [
+    "1 migration ajoutee 20261104000008_guard_event_status_terminal (R166 : immuabilite du STATUT d'un evenement terminal COMPLETED/CANCELLED a l'UPDATE). CLASSE R102/R164 (garde CLIENT-only) : la regle n'etait appliquee que par eventStatusGuard (capabilities/workflow), la table events n'ayant AUCUN trigger de statut. Trigger BEFORE UPDATE qui refuse tout CHANGEMENT de statut d'une ligne OLD.status IN ('COMPLETED','CANCELLED') (23514, classe 23, jete par PowerSync ; P0001 tomberait en retry infini). Portee minimale : les autres colonnes restent modifiables, transitions depuis PLANIFIED/ONGOING inchangees (miroir exact du client). Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 90 horodatees / 63 sequentielles / 153 total."
+  ]
+,
+  "notes_r167": [
+    "1 migration ajoutee 20261104000009_guard_audit_entries_append_only (R167 : journal d'audit REELLEMENT en ajout seul). R140 n'avait retire que les politiques RLS UPDATE/DELETE, or PowerSync ecrit en service_role (BYPASSRLS) et audit_entries n'avait AUCUN trigger : un client forge pouvait UPDATE/DELETE une trace. Trigger BEFORE UPDATE OR DELETE inconditionnel (23514, classe 23 jetee par PowerSync ; P0001 = retry infini). INSERT preserve. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 91 horodatees / 63 sequentielles / 154 total."
+  ]
+,
+  "notes_r170": [
+    "1 migration ajoutee 20261104000010_predicate_uid_guard (R170 : ferme l'oracle d'appartenance/role des predicats RLS). is_org_member/is_org_admin/has_permission/can_manage_invitations/org_descendants sont SECURITY DEFINER, executables par authenticated, et acceptaient un uid ARBITRAIRE -> un membre pouvait sonder l'appartenance/le role/une permission/la hierarchie d'un tiers. Garde interne `uid IS DISTINCT FROM initplan_uid()` (42501) ; exemption `pg_trigger_depth()=0` pour can_manage_invitations (appelee par settle_invitation_claim avec l'uid de l'emetteur). VERIFIE en base : REVOKE EXECUTE casserait la RLS (policy exige l'EXECUTE), d'ou le garde interne. Baseline RLS intacte (5742), oracle ferme (42501), appels legitimes OK. Appliquee via MCP apply_migration. Empreinte de noms re-mesuree : 92 horodatees / 63 sequentielles / 155 total."
   ]
 }

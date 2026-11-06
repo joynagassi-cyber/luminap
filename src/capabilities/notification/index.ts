@@ -19,6 +19,17 @@ import type { Role } from "@/types";
 export interface NotificationSendData {
   title: string;
   message: string;
+  /**
+   * Type d'ÉVÉNEMENT persisté dans `notifications.action_type` (ex.
+   * `TRANSACTION_PENDING`, `EVENT_CREATED`). C'est ce que lit l'UI pour
+   * choisir l'icône. NE PAS confondre avec `targetRole` (destinataire).
+   * Défaut `"PUSH"` pour un envoi sans catégorie.
+   */
+  actionType?: string;
+  /**
+   * Destinataire visé (rôle) — sert au CIBLAGE OneSignal (tag `target_role`),
+   * JAMAIS écrit dans `action_type` (R74).
+   */
   targetRole?: Role;
   targetUserId?: string;
   extraData?: Record<string, string>;
@@ -130,13 +141,18 @@ export class NotificationCapability {
         ...(data.extraData ?? {}),
         targetUserId: data.targetUserId ?? null,
       };
+      // PowerSync exige un `id` explicite à l'INSERT (il ne le génère pas) :
+      // sans lui, « id is required » et la notification n'est jamais persistée.
+      // `notifications.id` est un uuid côté PostgreSQL → on génère un UUID.
+      const id = crypto.randomUUID();
       await db.execute(
         `INSERT INTO notifications
-           (org_id, action_type, title, message, is_read, source_transaction_id, created_at)
-         VALUES (?, ?, ?, ?, 0, ?, ?)`,
+           (id, org_id, action_type, title, message, is_read, source_transaction_id, created_at)
+         VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
         [
+          id,
           getOrganizationId(),
-          data.targetRole ?? "PUSH",
+          data.actionType ?? "PUSH",
           data.title,
           data.message + (Object.keys(payload).length ? ` ${JSON.stringify(payload)}` : ""),
           data.targetUserId ?? null,
@@ -174,6 +190,7 @@ export class NotificationCapability {
     //    landed, so the user still sees the notification).
     const { sendCloudPush } = await import("@/lib/cloudPush");
     await sendCloudPush({
+      actionType: data.actionType ?? "PUSH",
       title: data.title,
       message: data.message,
       targetRole: data.targetRole,

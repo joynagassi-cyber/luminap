@@ -381,13 +381,23 @@ const ON_DEMAND_STREAMS = [
 ] as const;
 
 let _orgStreamsSubscribed = false;
+// R13 — `syncStream(name).subscribe()` renvoie un `SyncStreamSubscription`
+// dont la RÉFÉRENCE doit être conservée : PowerSync enregistre le handle dans
+// un `FinalizationRegistry` et émet « A subscription to <stream> with params
+// … leaked! » dès qu'il est collecté SANS `unsubscribe()`. Ces streams sont
+// GLOBAUX (ouverts une fois au boot, jamais fermés) : on stocke donc leurs
+// handles dans un champ de module — plus d'avertissement, et l'état « abonné »
+// reste observable. Type structurel minimal : le type exact
+// (`SyncStreamSubscription`) vit dans `@powersync/common`, non dépendance
+// directe du projet.
+const _orgStreamSubscriptions: { unsubscribe(): void }[] = [];
 async function subscribeOrgStreams(): Promise<void> {
   if (!_db || _orgStreamsSubscribed) return;
   try {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return; // retried by onAuthStateChange after login
     for (const name of ON_DEMAND_STREAMS) {
-      await _db.syncStream(name).subscribe();
+      _orgStreamSubscriptions.push(await _db.syncStream(name).subscribe());
     }
     _orgStreamsSubscribed = true;
   } catch (error) {

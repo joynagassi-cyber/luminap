@@ -176,6 +176,7 @@ export default function FormFill() {
 
     // Notify the form organizer that a submission was received
     notification.sendNotification({
+      actionType: "FORM_SUBMITTED",
       title: "Nouvelle soumission de formulaire",
       message: `« ${form.name ?? "Formulaire"} » a été soumis`,
       targetRole: "ADMIN",

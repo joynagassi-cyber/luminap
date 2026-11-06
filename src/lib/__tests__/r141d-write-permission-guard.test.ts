@@ -24,9 +24,16 @@ const GUARD_MIGRATION = "20261031000004_rls_write_permission_r141d.sql";
 /** Table → permission canon attendue + commandes gardées. */
 const R141D_TABLES: Record<string, { perm: string; cmds: string[] }> = {
   invitation_claims: { perm: "invitation:manage", cmds: ["update"] },
-  notifications: { perm: "admin:settings", cmds: ["insert", "update", "delete"] },
+  // R-H (2026-11-04) : `notifications_update` n'est PLUS gardée par
+  // admin:settings — « marquer lu » est ouvert à tout membre, l'écriture étant
+  // restreinte à la colonne `is_read` (privilège colonne, migration
+  // 20261104000002). INSERT/DELETE restent réservés à admin:settings.
+  notifications: { perm: "admin:settings", cmds: ["insert", "delete"] },
   role_assignments: { perm: "admin:settings", cmds: ["insert", "update", "delete"] },
 };
+
+/** Politique volontairement relâchée après R141.d (documentée, non-régression). */
+const R141D_RELAXED_POLICY = "notifications_update";
 
 function migrationFiles(): string[] {
   return readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -71,6 +78,22 @@ describe("R141.d — écriture gardée sur les dernières tables non gardées", 
         }
       }
     }
+  });
+
+  it("la seule politique relâchée après R141.d est `notifications_update` (R-H, justifiée)", () => {
+    const files = migrationFiles();
+    const idx = files.indexOf(GUARD_MIGRATION);
+    const relaxed = new Set<string>();
+    for (const f of files.slice(idx + 1)) {
+      const sql = readMigration(f);
+      for (const [t] of Object.entries(R141D_TABLES)) {
+        const re = new RegExp(`CREATE POLICY ${t}_(\\w+) ON public\\.${t}([\\s\\S]*?);`, "gi");
+        for (const m of sql.matchAll(re)) {
+          if (!/has_permission/i.test(m[2])) relaxed.add(`${t}_${m[1]}`);
+        }
+      }
+    }
+    expect([...relaxed]).toEqual([R141D_RELAXED_POLICY]);
   });
 
   it("la migration est réversible (rollback présent)", () => {

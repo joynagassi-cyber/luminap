@@ -163,6 +163,7 @@ export default function EventNew() {
 
       // Notify the treasurers / admins that a new event was planned
       notification.sendNotification({
+        actionType: "EVENT_CREATED",
         title: "Nouvel événement planifié",
         message: `« ${name.trim()} » — ${startDate}${endDate ? ` → ${endDate}` : ""}${totalBudget ? ` — budget ${totalBudget.toLocaleString()} FCFA` : ""}`,
         targetRole: "TREASURIER",

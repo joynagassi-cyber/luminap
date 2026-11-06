@@ -1,0 +1,425 @@
+# Audit backend LIVE — Supabase + PowerSync (2026-11-04)
+
+> Investigation profonde menée **sur l'état réel** de la production (pas
+> seulement sur les fichiers du dépôt). Méthode : MCP Supabase (SQL +
+> advisors) sur `hhgovvrnalibhgpakswi`, PowerSync CLI
+> (`PS_ADMIN_TOKEN=$POWERSYNC_TOKEN`, instance `Production`
+> `6a9dd96302481fb31b945823`), et lecture du dépôt.
+>
+> Complète `RISQUES.md` (audit code). Ici : ce qui est **vérifié en base**.
+
+---
+
+## 1. Confirmations positives (le durcissement tient en PROD)
+
+| Domaine | Constat LIVE |
+|---|---|
+| **Schéma client PowerSync ↔ colonnes DB** | **Delta NUL** sur 17 tables (transactions, events, members, groups, caisses, accounts, versements, cotisations, audit_entries, budget_lines, event_budgets, form_submissions, custom_field_values, group_memberships, org_units, documents, report_definitions). Aucune colonne cliente « en trop » ⇒ pas de cause d'échec de push silencieux. |
+| **Sync rules PowerSync** | **Déployées == dépôt** : 43 streams, requêtes **sémantiquement identiques** (le diff texte n'est qu'un re-wrapping). R3 / R89.b sont **déployés**. |
+| **Rôle de réplication** | `powersync_28d1d97617993b66d4ee0a3b` = `BYPASSRLS` + `LOGIN` + `REPLICATION`. `last checkpoint` récent, `Initial replication done: true`. |
+| **RLS** | Activée sur **48/48 tables** (`relrowsecurity=true`). Aucune table publique sans RLS. |
+| **Policies permissives `{public}`** | 3 résiduelles, toutes inoffensives pour `anon` : `event_tasks_select` (`is_org_member`), `org_reports_emitter`/`org_reports_receiver` (scopées `current_org_id()`). |
+| **Écriture gardée en base (R137/R141)** | `transactions`, `accounts`, `caisses`, `org_budgets`, `org_settings` → `is_org_member(...) AND has_permission(...)`. |
+| **`is_org_member` (live)** | Version durcie : sentinelle (`__no_org__`/`no-org`/vide → `false`) + `profiles` ∪ `org_memberships(ACTIVE,PENDING)` ∪ `org_admins(ACTIVE)`. |
+| **`handle_new_user` (live)** | Version durcie : `role='MEMBRE'`, `org_id='__no_org__'`, `ON CONFLICT` (first/last name, email). |
+| **RBAC** | `role_permissions` = **181 lignes / 15 rôles / 12 perms `invitation%`** (R105 corrigé). `has_permission` = deny > rôle canon ACTIF > grant allow. |
+| **Intégrité données** | 0 FK orpheline (tx→categories, org_admins→profiles/orgs), 0 tx/events en org sentinelle, 9 catégories canoniques alignées (R89.a), `report_definitions.kind` présente (Issue #317). |
+| **`audit_entries`** | **Append-only** : policies UPDATE/DELETE retirées (migration `20261030000001`, appliquée sous `20261030063307`) ⇒ deny-all. INSERT/SELECT seuls. |
+| **Storage (R29)** | 4 buckets ; écritures scopées par org : `logos`/`archives`/`expense_proofs` → `is_org_member(foldername[1])`, `org_reports` → `foldername[2]`. `logos` public en lecture (attendu). |
+| **Advisors sécurité** | Plus aucun « anon exécute SECURITY DEFINER » sauf `keep_alive_ping` (intentionnel, R97.b). Reste `auth_leaked_password_protection` (R104, plan gratuit). Aucun `rls_enabled_no_policy` hors faux positifs R97. |
+
+---
+
+## 2. Découvertes nouvelles / risques ouverts
+
+### R-A [MOYEN-ÉLEVÉ] — La base de PRODUCTION sert de bac à sable E2E
+- `cypress.yml` injecte les secrets `SUPABASE_URL` / `POWERSYNC_URL` **de
+  production** dans le job E2E.
+- Mesure live : **95 comptes** dont **93 en `@lumina.dev`**, **91 `ss-e2e-%`** ;
+  **262 organisations vides sur 265** (86 « Self-Serve E2E », 174 « Annexe A/B »),
+  créées à **chaque run CI** (les plus récentes datent de quelques minutes).
+- Le nettoyage `cleanupTestArtifacts` est **non fatal** et **ne supprime ni les
+  organisations ni les `auth.users`** ⇒ pollution illimitée.
+- **Action** : projet Supabase de test dédié pour la CI ; purge des orgs
+  `Self-Serve E2E %` / `Annexe %` et comptes `ss-e2e-%@lumina.dev`.
+- **✅ PARTIELLEMENT RÉSOLU (2026-11-04)** :
+  - **Purge prod exécutée** (bloc `DO` atomique) : **267 → 5 orgs**,
+    **101 → 4 comptes**, `ss-e2e-*` = **0**, `Self-Serve E2E %`/`Annexe %` = **0**.
+    Conservés : `lumina-org-e2e@` + `lumina-org-unconfigured@` (persistants,
+    partagés), les 2 églises réelles, `org-central`, et les orgs « Org E2E »/
+    « Lumina E2E Unconfigured ».
+  - **Outillage pérenne** : `scripts/e2e-purge.sql` (atomique + idempotent,
+    désactive/réactive `trg_org_admins_not_last`, ne touche jamais aux comptes
+    partagés), `scripts/e2e-purge.sh` (API Management), workflow
+    `.github/workflows/e2e-purge.yml` (déclenché après chaque run Cypress +
+    filet quotidien 04:30 UTC). `pnpm run e2e:purge`.
+  - **Durcissement CI** : `cypress.yml` + `ci.yml` préfèrent les secrets
+    `TEST_SUPABASE_URL` / `TEST_SUPABASE_ANON_KEY` / `TEST_POWERSYNC_URL`
+    (repli prod tant que le projet de test n'existe pas).
+  - **RESTE À FAIRE (blocage)** : provisionner le **projet de test** exige un
+    token Management rattaché à une **organisation** — le token actuel
+    (`GET /v1/organizations` → `[]`) n'en liste aucune, donc impossible depuis
+    l'agent. À faire par le propriétaire (voir RUNBOOK.md § « Purger les
+    artefacts E2E »).
+- **Garde** : `src/lib/__tests__/ci-e2e-isolation-ra.test.ts`.
+
+### R-B [MOYEN] — R8 (mot de passe en clair) × 91 comptes admin
+- `cypress/support/orgCreds.ts` exposait `E2e-Lumina!1` en clair ; **91 comptes
+  distincts** détenaient des grants `org_admins` ACTIVE.
+- **✅ RÉSOLU (2026-11-04)** :
+  - la purge R-A a ramené les comptes porteurs de **93 à 2** ;
+  - les mots de passe des 2 comptes restants ont été **rotés en base**
+    (`extensions.crypt(..., gen_salt('bf'))` → bcrypt compatible GoTrue).
+    Vérifié par appel GoTrue : **ancien = HTTP 400**, **nouveau = HTTP 200** ;
+  - le littéral `E2e-Lumina!1` / `E2e-Unconfigured!1` est **retiré de tout le
+    code versionné** (`cypress.config.ts`, `cypress/support/orgCreds.ts`,
+    `cypress/run.{sh,mjs}`, `scripts/rls-isolation-check.sh`). Les mots de passe
+    viennent désormais de `CYPRESS_ORG_PASSWORD` /
+    `CYPRESS_ORG_UNCONFIGURED_PASSWORD` (env ou `.env.local` gitignoré) ; en CI,
+    des secrets dédiés (`E2E_ORG_PASSWORD`, `E2E_ORG_UNCONFIGURED_PASSWORD`).
+  - Garde : `src/lib/__tests__/e2e-credentials-rb.test.ts`.
+- **Note** : les comptes E2E partagés doivent rester en **prod** tant que la
+  suite tourne contre la prod (R-A) ; leurs mots de passe rotés sont à
+  renseigner dans `.env.local` (local) et les secrets GitHub (CI).
+
+### R-C [FAIBLE] — `audit_entries_insert` = `is_org_member`
+- Un membre peut **INSÉRER** des entrées d'audit arbitraires dans son org
+  (falsification par ajout — l'altération/suppression est, elle, bloquée).
+- **DÉCISION : accepté par conception (2026-11-04).** Le client écrit
+  **lui-même** son journal (`src/lib/audit.ts` → INSERT PowerSync) : la policy
+  INSERT est **nécessaire** ; on ne peut pas la retirer au profit des seuls
+  triggers `SECURITY DEFINER`. La falsification est bornée à SA propre
+  organisation (`is_org_member`), l'acteur est déjà coercé en NULL si non-UUID,
+  et l'altération/suppression reste bloquée. Deux gardes encodent ce choix :
+  `pr18-write-permission-guard.test.ts` et
+  `r141d-write-permission-guard.test.ts`.
+- **Durcissement optionnel (non retenu, risque de régression)** : exiger
+  `user_id = initplan_uid() OR user_id IS NULL` en `WITH CHECK`. Rejeté car
+  certains flux légitimes pourraient attribuer l'entrée à un autre acteur →
+  rejet silencieux à l'upload. À reconsidérer seulement si la traçabilité
+  d'attribution devient un besoin.
+
+### R-D [FAIBLE] — `org-central` sans grant `org_admins` ACTIVE
+- Seule organisation sans admin ACTIVE : `org-central` (« Administration
+  centrale Lumina », type CENTRAL, sans parent). Aucun profil, membership ni
+  grant n'y est rattaché.
+- Conséquence : le **broadcast** `onesignal-notify` (qui exigeait un grant
+  ACTIVE sur `org-central`) était **inopérant**.
+- **✅ CORRIGÉ (2026-11-04)** — l'edge function accepte désormais **deux**
+  chemins d'autorisation pour le broadcast global :
+  1. grant `org_admins` ACTIVE sur `org-central` (chemin historique) ;
+  2. admin central canonique : `profiles.role='ADMIN'` **et**
+     `profiles.org_id='org-central'`.
+  **Piège mesuré** : ne PAS élargir à « ADMIN d'une org racine
+  (`parent_org_id IS NULL`) » — toute organisation self-serve (église) est
+  racine, ce qui autorisait n'importe quel admin d'église à diffuser à TOUS
+  les tenants (escalade reproduite en live : HTTP 200, puis fermée → 403).
+  Déployée en **v18** ; vérifié en live : admin d'église sans ciblage → **403**,
+  push ciblé → **200**, sans JWT → **401**.
+  Garde : `src/lib/__tests__/central-broadcast-rd.test.ts` (4).
+- **Reste (action propriétaire)** : matérialiser un admin central réel. Comme
+  `guard_profile_org_immutable` bloque le déplacement d'un profil et qu'aucune
+  policy `INSERT` n'existe sur `org_admins` pour `authenticated`, le
+  provisionnement se fait en **service-role** :
+  `insert into org_admins (org_id, admin_profile_id, status) values
+  ('org-central', <uuid d'un compte de confiance>, 'ACTIVE')` — à faire
+  volontairement (crée un compte privilégié).
+
+### R-E [FAIBLE] — Pas de rate-limit applicatif (R6)
+- `signup` / `login` / `create_org` sans limitation de débit applicative.
+- **✅ ATTÉNUÉ (2026-11-04)** : les fonctions `signup`/`login` ont été
+  **supprimées** (R-F) → la surface non authentifiée se réduit à GoTrue
+  (`auth.signUp`/`signInWithPassword`), lui-même borné par GoTrue. `create_org`
+  est borné **par conception** : le chemin self-serve ne s'ouvre qu'au compte
+  **sans organisation** (`org_id = '__no_org__'`), donc il n'est utilisable
+  qu'**une fois par compte** ; un admin (annexe) exige déjà un grant ACTIVE.
+  Aucune boucle de création d'organisations par un même compte n'est possible.
+- **Reste** : GoTrue applique des limites de débit par défaut ; un rate-limit
+  applicatif explicite (par IP) reste une amélioration optionnelle.
+
+### R-F [INFO] — Edge functions mortes
+- `signup` (v11) et `login` (v11) étaient **invoquées nulle part** côté client
+  (le client utilise GoTrue : `supabase.auth.signUp/signInWithPassword`).
+  5 fonctions déployées : `signup`, `login`, `create_org`, `onesignal-notify`,
+  `report-error`, toutes `verify_jwt:false`.
+- **✅ CORRIGÉ (2026-11-04)** : `signup`/`login` **retirées de la prod**
+  (undeploy) et du dépôt. `signup` était un vecteur d'abus (création de compte
+  non authentifiée + **auto-confirmation d'email** avec la clé service-role) —
+  inutile puisque le projet Auth est déjà `mailer_autoconfirm=true` et que le
+  trigger `handle_new_user` **ignore** `role`/`org_id` des métadonnées (force
+  `MEMBRE`/`__no_org__` ; `guard_profile_role_insert`/`guard_profile_org_insert`
+  refusent un rôle/org privilégié à l'INSERT). Fonctions restantes :
+  `create_org`, `onesignal-notify`, `report-error`.
+  Garde : `src/lib/__tests__/edge-functions-rf.test.ts` (3).
+
+### R-G [INFO] — Hygiène réplication
+- 3 rôles `powersync_*` coexistent (`…28d1d976…` actif, `…90f6145d…`,
+  `powersync_role` legacy), tous `BYPASSRLS` (49/49/71 grants).
+- **DÉCISION : laissé tel quel (2026-11-04).** Supprimer un rôle `powersync_*`
+  sans savoir lequel le connecteur PowerSync utilise effectivement en
+  production **casserait la synchronisation** (échec silencieux côté client).
+  L'information vit dans la console PowerSync, pas en base. Nettoyage à faire
+  depuis la console PowerSync (vérifier le rôle du connecteur, puis `DROP
+  ROLE` des deux autres), pas à l'aveugle via SQL.
+
+---
+
+## 3. Dérive migrations dépôt ↔ base (R17) — mesure affinée
+
+Le tracker expose la colonne `name` (slug). Comparaison **par nom** :
+
+| Mesure | Valeur |
+|---|---|
+| Versions appliquées (tracker) | **92** |
+| Noms appliqués distincts | **91** |
+| Fichiers `.sql` du dépôt | **145** (82 horodatés + 63 séquentiels) |
+| Slugs du dépôt distincts | **144** |
+| **Slugs communs (appliqué ET fichier présent)** | **68** |
+| Appliqués sans fichier correspondant (nom) | **23** |
+| Fichiers jamais enregistrés comme appliqués | **76** |
+
+- Les 23 noms « sans fichier » sont soit des variantes de nom
+  (`event_tasks` vs `create_event_tasks`, `extend_settle_trigger_vN`),
+  soit des **artefacts d'application via l'éditeur SQL** (le tracker enregistre
+  un slug différent du fichier). Détail des 23 : `20260911000001_…`,
+  `create_org_federation_view`, `error_report_dedupe_release`, `event_tasks`,
+  `event_tasks_full`, `extend_settle_trigger_v2..v7`, `extend_settle_trigger_b5`,
+  `fix_grants_tags_rls_org_scoping`, `fk_covering_indexes_event_tasks`,
+  `invitation_system_v3`, `onboarding_rls_and_rpc`,
+  `org_memberships_unique_all/fix`, `r109_admin_role_canonical`,
+  `r137_rls_write_permission`, `r141_fix_org_units_to_admin_settings`,
+  `rbac_invitation_permissions_mirror`, `settle_claim_trigger_only_guard`.
+- Les 76 « fichiers non appliqués » = l'historique séquentiel `NNNN_*` (0000→0062)
+  plus des migrations horodatées « abandonnées ».
+- **Conclusion** : la dérive reste **ouverte** (dépôt ≠ tracker) même si le
+  **delta d'objets** (tables/fonctions/triggers/vues) mesuré le 2026-10-31 est
+  **nul**. `supabase db push` reste à proscrire sans revue.
+
+---
+
+## 4. Logique applicative (offline-first)
+
+- PowerSync = **source unique de lecture** (42 tables locales) ; RLS Supabase
+  = **source unique d'autorisation** ; `has_permission` DB ↔ `evaluatePermission`
+  TS = même décision.
+- `pushCrudTransaction` : filtre les colonnes au schéma client
+  (`filterOpDataToSchema`), coercition jsonb + acteurs uuid, backfill des
+  `NOT_NULL_DEFAULTS`, puis :
+  - **FATAL** (42501 / 23xxx / 22xxx) → op **jetée** mais **journalisée**
+    (`recordRejectedSyncOp` + `reportError`, source `powersync-fatal`),
+    `transaction.complete()` appelé (pas de blocage de file).
+  - **Non-FATAL** (401/429/5xx réseau) → `throw` (retry PowerSync).
+- `ensureUploadSession()` : re-mirror de la session Supabase dans le client du
+  connecteur avant chaque upload (évite un 401 après reconnexion).
+- Boot local-first + `isOfflineLikeError` (5xx/429 transitoires) + reprise de
+  session : livrés par PR #419 (commit `e42a6882`), CI verte.
+
+---
+
+## 5. Plan d'action recommandé (priorité)
+
+1. **Isoler la CI** : projet Supabase de test dédié + purge des artefacts E2E
+   en prod (`Self-Serve E2E %`, `Annexe %`, `ss-e2e-%@lumina.dev`).
+2. **Révoquer** `E2e-Lumina!1` (ou comptes E2E éphémères). — **✅ FAIT**
+   (mots de passe rotés + littéral retiré du dépôt, R-B).
+3. **Matérialiser un admin central** (`org-central`) ou corriger la garde
+   broadcast. — **✅ FAIT côté code** (garde broadcast : chemin canonique
+   `ADMIN` de `org-central`, edge function v18). Reste le provisionnement
+   service-role d'un admin central réel (action propriétaire).
+4. **Durcir `audit_entries_insert`** — **✅ TRANCHÉ** : conservé (le client
+   écrit son propre journal ; cf. R-C).
+5. Trancher **R16/R62** (source unique de rôle) — **✅ TRANCHÉ** : autorité =
+   `org_memberships.role` ; `profiles.role` = cache d'affichage ; divergence
+   live 0 (cf. `RISQUES.md` R16/R62). **R17** — **✅ TRANCHÉ** : dérive
+   structurelle assumée (les migrations appliquées par l'outil n'ont pas de
+   fichier horodaté ; **delta d'objets = 0**) ; les fichiers horodatés restent
+   l'artefact de référence pour les reconstructions. Aucune régularisation de
+   l'historique tracker (effet cosmétique, risque de casser le tracking).
+6. R5 (RGPD), R6 (rate-limit), R104 (plan Pro), R13 (fuites d'abonnements).
+
+---
+
+## 6. Notifications + défenses financières (compléments 2026-11-04)
+
+### R-H [MOYEN] — « Marquer comme lu » est inopérant (RLS + client)
+- `notifications_update` (RLS live) = `is_org_member(...) AND
+  has_permission(..., 'admin','settings')`. Un **TREASURIER / PASTEUR /
+  ANCIEN** ne peut donc **pas** mettre `is_read=true` (seul un admin
+  `admin:settings` le peut).
+- Côté client, `markNotificationRead` / `markAllNotificationsRead`
+  (`src/lib/notification-service.ts` → `useLocalStore`) **ne mettent à jour
+  que l'état React en mémoire** — **aucune** écriture PowerSync/Supabase.
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000002` — policy
+  `notifications_update` → `is_org_member(auth.uid(), org_id)` + privilège
+  colonne (`GRANT UPDATE (is_read)`) ; le client persiste via PowerSync. Cf. §7.
+
+### R-I [FAIBLE] — Notification de transaction PENDING en double
+- Deux triggers `AFTER INSERT` sur `transactions` tirent quand `status='PENDING'` :
+  `on_transaction_change` → `notify_transaction_change` (`TRANSACTION_SUBMITTED`)
+  **et** `on_transaction_pending` → `create_pending_transaction_notification`
+  (`TRANSACTION_PENDING`). Preuve en base : 32 `TRANSACTION_SUBMITTED` + 32
+  `TRANSACTION_PENDING` (mêmes 32 transactions).
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000001` — `DROP TRIGGER
+  on_transaction_pending` + `DROP FUNCTION create_pending_transaction_notification`.
+  Vérifié en base : `on_transaction_pending` absent. Cf. §7.
+
+### R-J [FAIBLE] — Montant BRUT dans la notification PENDING
+- `create_pending_transaction_notification` concatène `NEW.amount` **brut**
+  (stocké en **centimes**) → « 5 000 000 FCFA » pour 50 000 FCFA.
+- Le correctif B-07 (`20261103000001_fix_notify_transaction_amount_display`) n'a
+  patché **que** `notify_transaction_change` — la fonction PENDING (chemin
+  redondant R-I) gardait le bug.
+- **✅ RÉSOLU (2026-11-04)** : la fonction fautive a été **supprimée** avec le
+  trigger redondant (R-I). Cf. §7.
+
+### R-L [FAIBLE] — Notification APPROVED en double (+ fausses approbations)
+- **DÉFAUT prouvé en production** : à l'approbation, DEUX triggers AFTER
+  produisaient `TRANSACTION_APPROVED` : `on_transaction_change` →
+  `notify_transaction_change` (message « Votre transaction a été approuvée »)
+  **et** `on_transaction_approved` → `create_approved_transaction_notification`
+  (message « …avec succès »). Preuve : **1090 notifications APPROVED pour 1037
+  transactions**, dont **3 tx portant exactement les deux messages**.
+- **Second défaut, même fonction** : la branche APPROVED de
+  `notify_transaction_change` tirait sur TOUT `UPDATE` d'une transaction déjà
+  approuvée (pas seulement la TRANSITION) → une réécriture d'une tx approuvée
+  créait une fausse notification « approuvée ».
+- **Action** : garder un seul chemin (`on_transaction_change`) et exiger
+  `OLD.status IS DISTINCT FROM 'APPROVED'` (transition réelle).
+- **✅ RÉSOLU (2026-11-04)** : migration `20261104000003` — cf. §7 « R-L ».
+
+### R-K [FAIBLE-MOYEN] — Contrôles financiers côté CLIENT uniquement
+- **Maker-checker** (anti auto-approbation) : `canApprove` est une règle PURE
+  appelée dans `dataLayer` avant l'approbation. **Aucune** contrainte DB, RLS
+  ou trigger ne l'applique.
+- **Gel de période** (`period-lock`) : `assertTransactionWritable` /
+  `assertPeriodOpen` sont **côté client**. Aucun trigger/contrainte sur
+  `transactions` ne bloque une date ≤ `period_locked_until`.
+- Conséquence : un client direct (ou un utilisateur avec `transaction:approve`)
+  peut **auto-approuver** sa transaction et **écrire dans une période gelée**
+  via REST/PowerSync en contournant l'app. `org_settings` ne contient aujourd'hui
+  **aucune** ligne (donc les deux options sont **désactivées** par défaut).
+- **Action** : porter ces règles en base (trigger `BEFORE INSERT/UPDATE` sur
+  `transactions`) si l'on veut une garantie serveur, ou documenter
+  l'acceptation du risque (contrôle « procédural » côté app).
+- **✅ RÉSOLU (2026-11-04)** : trigger `trg_transactions_financial_guards` porté
+  en base — cf. §7 « R-K ».
+
+### Confirmations positives (contrôles d'exécution RPC)
+- `settle_invitation_claim` : **non exécutable** par `anon` **ni**
+  `authenticated` (trigger-only) — surface RPC fermée.
+- `claim_error_report` / `release_error_report` / `register_anonymous_report` :
+  non exécutables par `anon`/`authenticated` (service_role / trigger).
+- Invitations : SELECT/INSERT/UPDATE/DELETE gardés par `can_manage_invitations`
+  (R15/R87 tenus).
+- `keep_alive_ping` : exécutable par `anon` = **intentionnel** (R97.b, ping de
+  réveil, `search_path=""`).
+
+---
+
+## 7. Correctifs APPLIQUÉS en production (2026-11-04)
+
+### ✅ R-I + R-J — doublon PENDING + montant ×100 (résolu)
+- **Migration** `20261104000001_drop_duplicate_pending_notification_trigger.sql`
+  appliquée via MCP (`apply_migration`) → `DROP TRIGGER on_transaction_pending`
+  + `DROP FUNCTION create_pending_transaction_notification`.
+- **Vérifié en base** : triggers restants sur `transactions` =
+  `on_transaction_change`, `on_transaction_approved`,
+  `prevent_approved_transaction_delete`. La fonction PENDING n'existe plus.
+- Effet : une seule notification par transaction PENDING
+  (`TRANSACTION_SUBMITTED`, montant correct /100).
+
+### ✅ R-H — « marquer comme lu » persistant (résolu)
+- **Migration** `20261104000002_notifications_read_policy.sql` : policy
+  `notifications_update` → `is_org_member(auth.uid(), org_id)` (USING + WITH
+  CHECK) ; `REVOKE UPDATE` puis `GRANT UPDATE (is_read)` (privilège colonne).
+- **Vérifié en base** : `notifications_update` qual =
+  `is_org_member(auth.uid(), org_id)` ; colonnes UPDATE autorisées pour
+  `authenticated` = `{is_read}` uniquement. INSERT/DELETE restent `admin:settings`.
+- **Client** : `useLocalStore.markNotificationRead` /
+  `markAllNotificationsRead` écrivent désormais `is_read=1` dans PowerSync
+  (UPDATE local) avant le `set()` mémoire ; la page `Notifications.tsx` passe
+  par le store (plus par les fonctions pures sans effet).
+- **Gardes** : `r-h-notification-read.test.ts` ; exceptions justifiées ajoutées
+  dans `pr18-write-permission-guard.test.ts` et `r141d-write-permission-guard.test.ts`.
+
+### Dérive migrations (R17) re-mesurée
+- Tracker : 94 versions (92 + 2) ; fichiers dépôt : 84 horodatés / 63
+  séquentiels / 147 total ; `drift_ratio` 2/94 ; empreinte de noms mise à jour
+  (`docs/agent/migration-drift.json`).
+- Versions tracker des 2 migrations (horodatage d'application, dérive
+  structurelle connue) : `20261105124717`, `20261105125246`.
+
+### ✅ R-L — notification APPROVED en double (résolu)
+- **Défaut prouvé** : à l'approbation, DEUX triggers AFTER produisaient
+  `TRANSACTION_APPROVED` — `on_transaction_change`
+  (« Votre transaction a été approuvée ») **et** `on_transaction_approved`
+  (« …avec succès »). Preuve en base : **1090 notifications / 1037 tx**, dont
+  **3 tx portant exactement les deux messages**. Second défaut : la branche
+  APPROVED de `notify_transaction_change` tirait sur TOUT UPDATE d'une tx déjà
+  approuvée (fausse notification).
+- **Migration** `20261104000003_drop_duplicate_approved_notification_trigger.sql`
+  appliquée via MCP : `notify_transaction_change` exige désormais une
+  TRANSITION (`OLD.status IS DISTINCT FROM 'APPROVED'`) + `REVOKE EXECUTE`
+  ré-énoncé (garde R115) ; `DROP TRIGGER on_transaction_approved` +
+  `DROP FUNCTION create_approved_transaction_notification`.
+- **Vérifié en base** : triggers restants = `on_transaction_change`,
+  `prevent_approved_transaction_delete` ; fonction supprimée ; ACL =
+  `{postgres, service_role}`.
+
+### ✅ R-K — garde-fous financiers portés EN BASE (résolu)
+- **Défaut** : maker-checker (PR8) et gel de période (PR13) n'existaient que
+  côté client → un client REST/PowerSync avec `transaction:update` pouvait
+  auto-approuver sa dépense et écrire dans une période clôturée.
+- **Migration** `20261104000004_transaction_financial_guards.sql` appliquée via
+  MCP : trigger `trg_transactions_financial_guards` BEFORE INSERT OR UPDATE sur
+  `transactions` → (1) `org_settings.period_locked_until` : `date ≤ clôture`
+  ⇒ `PERIOD_LOCKED` ; (2) transition UPDATE→APPROVED avec
+  `maker_checker_enabled=true` et `approved_by_id = created_by_id`
+  ⇒ `MAKER_CHECKER_SELF_APPROVAL`.
+- **Choix d'erreur** : `ERRCODE='23514'` (classe 23) et NON `P0001` — le
+  connecteur PowerSync ne JETTE (au lieu de retenter à l'infini) que les
+  `22xxx/23xxx/42501`. Un `P0001` aurait bloqué la file d'upload.
+- **Sémantique fail-open** : réglage absent/vide/illisible ⇒ aucun blocage
+  (`org_settings` = 0 ligne aujourd'hui) ; le rôle de réplication
+  (`auth.uid() IS NULL`) n'est jamais bloqué ; l'INSERT auto-approuvé
+  (revenus/caisse) reste autorisé (seule la TRANSITION est gardée).
+- **Vérifié live (bloc annulé)** : `period=23514:PERIOD_LOCKED`,
+  `open=NO-BLOCK` (fail-open), `mc=23514:MAKER_CHECKER_SELF_APPROVAL` ; ACL =
+  `{postgres, service_role}`, `prosecdef=true`.
+- **Gardes** : `migration-financial-guards-rk.test.ts`.
+
+### Dérive migrations (R17) — mise à jour après R-L/R-K
+- Fichiers dépôt : **86 horodatés / 63 séquentiels / 149 total** ; empreinte de
+  noms `fdc57c04b7a022561de9694fd37d1b806f2287be9bf86d0f80acdef97581f9d2`.
+
+### Reste à traiter (non corrigé)
+- **R-H (suite)** : notifications historiques déjà lues non backfillées (sans
+  objet), et le libellé « lu » n'est pas par-utilisateur (compteur d'org).
+- **R-K (suite)** : `org_settings` vide ⇒ gardes **inertes par conception**
+  (fail-open). **Vérifié 2026-11-04** : l'écran écrit exactement les clés lues
+  par le trigger (`src/lib/orgSettings.ts` : `period_locked_until` +
+  `maker_checker_enabled`) → la garde serveur s'activera dès qu'un réglage est
+  posé. L'INSERT auto-approuvé reste hors périmètre (choix assumé).
+- **R16/R62** : ✅ tranché (autorité `org_memberships.role`, cf. `RISQUES.md`).
+- **R17** : ✅ tranché (dérive structurelle assumée, delta objets = 0 ; pas de
+  régularisation de l'historique tracker — cosmétique).
+- **R104 / R8 / CI-prod partagée** : voir sections précédentes.
+
+### Récapitulatif de statut (2026-11-04)
+| Constat | Sévérité | Statut |
+|---|---|---|
+| R-A prod = bac à sable E2E | MOYEN-ÉLEVÉ | ✅ purge + outillage ; projet de test = propriétaire |
+| R-B mot de passe en clair | MOYEN | ✅ roté, littéraux retirés |
+| R-C `audit_entries_insert` | FAIBLE | ✅ tranché (conception) |
+| R-D `org-central` vide / broadcast | FAIBLE | ✅ garde corrigée (v18) ; admin central = propriétaire |
+| R-E rate-limit | FAIBLE | ✅ atténué (signup/login supprimés ; `create_org` borné) |
+| R-F edge functions mortes | INFO | ✅ supprimées (prod + dépôt) |
+| R-G rôles réplication | INFO | ✅ tranché (nettoyage console PowerSync) |
+| R-H « marquer lu » | MOYEN | ✅ migration `20261104000002` |
+| R-I/R-J doublon PENDING + montant | FAIBLE | ✅ migration `20261104000001` |
+| R-K contrôles financiers client | FAIBLE-MOYEN | ✅ trigger `20261104000004` |
+| R-L doublon APPROVED | FAIBLE | ✅ migration `20261104000003` |
+| R17 dérive migrations | INFO | ✅ tranché : dérive structurelle assumée (delta objets = 0) |
+| R16/R62 source unique de rôle | INFO | ✅ tranché : autorité = `org_memberships.role` |
+| R104 fuite mot de passe | FAIBLE | ⏳ plan Pro (propriétaire) |
+| R5 RGPD / R13 abonnements | — | ⏳ backlog |

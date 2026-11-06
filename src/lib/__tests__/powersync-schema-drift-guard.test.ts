@@ -43,15 +43,14 @@ function schemaColumns(): Record<string, Set<string>> {
 }
 
 /**
- * Occurrences connues : code MORT (aucun appelant hors tests) déjà escaladé
- * (docs/agent/ESCALATIONS.md E7). Elles échouent à l'exécution mais ne sont
- * jamais atteintes en production ; les corriger exige un changement de schéma +
- * stream, hors périmètre de cette garde.
+ * Occurrences connues et justifiées. **Vide** : les 2 anciennes entrées étaient
+ * en réalité du CODE VIVANT (appelées par `OrgUnits.tsx` / `InvitationManage.tsx`),
+ * pas du code mort — elles plantaient en production avec « no such column ».
+ * Corrigées (R184) : `profiles.status` ajouté au schéma PowerSync (aligné sur
+ * PostgreSQL), écriture fantôme d'`org_units.updated_at` retirée de l'INSERT
+ * `addOrgUnit` (colonne inexistante côté PostgreSQL).
  */
-const ALLOWLIST = new Set([
-  "src/capabilities/organization/index.ts", // org_units.updated_at (addOrgUnit, mort)
-  "src/capabilities/invitation/index.ts", // profiles.status (claimInvitation, mort)
-]);
+const ALLOWLIST = new Set<string>();
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -110,6 +109,22 @@ function findDrift(src: string, schema: Record<string, Set<string>>): string[] {
       if (!known.has(col)) problems.push(`${table}.${col} (SELECT)`);
     }
   }
+
+  // UPDATE table SET col = …, col = … WHERE — colonnes cibles (LHS des `=`).
+  // La même classe « no such column » frappe un `UPDATE … SET col_inexistante`.
+  // On exige un `WHERE` (clause bornée) et on ignore les noms suivis d'une
+  // parenthèse (appel de fonction, ex. `json_set(`).
+  for (const m of code.matchAll(
+    /UPDATE\s+([a-z_][a-z0-9_]*)\s+SET\s+([\s\S]*?)\s+WHERE/gi,
+  )) {
+    const table = m[1];
+    const known = schema[table];
+    if (!known) continue;
+    for (const cm of m[2].matchAll(/([a-z_][a-z0-9_]*)\s*=(?!=)/gi)) {
+      const col = cm[1];
+      if (!known.has(col)) problems.push(`${table}.${col} (UPDATE)`);
+    }
+  }
   return problems;
 }
 
@@ -154,6 +169,13 @@ describe("anti-dérive de schéma — SQL client ↔ AppSchema PowerSync", () =>
     expect(
       findDrift("SELECT id, name, kind FROM report_definitions WHERE org_id = ?", schemaFixture),
     ).toContain("report_definitions.kind (SELECT)");
+    // UPDATE … SET d'une colonne absente (R184).
+    expect(
+      findDrift(
+        "UPDATE report_definitions SET kind = ?, name = ? WHERE id = ?",
+        schemaFixture,
+      ),
+    ).toContain("report_definitions.kind (UPDATE)");
     // Formes légitimes : `SELECT *`, fonctions, table inconnue.
     expect(findDrift("SELECT * FROM report_definitions", schemaFixture)).toEqual([]);
     expect(

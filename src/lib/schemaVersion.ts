@@ -23,8 +23,13 @@
  * v3 (2026-11-01, R184/#317) : ajout de la colonne `report_definitions.kind`
  * (et du stream de synchronisation associé). Un client v2 ouvrant une base
  * locale v3 (ou l'inverse) doit être averti via `VITE_MIN_SCHEMA_VERSION`.
+ *
+ * v4 (2026-11-04, R184) : ajout de `profiles.status` (aligné sur PostgreSQL,
+ * utilisé par la confirmation d'invitation) et `org_units.updated_at` (local,
+ * alimenté par les écritures client). Un client v3 ouvrant une base v4 (ou
+ * l'inverse) doit être averti via `VITE_MIN_SCHEMA_VERSION`.
  */
-export const CLIENT_SCHEMA_VERSION = 3;
+export const CLIENT_SCHEMA_VERSION = 4;
 
 /**
  * Parse une version minimale. Retourne `undefined` si la valeur est absente,

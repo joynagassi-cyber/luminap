@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useNotifications, markNotificationRead, markAllNotificationsRead, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useNotifications, isPowerSyncReadyNow } from "@/lib/dataLayer";
+import { useLocalStore } from "@/store/useLocalStore";
 import { NotificationsSkeleton } from "@/components/PageSkeletons";
 import {
   Bell,
@@ -31,6 +32,7 @@ export function notifIconKey(
     case "EVENT_CREATED":
       return "event";
     case "INVITATION_RECEIVED":
+    case "INVITATION_SENT":
       return "invitation";
     case "FORM_SUBMITTED":
       return "form";
@@ -40,6 +42,19 @@ export function notifIconKey(
       return "approved";
     case "BUDGET_EXCEEDED":
       return "exceeded";
+    // R74 — types d'événement désormais écrits par le client (au lieu d'un
+    // rôle). Rattachés aux icônes existantes (aucune icône nouvelle).
+    case "TRANSACTION_REJECTED":
+    case "TRANSACTION_DELETED":
+      return "exceeded"; // action destructive/refus → alerte rouge
+    case "TRANSACTION_REVERSED":
+    case "REPORT_REMINDER":
+      return "pending"; // action à surveiller → alerte orange
+    case "GIVING_PLEDGE":
+    case "VERSEMENT_RECORDED":
+      return "approved"; // entrée d'argent → vert
+    case "TAX_RECEIPT":
+      return "form"; // document généré
     default:
       return "default";
   }
@@ -72,6 +87,7 @@ export default function NotificationsPage() {
     error: notificationsError,
     retry: retryNotifications,
   } = useNotifications();
+  const { markNotificationRead, markAllNotificationsRead } = useLocalStore();
 
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -100,11 +116,11 @@ export default function NotificationsPage() {
   ).length;
 
   const handleMarkRead = async (id: string) => {
-    await markNotificationRead(id, {} as any);
+    await markNotificationRead(id);
   };
 
   const handleMarkAllRead = async () => {
-    await markAllNotificationsRead({} as any);
+    await markAllNotificationsRead();
   };
 
   if (notificationsLoading || (sorted.length === 0 && replicaPending)) {

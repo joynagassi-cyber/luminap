@@ -87,6 +87,7 @@ import {
   updateCotisationPS,
 } from "@/lib/dataLayer";
 import { getPowerSyncDatabase } from "@/lib/powersync";
+import { reportError } from "@/lib/observability/errorReporter";
 import type {
   User,
   Role,
@@ -280,6 +281,45 @@ interface LocalStoreState {
   getMembresEnAvance: () => { membre: Member; montant: number }[];
 }
 
+/**
+ * R-H — persiste `is_read = 1` dans la base LOCALE (PowerSync) pour qu'un
+ * « marquer comme lu » survive au reload et se synchronise vers Supabase.
+ *
+ * Le chemin d'écriture est l'INSERT/UPDATE PowerSync standard (même patron que
+ * `capabilities/notification`) : une ligne locale passe par la file d'upload du
+ * connecteur. La RLS autorise un membre à écrire `is_read` (privilège colonne,
+ * cf. migration `20261104000002`). L'échec est non bloquant : l'état React est
+ * tout de même mis à jour, et l'incident est remonté via `reportError`.
+ */
+async function persistNotificationRead(id: string): Promise<void> {
+  try {
+    const db = getPowerSyncDatabase();
+    await db.execute(`UPDATE notifications SET is_read = 1 WHERE id = ?`, [id]);
+  } catch (e) {
+    reportError(e, {
+      source: "notifications",
+      context: { op: "mark-read", id },
+    });
+  }
+}
+
+/** R-H — marque TOUTES les notifications de l'org active comme lues (local). */
+async function persistAllNotificationsRead(orgId: string): Promise<void> {
+  try {
+    const db = getPowerSyncDatabase();
+    await db.execute(
+      `UPDATE notifications SET is_read = 1 WHERE org_id = ? AND (is_read = 0 OR is_read IS NULL)`,
+      [orgId],
+    );
+  } catch (e) {
+    reportError(e, {
+      source: "notifications",
+      context: { op: "mark-all-read", orgId },
+    });
+  }
+}
+
+
 export const useLocalStore = create<LocalStoreState>()(
   (set, get) => {
     const snap = (): StoreSnapshot => ({
@@ -400,10 +440,12 @@ export const useLocalStore = create<LocalStoreState>()(
       },
 
       markNotificationRead: async (id) => {
+        await persistNotificationRead(id);
         set({ notifications: markNotificationRead(id, get()) });
       },
 
       markAllNotificationsRead: async () => {
+        await persistAllNotificationsRead(getOrganizationId());
         set({ notifications: markAllNotificationsRead(get()) });
       },
 

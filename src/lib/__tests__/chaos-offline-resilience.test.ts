@@ -195,15 +195,15 @@ describe("chaos 1 — stockage local corrompu : dégradation contrôlée", () =>
     expect(() => persistThemeId("spirit")).not.toThrow();
   });
 
-  it("[DÉFAUT DOCUMENTÉ] useAppConfig ne dégrade PAS : JSON corrompu → throw", () => {
-    // DÉFAUT RÉEL (non corrigé ici, cf. receipt) : `useAppConfig` appelle
-    // `JSON.parse(localStorage.getItem("lumina-config"))` SANS `try/catch`.
-    // Un `lumina-config` corrompu (quota tronqué, écriture interrompue) fait
-    // lever le hook → l'ErrorBoundary de la route remplace toute la page.
-    // Ce test FIGE le comportement actuel pour rendre le défaut visible ; il
-    // devra être inversé en `not.toThrow()` le jour du correctif.
+  it("CORRIGÉ (R48) : useAppConfig dégrade proprement un JSON corrompu (plus de throw)", () => {
+    // Avant : `JSON.parse(localStorage.getItem("lumina-config"))` SANS try/catch
+    // → un `lumina-config` corrompu (quota tronqué, écriture interrompue) faisait
+    // lever le hook et l'ErrorBoundary remplaçait toute la page. Désormais la
+    // lecture est protégée et retombe sur une config vide.
     localStorage.setItem("lumina-config", "{pas du json");
-    expect(() => renderHook(() => useAppConfig())).toThrow();
+    const { result } = renderHook(() => useAppConfig());
+    expect(result.current.config.churchName).toBe("");
+    expect(result.current.config.churchLogoUrl).toBe("");
   });
 });
 

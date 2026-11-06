@@ -31,11 +31,15 @@ jobs:
           cache: 'pnpm'
 
       - name: Create .env.local
+        # R-A : la CI doit viser un projet Supabase de TEST dédié. On lit en
+        # priorité les secrets TEST_* ; à défaut, repli sur la prod (héritage
+        # à supprimer dès que le projet de test est provisionné). Ne JAMAIS
+        # coder l'URL de prod en dur ici.
         run: |
-          echo "VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }}" > .env.local
-          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}" >> .env.local
-          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.SUPABASE_JWKS_URL }}" >> .env.local
-          echo "VITE_POWERSYNC_URL=${{ secrets.POWERSYNC_URL }}" >> .env.local
+          echo "VITE_SUPABASE_URL=${{ secrets.TEST_SUPABASE_URL || secrets.SUPABASE_URL }}" > .env.local
+          echo "VITE_SUPABASE_ANON_KEY=${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}" >> .env.local
+          echo "VITE_SUPABASE_JWKS_URL=${{ secrets.TEST_SUPABASE_JWKS_URL || secrets.SUPABASE_JWKS_URL }}" >> .env.local
+          echo "VITE_POWERSYNC_URL=${{ secrets.TEST_POWERSYNC_URL || secrets.POWERSYNC_URL }}" >> .env.local
           echo "VITE_ONESIGNAL_APP_ID=${{ secrets.OS_V2_API_KEY || secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.local
           echo "VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN || secrets.VITE_SENTRY_DSN }}" >> .env.local
 
@@ -61,3 +65,17 @@ jobs:
           # Create a token https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CYPRESS_BASE_URL: http://localhost:8080
+          # R-A : les helpers de test (cypress.config.ts `expose`, e2eCleanup,
+          # cloud-sync) lisent CYPRESS_SUPABASE_URL / _ANON_KEY / POWERSYNC_URL.
+          # On les aligne sur le projet de TEST (repli prod tant qu'il n'existe
+          # pas) — sinon ils retomberaient sur l'URL prod codée en dur.
+          CYPRESS_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL || secrets.SUPABASE_URL }}
+          CYPRESS_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+          CYPRESS_POWERSYNC_URL: ${{ secrets.TEST_POWERSYNC_URL || secrets.POWERSYNC_URL }}
+          # R-B : le mot de passe du compte E2E n'est plus commité. Fournir
+          # les secrets E2E_ORG_PASSWORD / E2E_ORG_UNCONFIGURED_PASSWORD
+          # (jamais dans le dépôt). Absents = specs d'auth en échec explicite.
+          CYPRESS_ORG_EMAIL: ${{ secrets.E2E_ORG_EMAIL }}
+          CYPRESS_ORG_PASSWORD: ${{ secrets.E2E_ORG_PASSWORD }}
+          CYPRESS_ORG_UNCONFIGURED_EMAIL: ${{ secrets.E2E_ORG_UNCONFIGURED_EMAIL }}
+          CYPRESS_ORG_UNCONFIGURED_PASSWORD: ${{ secrets.E2E_ORG_UNCONFIGURED_PASSWORD }}

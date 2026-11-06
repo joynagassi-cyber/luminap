@@ -94,10 +94,31 @@ vi.mock("@/lib/onboardingState", () => ({
   needsOnboarding: () => false,
 }));
 
-vi.mock("@/store/useLocalStore", () => ({
-  useLocalStore: (sel: (s: unknown) => unknown) =>
-    sel({ loadInitialData: vi.fn(async () => undefined), auditEntries: [] }),
-}));
+vi.mock("@/store/useLocalStore", () => {
+  // Zustand-compatible mock : le store réel expose `useLocalStore(selector)`
+  // ET `useLocalStore.getState()`. Un Proxy renvoie un `vi.fn()` pour toute
+  // action non déclarée, ce qui couvre tous les sélecteurs des écrans testés.
+  const state: Record<string, unknown> = new Proxy(
+    { loadInitialData: vi.fn(async () => undefined), auditEntries: [] },
+    {
+      // `p` est un `string | symbol` : le typer `PropertyKey` évite
+      // `TS2538: Type 'symbol' cannot be used as an index type` (tsc -b).
+      get: (t, p: PropertyKey) =>
+        p in t ? (t as Record<PropertyKey, unknown>)[p] : vi.fn(),
+    },
+  );
+  const hook = ((sel?: (s: unknown) => unknown) => (sel ? sel(state) : state)) as ((
+    s?: unknown,
+  ) => unknown) & {
+    getState: () => unknown;
+    setState: () => void;
+    subscribe: () => () => void;
+  };
+  hook.getState = () => state;
+  hook.setState = () => undefined;
+  hook.subscribe = () => () => undefined;
+  return { useLocalStore: hook };
+});
 
 vi.mock("@/hooks/useKeyboardAvoidance", () => ({
   useKeyboardAvoidance: () => 0,

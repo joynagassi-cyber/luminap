@@ -172,6 +172,7 @@ export default function InvitationEmit() {
 
       // Notify the inviter's org (in-app UI + OneSignal tags for server targeting)
       notification.sendNotification({
+        actionType: "INVITATION_SENT",
         title: "Invitation émise",
         message: `Invitation ${code} pour le rôle ${targetRole}`,
         targetRole: "ADMIN",

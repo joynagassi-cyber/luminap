@@ -30,6 +30,7 @@
     "cypress:chrome": "node cypress/run.mjs --browser chrome",
     "e2e:smoke": "npx cypress run --spec cypress/e2e/simple-check.cy.ts",
     "e2e:full": "bash scripts/run-cypress.sh",
+    "e2e:purge": "bash scripts/e2e-purge.sh",
     "e2e:min": "playwright test --config=playwright.min.config.ts",
     "e2e:mag": "magnitude",
     "debug": "bash scripts/logcat-debug.sh"

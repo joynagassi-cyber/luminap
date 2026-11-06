@@ -259,6 +259,7 @@ export function clearReminderMarker(
 
 /** Données de notification (alignées sur `NotificationSendData`). */
 export interface ReminderNotificationData {
+  actionType?: string;
   title: string;
   message: string;
   targetRole?: Role;
@@ -326,6 +327,7 @@ export async function deliverReportReminder(
 
   try {
     await send({
+      actionType: "REPORT_REMINDER",
       title: reminder.title,
       message: reminder.message,
       targetRole: "ADMIN",

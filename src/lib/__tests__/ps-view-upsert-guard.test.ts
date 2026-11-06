@@ -19,6 +19,8 @@ import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
+import { AppSchema } from "../powersync/schema";
+
 const ROOT = process.cwd();
 const SCAN_DIRS = [
   join(ROOT, "src", "lib"),
@@ -28,19 +30,13 @@ const SCAN_DIRS = [
 ];
 
 /**
- * Occurrences connues et justifiées (cf. docs/agent/ESCALATIONS.md E7). Toute
- * autre occurrence fait échouer la garde — c'est le but : forcer une revue.
+ * Occurrences connues et justifiées (cf. docs/agent/ESCALATIONS.md E7).
+ * **Vide** : les 2 anciennes entrées ont été corrigées (R160) — `registerOrg`
+ * (aucun appelant) et `claimInvitation` (parcours d'invitation VIVANT) sont
+ * passés au pattern SELECT → UPDATE/INSERT. Toute occurrence fait donc échouer
+ * la garde, ce qui force une revue.
  */
-const ALLOWLIST = new Map<string, string>([
-  [
-    "src/capabilities/organization/index.ts",
-    "registerOrg() : code mort (aucun appelant), à traiter avec le schéma PowerSync",
-  ],
-  [
-    "src/capabilities/invitation/index.ts",
-    "claimInvitation() : dépend d'un changement de schéma/stream profiles (E7)",
-  ],
-]);
+const ALLOWLIST = new Map<string, string>();
 
 const FORBIDDEN = /(ON\s+CONFLICT|INSERT\s+OR\s+REPLACE)/i;
 
@@ -86,6 +82,33 @@ describe("R160 — aucune écriture UPSERT sur une vue PowerSync (hors allowlist
     expect(FORBIDDEN.test(probe)).toBe(true);
     const clean = "await db.execute('SELECT id FROM t WHERE org_id = ?', [org]);";
     expect(FORBIDDEN.test(clean)).toBe(false);
+  });
+
+  it("tout INSERT dans une table du schéma déclare la colonne `id` (sinon « id is required »)", () => {
+    // PowerSync n'attribue PAS d'id sur un INSERT explicite : il doit figurer
+    // dans la liste de colonnes, sinon l'écriture échoue silencieusement.
+    const offenders: string[] = [];
+    for (const dir of SCAN_DIRS) {
+      for (const file of walk(dir)) {
+        const rel = relative(ROOT, file).replace(/\\/g, "/");
+        const src = readFileSync(file, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .replace(/\/\/[^\n]*/g, "");
+        for (const m of src.matchAll(
+          /INSERT\s+(?:OR\s+REPLACE\s+)?INTO\s+([a-z_][a-z0-9_]*)\s*\(([^)]*)\)/gi,
+        )) {
+          const table = m[1];
+          if (!AppSchema.tables.some((t) => t.name === table)) continue;
+          const cols = m[2].split(",").map((c) => c.trim());
+          if (!cols.includes("id")) offenders.push(`${rel}: INSERT ${table} sans id`);
+        }
+      }
+    }
+    expect(
+      offenders,
+      `INSERT PowerSync sans colonne \`id\` → « id is required » à l'exécution :\n` +
+        offenders.join("\n"),
+    ).toEqual([]);
   });
 
   it("l'allowlist ne référence que des fichiers existants", () => {

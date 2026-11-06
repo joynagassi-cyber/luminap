@@ -8,7 +8,7 @@ set -e
 
 KEYSTORE_FILE="${1:-android/app/release.keystore}"
 KEY_ALIAS="${2:-lumina-release}"
-KEYSTORE_PASSWORD="${3:-lumina1234}"
+KEYSTORE_PASSWORD="${3:-${LUMINA_KEYSTORE_PASSWORD:-lumina1234}}"
 
 echo "=========================================="
 echo "Empreintes du keystore"

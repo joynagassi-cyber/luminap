@@ -132,6 +132,7 @@ export default function GivingCampaign() {
 
       // Notify the treasurers that a new pledge was recorded
       notification.sendNotification({
+        actionType: "GIVING_PLEDGE",
         title: "Nouvel engagement de don",
         message: `${donorName(pledgeDonor)} — ${pledgeAmount} FCFA (${pledgeSchedule})`,
         targetRole: "TREASURIER",
@@ -169,6 +170,7 @@ export default function GivingCampaign() {
 
       // Notify the donor (in-app + OneSignal email if subscribed)
       notification.sendNotification({
+        actionType: "TAX_RECEIPT",
         title: "Reçu fiscal généré",
         message: `Votre reçu fiscal ${receiptYear} est disponible.`,
         targetUserId: receiptDonor,
