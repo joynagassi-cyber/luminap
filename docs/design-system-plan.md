@@ -243,3 +243,11 @@ tranchée : pile unique, BottomNav maison).
   focus/erreur/disabled/readonly, message sous le champ), **LuSegmented**
   (indicateur animé 200 ms, état = classe sur l'hôte + aria-selected,
   variante signed income/expense). Entrées Design Lab + 16 tests.
+- P2 lot 3 : **LuOptionList** (conteneur surface-2 r20 p6, item h44
+  sélectionné = surface blanche/inverse + ombre + coche), **LuSelect**
+  (3 modes auto : ≤5 liste en ligne, 6–20 popover, >20 bottom sheet avec
+  recherche ; champ façon LuField, fermeture Échap/clic extérieur),
+  **LuSectionHeader** (titre 17/700 + action accent), **LuEmptyState**
+  (illustration 160 px 100 % jetons, titre, texte, CTA). Helper
+  `useInversePair` partagé (LuSegmented aligné dessus). Entrées Design
+  Lab + 8 tests.

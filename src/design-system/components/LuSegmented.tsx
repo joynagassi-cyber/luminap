@@ -10,6 +10,7 @@
  * 100 % jetons --lu-* (ratchet lint).
  */
 import type { ReactNode } from "react";
+import { useInversePair } from "./inverse";
 
 export interface LuSegmentedOption {
   value: string;
@@ -36,6 +37,8 @@ export function LuSegmented({
 }: LuSegmentedProps) {
   const selectedIndex = Math.max(0, options.findIndex((o) => o.value === value));
   const widthPct = 100 / options.length;
+  // « surface blanche (clair) ou surface-inverse (sombre) » — spec §6.
+  const inverse = useInversePair();
 
   return (
     <div
@@ -53,7 +56,7 @@ export function LuSegmented({
           width: `${widthPct}%`,
           left: 4,
           transform: `translateX(${selectedIndex * 100}%)`,
-          background: "var(--lu-surface-inverse)",
+          background: inverse.bg,
           boxShadow: "var(--lu-shadow-sm)",
         }}
       />
