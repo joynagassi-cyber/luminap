@@ -8,6 +8,12 @@
   --lu-hero-bg: var(--accent-primary);
   --lu-hero-fg: var(--on-accent);
   --lu-scrim: var(--scrim);
+  /* P3 : variante dark-orb du hero (carte sombre fixe, cf. maquettes) et
+     bloc imbriqué du hero solid (overlay noir 10 %). */
+  --lu-orb-bg: #060b18;
+  --lu-on-orb: #ffffff;
+  --lu-overlay-ink: rgb(0 0 0 / 10%);
+  --lu-orb-glow: radial-gradient(circle, var(--lu-accent-vivid) 0%, var(--lu-orb-bg) 70%);
   --lu-fg: var(--text-primary);
   --lu-fg-muted: var(--text-secondary);
   --lu-fg-subtle: var(--text-tertiary);

@@ -15,7 +15,7 @@
  */
 import { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
-import { Bell, CalendarDays, Flame, Home, Plus, ShoppingCart } from "lucide-react";
+import { Bell, CalendarDays, Flame, Home, List, PieChart, Plus, Settings, ShoppingCart } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
 import { useTheme } from "@/design-system/theme/theme-context";
 import {
@@ -29,9 +29,13 @@ import {
   LuEmptyState,
   LuField,
   LuIconButton,
+  LuAppBar,
+  LuHero,
   LuSectionHeader,
   LuSelect,
   LuSegmented,
+  LuTabBar,
+  LuTransactionRow,
 } from "@/design-system/components";
 
 // ─── Lecture résolue des jetons ──────────────────────────────────────────────
@@ -315,6 +319,38 @@ export default function DesignLab() {
             </div>
             <div className="mt-4 rounded-[var(--lu-radius-xl)] border" style={{ borderColor: "var(--lu-border)" }}>
               <LuEmptyState title="You have nothing to do now." text="You have nothing to do in a while." ctaLabel="Add New" onCta={() => {}} />
+            </div>
+          </Section>
+
+          {/* Composites Lu* — P3 : hero (3 variantes), app bar, lignes, tab bar */}
+          <Section title="LuHero (P3) — 3 variantes">
+            <div className="grid gap-4">
+              <LuHero variant="solid" greeting="Bonjour, Aïcha" label="Solde total" amount={142830} delta={{ positive: true, children: "+12 %" }} onBell={() => {}}>
+                <p className="text-sm font-semibold" style={{ color: "var(--lu-hero-fg)" }}>Prochaine échéance : 15 novembre</p>
+              </LuHero>
+              <LuHero variant="tinted" greeting="Bonjour, Aïcha" label="Solde total" amount={142830} delta={{ positive: false, children: "−3 %" }} />
+              <LuHero variant="dark-orb" label="Vous avez dépensé" amount={48500} onAction={() => {}} />
+            </div>
+          </Section>
+          <Section title="LuAppBar / LuTransactionRow / LuTabBar (P3)">
+            <LuAppBar title="Lumina" large meta="3 Total" onBack={() => {}} actions={<Bell size={20} />} />
+            <div className="mt-3 rounded-[var(--lu-radius-md)]" style={{ background: "var(--lu-surface)" }}>
+              <LuTransactionRow grouped title="Super U" subtitle="Aujourd'hui · 14:32" icon={<ShoppingCart size={20} />} amount={-12500} />
+              <LuTransactionRow grouped title="Salaire octobre" icon={<Plus size={20} />} amount={250000} chevron onClick={() => {}} />
+              <LuTransactionRow grouped title="Courses" icon={<ShoppingCart size={20} />} count={9} iconTone="accent" />
+            </div>
+            <div className="relative mt-6 h-24">
+              <LuTabBar
+                tabs={[
+                  { id: "home", label: "Accueil", icon: <Home size={22} /> },
+                  { id: "history", label: "Historique", icon: <List size={22} /> },
+                  { id: "stats", label: "Stats", icon: <PieChart size={22} /> },
+                  { id: "settings", label: "Réglages", icon: <Settings size={22} /> },
+                ]}
+                active="home"
+                onSelect={() => {}}
+                activeStyle="pill-active"
+              />
             </div>
           </Section>
 
