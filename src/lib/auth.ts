@@ -158,6 +158,93 @@ function isBrowserOffline(): boolean {
   return typeof navigator !== "undefined" && navigator.onLine === false;
 }
 
+/** Clé de persistance du profil (source locale de `lumina-user`). */
+const PROFILE_STORAGE_KEY = "lumina-user";
+
+/** Forme persistée du profil — lue par `useCurrentUser()` (dataLayer). */
+interface StoredProfile {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+  org?: { id?: string; name?: string; type?: string; accentColor?: string } | null;
+}
+
+/**
+ * Relit le profil PERSISTÉ localement (`lumina-user`, écrit par
+ * `persistCurrentUser`). C'est le repli offline-first de `getProfile` : au
+ * démarrage à froid hors ligne, `profiles` n'est pas lisible (aucune sync
+ * PowerSync encore ouverte, requête réseau impossible) et l'organisation
+ * restait `__no_org__` → TOUS les écrans de données étaient vides alors que
+ * la réplique locale contenait les lignes. Rend `null` si absent/corrompu.
+ */
+export function readStoredProfile(userId?: string): Profile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredProfile;
+    const id = parsed?.id;
+    if (!id || (userId && id !== userId)) return null;
+    return {
+      id,
+      email: parsed.email ?? null,
+      first_name: parsed.firstName ?? null,
+      last_name: parsed.lastName ?? null,
+      role: parsed.role ?? "",
+      org_id: parsed.org?.id ?? "",
+      created_at: "",
+      updated_at: "",
+    };
+  } catch {
+    /* stockage indisponible / JSON corrompu — pas de repli */
+  }
+  return null;
+}
+
+/**
+ * Persiste le profil pour un démarrage à froid hors ligne. Best-effort et
+ * FUSIONNANT : ne remplace jamais une valeur connue par du vide (une réponse
+ * réseau partielle ne doit pas effacer le nom/org mémorisés).
+ */
+export function persistProfileLocally(profile: Profile): void {
+  try {
+    let previous: StoredProfile | null = null;
+    try {
+      const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (raw) previous = JSON.parse(raw) as StoredProfile;
+    } catch {
+      /* profil précédent illisible — on repart de zéro */
+    }
+    let orgName = previous?.org?.name;
+    if (!orgName) {
+      try {
+        orgName = JSON.parse(localStorage.getItem("lumina-config") ?? "{}")?.churchName;
+      } catch {
+        /* config absente — nom d'organisation laissé vide */
+      }
+    }
+    const merged: StoredProfile = {
+      id: profile.id,
+      email: profile.email || previous?.email || "",
+      firstName: profile.first_name || previous?.firstName || "",
+      lastName: profile.last_name || previous?.lastName || "",
+      role: profile.role || previous?.role || "",
+      org: {
+        // Étale l'org précédente (déjà écrite par `persistCurrentUser`, qui
+        // fournit type/accentColor) puis met à jour id/nom — sans réintroduire
+        // de littéral de couleur (ratchet design).
+        ...(previous?.org ?? {}),
+        id: profile.org_id || previous?.org?.id || "",
+        name: orgName,
+      },
+    };
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
+  } catch {
+    /* stockage indisponible — le repli de useCurrentUser reste inerte */
+  }
+}
+
 /**
  * L'erreur ressemble-t-elle à un échec RÉSEAU (et non à un rejet auth
  * définitif du serveur) ? Un rejet type « Invalid Refresh Token » n'est
@@ -383,6 +470,13 @@ class AuthService {
   // Get user profile
   async getProfile(userId: string): Promise<Profile | null> {
     if (!userId) return null;
+    // OFFLINE-FIRST : sans réseau, `supabase.from("profiles")` échoue (ou rend
+    // `null`) et l'organisation n'était JAMAIS résolue → `__no_org__` → tous
+    // les écrans de données vides alors que la réplique locale est pleine.
+    // On sert d'abord le profil PERSISTÉ localement, sans toucher au réseau.
+    if (isBrowserOffline()) {
+      return readStoredProfile(userId);
+    }
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -391,12 +485,29 @@ class AuthService {
         .maybeSingle();
 
       if (error || !data) {
-        return null;
+        // Échec réseau / RLS : on retombe sur le profil local (offline-first)
+        // au lieu de rendre `null` et de bloquer la résolution d'organisation.
+        return readStoredProfile(userId);
       }
+      // Mémorise la réponse réseau pour le PROCHAIN démarrage à froid hors
+      // ligne (sinon la résolution d'org dépendrait d'une visite de /sessions).
+      persistProfileLocally(data as Profile);
       return data as Profile;
-    } catch (err) {
-      return null;
+    } catch {
+      return readStoredProfile(userId);
     }
+  }
+
+  /**
+   * Applique un profil déjà résolu à l'état singleton (hydratation au boot
+   * hors ligne). Passe par `setState`, donc persiste (`lumina-user` + forme
+   * `Profile`) et résout le contexte d'organisation. Utilisé par `AppContext`
+   * quand le profil vient du repli LOCAL, sans rejouer une requête réseau.
+   */
+  applyProfile(profile: Profile): void {
+    if (!profile?.id) return;
+    if (this.state.profile?.id === profile.id) return;
+    this.setState({ profile });
   }
 
   /**
@@ -1361,6 +1472,11 @@ class AuthService {
     this.state = { ...this.state, ...updates };
     if (updates.profile) {
       this.persistCurrentUser(updates.profile);
+      // Persiste AUSSI la forme `Profile` (snake_case) : `getProfile` la relit
+      // hors ligne pour résoudre l'organisation sans réseau (démarrage à froid
+      // offline). Sans cela, `lumina-user` (forme `CurrentUser`) suffisait à
+      // l'affichage mais pas à la résolution d'org → écrans vides.
+      persistProfileLocally(updates.profile);
       // Résout l'organisation AU MOMENT où le profil est connu, plutôt que
       // de compter sur `AppContext` (monté une seule fois, avant toute
       // connexion). Sans cela, un login depuis /auth laissait
