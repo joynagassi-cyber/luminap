@@ -1,5 +1,22 @@
 # Mémoire projet — Lumina
 
+## GOUVERNANCE PLATEFORME — audit stack (PR #444, 2026-11-04)
+- **Diagnostic utilisateur** : Lumina a été pensé comme une app WEB alors que
+  c'est un client ANDROID natif offline-first. → charte `docs/PLATFORM-GOVERNANCE.md`.
+- **Versions** : quasi TOUT à jour (Capacitor 8.6.0=latest, PowerSync, sqlite…).
+  Le problème n'est PAS les versions. Seul écart majeur : TypeScript 5.9.3 vs 7.0.2.
+- **Décision** : garder Capacitor 8 + Ionic 9 + React 19 + PowerSync 2. **NE PAS
+  réécrire.** Le déficit est gouvernance/doc/pratique, pas techno.
+- **Déficit mesuré** : Ionic sous-exploité (67 `IonPage` mais 414 `<button>` vs
+  89 `IonButton`, 0 `IonIcon`, 0 `IonTabs`) ; `navigator.onLine` lu en direct 14× ;
+  `src/adapters/native/NetworkAdapter.ts` EXISTE mais MORT (importé nulle part) ;
+  **aucun test CI sur l'APK** (Maestro dans `.maestro/` mais absent CI).
+- **Doc** : 260 `.md`, 6 « FINAL » redondants ; `AGENTS.md` CONTREDIT `package.json`
+  (dit Nitro/`server/` supprimé mais `nitro`/`h3`/`@supabase/server` restent en deps).
+- **Garde active** : `platform-abstraction-guard.test.ts` — ratchet : échoue si un
+  NOUVEAU `navigator.onLine`/`navigator.connection`/`online-offline` apparaît hors
+  `src/adapters/native/`. Dette de 8 fichiers figée (diminue seulement). Non-vacuité prouvée.
+
 ## HORS LIGNE : piège récurrent « écrans vides » (R175, PR #442, 2026-11-04)
 - **Toute lecture réseau au BOOT qui n'a pas de repli local casse l'offline.**
   Cas R175 : `authService.getProfile()` (`src/lib/auth.ts`) = requête réseau
