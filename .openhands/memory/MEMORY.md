@@ -1513,6 +1513,14 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `no such column: kind`. Correctif = colonne + bump de version de schéma client.
 - **Garde** : `observability-self-healing-guard.test.ts` (27).
 
+## Gardes plateforme natives (2026-11-04, PR #458 / 62f939ba)
+- **`native-capability-guard.test.ts`** : tout appel de méthode sur un plugin
+  Capacitor importé (`StatusBar/Haptics/Keyboard/Camera/LocalNotifications/`
+  `Preferences/SplashScreen/App`…) doit être gardé (`isNativePlatform`/
+  `getPlatform`), sinon listé dans `ANDROID_ONLY_ALLOWED` (updaterStore,
+  SettingsNotifications). `@capacitor/core` exclu (sondes de garde).
+- Audit : 16 sites `@capacitor/*` hors couche plateforme, **tous gardés**.
+
 ## Code mort shadcn supprimé + garde réachabilité (2026-11-04, PR #456 / a94a7e60)
 - `src/components/ui/` : 40/45 composants morts supprimés ; **5 restants**
   (`chart`, `progress`, `skeleton`, `switch`, `tooltip`). 29 deps mortes retirées
