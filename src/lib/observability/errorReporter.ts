@@ -24,6 +24,7 @@ import { redact } from "@/lib/clientErrors";
 import { normalizeText } from "@/lib/sanitize";
 import { isFeatureEnabled } from "@/lib/featureFlags";
 import { pushBreadcrumb, getBreadcrumbs } from "./breadcrumbs";
+import { isOnline as platformIsOnline } from "@/platform/networkState";
 import type { Breadcrumb } from "./breadcrumbs";
 
 /** Type d'incident — vocabulaire fermé (pilote le titre + les tags de l'Issue). */
@@ -139,14 +140,8 @@ function currentRoute(): string | undefined {
 }
 
 function isOnline(): boolean {
-  try {
-    if (typeof navigator === "undefined") return true;
-    // `navigator.onLine` peut être absent (Node, environnements non-Web) → en
-    // ligne par défaut ; seul un `false` explicite signifie hors-ligne.
-    return navigator.onLine !== false;
-  } catch {
-    return true;
-  }
+  // Façade plateforme (exacte sur natif via @capacitor/network).
+  return platformIsOnline();
 }
 
 /**

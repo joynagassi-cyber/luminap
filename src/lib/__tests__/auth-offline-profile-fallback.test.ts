@@ -80,12 +80,12 @@ import {
   persistProfileLocally,
 } from "@/lib/auth";
 import { getOrganizationId, resetOrganizationId } from "@/lib/orgContext";
+import { __setOnlineForTests, __resetNetworkStateForTests } from "@/platform/networkState";
 
+// L'état réseau passe désormais par la façade plateforme (source unique,
+// exacte sur natif via @capacitor/network) — plus de `navigator.onLine` direct.
 function setOnline(online: boolean) {
-  Object.defineProperty(globalThis, "navigator", {
-    value: { onLine: online },
-    configurable: true,
-  });
+  __setOnlineForTests(online);
 }
 
 const LOCAL_PROFILE = {
@@ -110,6 +110,7 @@ beforeEach(() => {
     error: null,
   };
   resetOrganizationId();
+  __resetNetworkStateForTests();
   setOnline(true);
 });
 

@@ -13,6 +13,7 @@
  */
 import { redact } from "@/lib/clientErrors";
 import { normalizeText } from "@/lib/sanitize";
+import { subscribeOnline } from "@/platform/networkState";
 
 /** Catégories d'action tracées (vocabulaire fermé et stable). */
 export type BreadcrumbCategory =
@@ -154,14 +155,15 @@ export function installBreadcrumbCapture(): () => void {
     pushBreadcrumb("navigation", `navigation vers ${safeUrl(window.location.href)}`);
   };
 
-  const onOnline = () => pushBreadcrumb("network", "connexion rétablie (online)");
-  const onOffline = () =>
-    pushBreadcrumb("network", "perte de connexion (offline)");
+  const unsubscribeNetwork = subscribeOnline((online) =>
+    pushBreadcrumb(
+      "network",
+      online ? "connexion rétablie (online)" : "perte de connexion (offline)",
+    ),
+  );
 
   window.addEventListener("click", onClick, { capture: true });
   window.addEventListener("popstate", onPopState);
-  window.addEventListener("online", onOnline);
-  window.addEventListener("offline", onOffline);
 
   // Appels réseau : on journalise l'échec (statut ≥ 400 ou rejet), sans jamais
   // lire le corps de la réponse (coût + PII). Le `fetch` d'origine est préservé.
@@ -198,8 +200,7 @@ export function installBreadcrumbCapture(): () => void {
   return () => {
     window.removeEventListener("click", onClick, { capture: true });
     window.removeEventListener("popstate", onPopState);
-    window.removeEventListener("online", onOnline);
-    window.removeEventListener("offline", onOffline);
+    unsubscribeNetwork();
     if (wrappedFetch && window.fetch === wrappedFetch) window.fetch = originalFetch;
   };
 }

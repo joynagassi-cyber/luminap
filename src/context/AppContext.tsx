@@ -9,6 +9,7 @@ import { usePowerSyncStatus, ensureLocalDataOwnedBy } from "@/lib/dataLayer";
 import { authService } from "@/lib/auth";
 import { oneSignalService } from "@/lib/authOneSignal";
 import { setOrganizationId } from "@/lib/orgContext";
+import { subscribeOnline } from "@/platform/networkState";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -20,17 +21,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     loadInitialData().catch(() => {});
   }, []);
 
-  // Network listeners
-  useEffect(() => {
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [setOnline]);
+  // Network listeners (façade plateforme — source unique, exacte sur natif)
+  useEffect(() => subscribeOnline(setOnline), [setOnline]);
 
   // Resolve the organization context from the auth state.
   //

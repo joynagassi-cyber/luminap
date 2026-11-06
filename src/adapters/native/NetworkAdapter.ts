@@ -1,5 +1,6 @@
 import type { ConnectionStatus, ConnectionType } from "@capacitor/network";
 import { Network } from "@capacitor/network";
+import { Capacitor } from "@capacitor/core";
 
 export type { ConnectionStatus, ConnectionType };
 
@@ -136,7 +137,17 @@ export class NetworkAdapter {
   }
 
   private isCapacitorEnv(): boolean {
-    return !!NetworkAdapter.__mockNetwork;
+    // Détection RÉELLE de la plateforme native : un mock injecté (tests) OU
+    // l'exécution dans une WebView Capacitor. L'ancienne implémentation
+    // (`!!__mockNetwork`) renvoyait TOUJOURS `false` sur un vrai appareil :
+    // l'adaptateur retombait alors sur `navigator.onLine` — l'API navigateur
+    // peu fiable en WebView Android qu'il était censé remplacer.
+    if (NetworkAdapter.__mockNetwork) return true;
+    try {
+      return Capacitor.isNativePlatform();
+    } catch {
+      return false;
+    }
   }
 
   private async broadcastStatus(): Promise<void> {

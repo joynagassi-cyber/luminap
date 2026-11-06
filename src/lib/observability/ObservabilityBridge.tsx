@@ -22,6 +22,7 @@ import {
   setSessionContext,
   flushPendingReports,
 } from "./errorReporter";
+import { subscribeOnline } from "@/platform/networkState";
 
 export const ObservabilityBridge = () => {
   const location = useLocation();
@@ -51,12 +52,14 @@ export const ObservabilityBridge = () => {
   useEffect(() => {
     // Tente d'écouler la file d'attente des rapports dès que la connexion
     // revient (les rapports émis hors-ligne repartent automatiquement).
-    const onOnline = () => {
+    const flush = () => {
       void flushPendingReports().catch(() => {});
     };
-    window.addEventListener("online", onOnline);
-    onOnline();
-    return () => window.removeEventListener("online", onOnline);
+    const unsubscribe = subscribeOnline((online) => {
+      if (online) flush();
+    });
+    flush();
+    return unsubscribe;
   }, []);
 
   return null;

@@ -106,21 +106,25 @@ installe (l'APK).** Les bugs terrain sont donc découverts par l'utilisateur.
 
 ### 1.6 La documentation a divergé **[Fait]**
 
-- **260 fichiers `.md`** dans `docs/`, dont 6 « FINAL » et 6 « MIGRATION »
+- **260 fichiers `.md`** dans `docs/`, dont de nombreux snapshots « terminés »
   redondants (`MIGRATION_STATE.md`, `MIGRATION_STATE_FINAL.md`,
   `MIGRATION_COMPLETE.md`, `MIGRATION_100_COMPLETE.md`, `MIGRATION_FINAL_SUMMARY.md`,
-  `POWERSYNC_FINAL_SETUP.md`…).
+  `MIGRATION_VERIFICATION.md`, `POWERSYNC_FINAL_SETUP.md`, `PLATFORM_COMPLETE.md`…).
 - **135 fichiers** dans `docs/agent/receipts/` (un reçu par tâche).
-- `AGENTS.md` **contredit** l'état réel : il affirme que Nitro/`server/` a été
-  supprimé le 2026-09-30, alors que `package.json` conserve `nitro` (3.0.260610-beta),
-  `h3` (2.0.1-rc.22), `@supabase/server`, `jiti` en dépendances **runtime**, et
-  que `vite.config.ts` contient toute la logique `hasNitroRoutesOnDisk()` +
-  import `nitro/vite`.
-- Deux documents d'architecture coexistent : `docs/ARCHITECTURE.md` (projet) et
-  `docs/FINAL_ARCHITECTURE_VERIFICATION.md`.
+- **Deux documents d'architecture** coexistaient : `docs/ARCHITECTURE.md` (projet)
+  et `docs/FINAL_ARCHITECTURE_VERIFICATION.md`.
+- **Correction (2026-11-04)** : `AGENTS.md` **n'est pas** en contradiction — il
+  précise lui-même que `nitro` / `h3` restent des « déclarations historiques »
+  (vérifié : `pg` a bien été retiré ; `nitro`/`h3`/`jiti`/`@supabase/server`
+  subsistent mais ne sont plus chargés, `server/` étant absent). Le vrai problème
+  est le **volume et la redondance**, pas une affirmation fausse.
 
-⇒ Personne (humain ou agent) ne peut dire **quel document est la vérité**. C'est
-exactement le symptôme « mauvaise documentation suivi » que tu décris.
+⇒ Personne (humain ou agent) ne peut dire **quel document est la vérité** sans
+inventaire. C'est exactement le symptôme « mauvaise documentation suivi » décrit.
+
+**Correctif appliqué** (chantier #1) : 11 documents « terminés » déplacés vers
+`docs/archive/` (avec `docs/archive/README.md`), ramenant `docs/*.md` de 48 à 37
+fichiers de premier niveau. Voir §4.1.
 
 ### 1.7 Un audit plateforme existe déjà… et n'a pas été institutionalisé **[Fait]**
 
@@ -177,12 +181,12 @@ Capacitor ne couvre pas. À ce jour, aucun fait ne le montre.
 
 | Domaine | Fichier unique | Règle |
 |---|---|---|
-| Architecture | `docs/ARCHITECTURE.md` | Supprimer `FINAL_ARCHITECTURE_VERIFICATION.md` (fusionner). |
+| Architecture | `docs/ARCHITECTURE.md` | `FINAL_ARCHITECTURE_VERIFICATION.md` archivé (2026-11-04). |
 | Décisions | `docs/agent/DECISIONS.md` | Format ADR : Contexte / Décision / Alternatives / Conséquence. |
 | Risques | `docs/agent/RISQUES.md` | Un id `Rn`, statut, preuve. |
-| Instructions agents | `AGENTS.md` | Doit refléter l'état réel (corriger la contradiction Nitro — 1.6). |
+| Instructions agents | `AGENTS.md` | **Vérifié exact** (2026-11-04) : il documente lui-même la rétention historique de `nitro`/`h3`. Le garder à jour. |
 | Cible plateforme | **ce document** | Ratifié, il devient la charte. |
-| Reste (`docs/`) | — | Archiver sous `docs/archive/` (jamais supprimer l'historique). |
+| Reste (`docs/`) | — | **Fait le 2026-11-04** : 11 snapshots « terminés » déplacés vers `docs/archive/` (voir son README). Règle : un nouveau snapshot terminé va directement à l'archive. |
 
 **Règle** : un fait technique n'existe que s'il est dans la SSOT du domaine.
 Toute autre mention est un **lien**, pas une copie.
@@ -237,8 +241,8 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 
 | # | Chantier | Pourquoi | Effort | Preuve de réussite |
 |---|---|---|---|---|
-| 1 | **Geler la doc** : créer `docs/archive/`, ne garder qu'une SSOT par domaine, corriger `AGENTS.md` | Stoppe la dérive, réduit le bruit | 1 j | `docs/*.md` < 30 actifs ; `AGENTS.md` sans contradiction |
-| 2 | **Couche plateforme réseau** : brancher `NetworkAdapter`, bannir `navigator.onLine` hors couche (guard) | Corrige une hypothèse de bug offline | 1–2 j | 0 `navigator.onLine` hors `src/platform` ; guard vert |
+| 1 | ✅ **Geler la doc** : `docs/archive/` créé, 11 snapshots « terminés » archivés, `AGENTS.md` vérifié exact | Stoppe la dérive, réduit le bruit | fait | `docs/*.md` 48→37 ; archive documentée |
+| 2 | ✅ **Couche plateforme réseau** : façade `src/platform/networkState`, `NetworkAdapter` réparé (détection natif), 10 sites migrés, `navigator.onLine` banni hors couche (guard, dette = 0) | Corrige une cause plausible de bug offline | fait | 0 `navigator.onLine` hors `src/platform`/`adapters` ; guard vert |
 | 3 | **Maestro en CI** sur APK debug | Détecte les bugs terrain avant l'utilisateur | 2–3 j | Job CI vert sur parcours avion/allumé |
 | 4 | **Adoption Ionic « d'abord »** écran par écran (feuilles, pull-to-refresh, haptique, transitions) | Ressenti natif | continu | Ratio `<IonButton>/<button>` en hausse ; 0 régression |
 | 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test appareil |
