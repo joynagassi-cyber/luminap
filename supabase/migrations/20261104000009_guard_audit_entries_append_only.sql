@@ -4,11 +4,13 @@
 -- CLASSE DE DÉFAUT (R140 incomplet — même angle mort que R102/R164/R166)
 --   R140 (migration 20261030000001) a rendu `audit_entries` « append-only » en
 --   retirant les politiques RLS `audit_entries_update` / `audit_entries_delete`.
---   Mais la RLS n'est PAS la dernière barrière : PowerSync écrit en
---   `service_role` (BYPASSRLS) et l'API REST/service_role n'applique pas la
---   logique RLS. Or `audit_entries` n'avait AUCUN trigger de garde. Un client
---   forgé pouvait donc `UPDATE`/`DELETE` une entrée d'audit — exactement
---   l'anti-traçabilité que R140 voulait interdire.
+--   Mais la RLS n'est PAS la dernière barrière : une clé `service_role`
+--   (BYPASSRLS) contourne la RLS (cf. R169). Or `audit_entries` n'avait AUCUN
+--   trigger de garde. Un appelant `service_role` (ou une future policy
+--   réintroduite) pouvait donc `UPDATE`/`DELETE` une entrée d'audit —
+--   exactement l'anti-traçabilité que R140 voulait interdire. Ce trigger est
+--   une ceinture-et-bretelles : la RLS (aucune policy UPDATE/DELETE) bloque
+--   déjà le rôle `authenticated`.
 --
 -- MESURE (2026-11-04, instance hhgovvrnalibhgpakswi)
 --   - `pg_trigger` sur `public.audit_entries` : AUCUN trigger non interne.

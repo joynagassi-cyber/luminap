@@ -7,11 +7,13 @@
 --       si `tx.status === 'APPROVED'` (sauf transition vers APPROVED) ;
 --     • en base — UNIQUEMENT pour le DELETE (`prevent_approved_transaction_delete`,
 --       migration 20261026000004, R102).
---   Or PowerSync écrit en service_role (RLS contournée) et l'API REST n'applique
---   pas la logique TS. Un `UPDATE transactions SET amount = <n>, status =
---   'PENDING' WHERE id = <tx APPROVED>` depuis un client forgé modifiait donc
---   une pièce approuvée (montant/date/catégorie) — voire la rouvrait — sans
---   aucun garde-fou serveur : altération silencieuse d'une comptabilité validée.
+--   Or un appelant DIRECT PostgREST (REST/SDK) avec un JWT utilisateur valide
+--   et la permission `transaction:update` saute la logique TS (la RLS s'applique
+--   mais la policy UPDATE n'exige pas de statut) ; et une clé `service_role`
+--   (BYPASSRLS) contourne aussi la RLS (cf. R169, modèle de menace corrigé).
+--   Un `UPDATE transactions SET amount = <n>, status = 'PENDING' WHERE id =
+--   <tx APPROVED>` modifiait donc une pièce approuvée (montant/date/catégorie)
+--   — voire la rouvrait — sans garde-fou serveur : altération silencieuse.
 --
 -- CORRECTIF
 --   Trigger BEFORE UPDATE sur `transactions` : toute modification d'une ligne

@@ -7,10 +7,12 @@
 --   `src/capabilities/workflow/index.ts`, appelé par `EventDetail` via
 --   `workflow.transition`). La table `events` n'avait AUCUN trigger de statut
 --   (uniquement `on_event_created` et `trg_events_cascade_org`).
---   Or PowerSync écrit en service_role (RLS contournée) et l'API REST n'applique
---   pas la logique TS : un `UPDATE events SET status = 'PLANIFIED' WHERE id =
---   <event CANCELLED>` depuis un client forgé ré-ouvrait un événement annulé —
---   aucune garde serveur.
+--   Or un appelant DIRECT PostgREST (REST/SDK) avec un JWT utilisateur valide
+--   et la permission `event:update` saute la logique TS (la RLS s'applique mais
+--   la policy UPDATE n'exige pas de statut) ; et une clé `service_role`
+--   (BYPASSRLS) contourne aussi la RLS (cf. R169). Un `UPDATE events SET
+--   status = 'PLANIFIED' WHERE id = <event CANCELLED>` ré-ouvrait donc un
+--   événement annulé — aucune garde serveur.
 --
 -- CORRECTIF (portée minimale, miroir EXACT de la garde client)
 --   Trigger BEFORE UPDATE sur `events` : refuse tout CHANGEMENT de `status`
