@@ -35,6 +35,12 @@
     faible risque, non migré.
   - **Env vitest** : les tests de façade utilisant `window`/`navigator` exigent
     `// @vitest-environment jsdom` (défaut = node, pas de `window`).
+  - **#5 DoD + #6 ADR (PR #449)** : `docs/adr/` (ADR 0001 = façades plateforme ;
+    README index) + garde `adr-guard.test.ts` (chaque ADR doit citer une garde
+    EXISTANTE). Ratchet étendu au motif `.download =` (bug P0-2 `<a download>`
+    muet en WebView) ; `src/lib/download.ts` = 4ᵉ façade. Template PR enrichi
+    (cases API plateforme / DoD §4.4 mode avion / ADR+garde).
+  - **PIÈGE** : `git checkout <fichier>` ne restaure PAS un fichier **non suivi**.
 - **#1 Gel doc (PR #445)** : `docs/archive/` + README ; 11 snapshots « terminés »
   archivés (MIGRATION_*, PLATFORM_COMPLETE, FINAL_ARCHITECTURE_VERIFICATION,
   POWERSYNC_FINAL_SETUP, POST_MIGRATION_CHECKLIST). `docs/*.md` 48→37.
