@@ -206,6 +206,9 @@ Toute autre mention est un **lien**, pas une copie.
 
 ### 4.3 Couche de capacité plateforme (le correctif structurel)
 
+> Décision formalisée : [`docs/adr/0001-couche-plateforme-facades.md`](./adr/0001-couche-plateforme-facades.md).
+> Garde opposable : `platform-abstraction-guard.test.ts`.
+
 Un **seul** point d'accès par capacité native, jamais l'API navigateur en direct.
 
 - Créer/valider `src/platform/` (ou généraliser `src/adapters/native/`) exposant
@@ -217,7 +220,9 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   - ouverture de lien : `window.open`, `target="_blank"` (no-op en WebView) →
     façade `src/platform/openExternal.ts` (`@capacitor/browser` sur natif) ;
   - partage : `navigator.share` (absent de la WebView) →
-    façade `src/platform/shareLink.ts` (`@capacitor/share` sur natif).
+    façade `src/platform/shareLink.ts` (`@capacitor/share` sur natif) ;
+  - téléchargement : `<a download>` (muet en WebView, bug P0-2) →
+    façade `src/lib/download.ts` (`downloadBlob`, natif = Filesystem + Share).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
@@ -250,11 +255,11 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 | # | Chantier | Pourquoi | Effort | Preuve de réussite |
 |---|---|---|---|---|
 | 1 | ✅ **Geler la doc** : `docs/archive/` créé, 11 snapshots « terminés » archivés, `AGENTS.md` vérifié exact | Stoppe la dérive, réduit le bruit | fait | `docs/*.md` 48→37 ; archive documentée |
-| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau), `openExternal` (liens) **et** `shareLink` (partage) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank`/`navigator.share` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
+| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau), `openExternal` (liens), `shareLink` (partage) **et** `downloadBlob` (sortie fichier) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank`/`navigator.share`/`<a download>` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
 | 3 | ~~**Maestro en CI** sur APK debug~~ **Écarté** (décision utilisateur 2026-11-06) | — | — | — |
 | 4 | **Adoption Ionic « d'abord »** écran par écran (feuilles, pull-to-refresh, haptique, transitions) | Ressenti natif | continu | Ratio `<IonButton>/<button>` en hausse ; 0 régression |
 | 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test/vérif appareil |
-| 6 | **ADR + guards** systématiques | Rend les règles opposables | continu | Chaque ADR a son guard |
+| 6 | **ADR + guards** systématiques — ✅ démarrage : `docs/adr/` créé (ADR 0001), garde `adr-guard.test.ts` impose « chaque ADR cite une garde existante » | Rend les règles opposables | continu | Chaque ADR a son guard |
 | 7 | Planifier **TypeScript 7** (majeur) | Sécurité de mise à jour | 1 j d'éval | ADR + CI verte |
 
 ---
