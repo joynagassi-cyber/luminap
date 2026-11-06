@@ -52,7 +52,9 @@ const PLATFORM_LAYERS = [
  * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView ;
  * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`) ;
  * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob` ;
- * - retour matériel : écoute directe `ionBackButton`/`backbutton` → `hardwareBack`.
+ * - retour matériel : écoute directe `ionBackButton`/`backbutton` → `hardwareBack` ;
+ * - modulateurs système : `window.prompt`/`confirm`/`alert` = no-op ou bloquants
+ *   dans la WebView Android → composants Ionic (IonAlert) ou overlay maison.
  */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,
@@ -64,6 +66,7 @@ const PATTERNS: RegExp[] = [
   /\.download\s*=/,
   /ionBackButton/,
   /addEventListener\(\s*["']backbutton["']/,
+  /window\.(?:prompt|confirm|alert)\s*\(/,
 ];
 
 /**
