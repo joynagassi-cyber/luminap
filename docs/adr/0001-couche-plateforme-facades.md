@@ -22,6 +22,7 @@ Cas mesurés dans ce dépôt :
 | `<a download>` | **muet** (bug P0-2 : exports inopérants) |
 | `navigator.share` | **absent** de la WebView |
 | bouton retour matériel | événement natif `backbutton` **non écouté** par les overlays maison → ferme l'app |
+| `window.prompt` / `window.confirm` / `window.alert` | **no-op** (`onJsPrompt`/`onJsConfirm` non implémentés par Capacitor) ou **bloquants** (gel du thread JS) |
 
 ## Décision
 
@@ -35,12 +36,14 @@ Cas mesurés dans ce dépôt :
    | Partage | `src/platform/shareLink.ts` | `@capacitor/share` | `navigator.share` |
    | Sortie fichier | `src/lib/download.ts` (`downloadBlob`) | Filesystem + Share | `<a download>` |
    | Retour matériel | `src/platform/hardwareBack.ts` (`registerHardwareBack`) | `ionBackButton` (prio 110) | no-op |
+   | Modulateur système | composants Ionic (`IonAlert`) ou overlay maison | — | `window.prompt`/`confirm`/`alert` |
 
 2. **Interdiction** d'appeler ces API web en direct hors de la couche
    plateforme. Le scan de la garde échoue sur les motifs :
    `navigator.onLine`, `navigator.connection`, `addEventListener("online"|"offline")`,
    `window.open(`, `target="_blank"`, `navigator.share`, `.download =`,
-   `ionBackButton`, `addEventListener("backbutton")`.
+   `ionBackButton`, `addEventListener("backbutton")`,
+   `window.prompt(`/`window.confirm(`/`window.alert(`.
 
 3. **Ratchet** : la liste de dette (`KNOWN_DIRECT_SITES`) est **vide** et ne
    doit jamais être ré-ouverte. Un site migré doit être retiré de la liste

@@ -65,6 +65,17 @@ maison s'inscrit donc avec le hook `useHardwareBack(open, onClose)`
 `src/platform/hardwareBack.ts` (priorité 110, au-dessus des overlays Ionic et
 du routeur). Le hook est un no-op sur le web.
 
+### Modulateurs système (`window.prompt` / `confirm` / `alert`)
+
+Aucun modulateur **système** bloquant ou no-op dans la WebView Android :
+`window.prompt` est un **no-op** (Capacitor n'implémente pas `onJsPrompt` →
+copie/demande muette), `window.confirm`/`window.alert` **gèlent le thread JS**
+(donc la synchronisation PowerSync). Toute confirmation passe par `IonAlert`
+(ou `ConfirmModal`, adossé à `IonAlert`) ; toute demande de saisie/copie
+manuelle passe par une feuille maison (ex. `Health` : repli de copie du
+diagnostic = `<textarea readOnly>` sélectionnable dans une feuille `role="dialog"`).
+La garde de la couche plateforme échoue sur `window.prompt(`/`confirm(`/`alert(`.
+
 ### Permissions et erreurs (rappel, phases A2/A4)
 
 Aucune demande de permission hors `PermissionService`, jamais au démarrage

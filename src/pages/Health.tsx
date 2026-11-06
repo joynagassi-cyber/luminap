@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw, Flag } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Activity, Copy, Check, RefreshCw, Flag, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -31,6 +31,7 @@ import { useOrganizationContext } from "@/lib/organization-context";
 import { formatDateTime } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { isOnline as platformIsOnline } from "@/platform/networkState";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
   ok: CheckCircle2,
@@ -91,6 +92,11 @@ export default function Health() {
   const OverallIcon = LEVEL_ICON[report.overall];
   const [copied, setCopied] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  // Repli presse-papiers : au lieu de `window.prompt` (no-op dans la WebView
+  // Android → copie MUETTE), on expose le diagnostic dans une feuille
+  // sélectionnable. Voir `copyDiagnostic`.
+  const [manualCopy, setManualCopy] = useState<string | null>(null);
+  useHardwareBack(manualCopy !== null, () => setManualCopy(null));
   // A6 — la confirmation passe par IonAlert : `window.confirm` est un
   // modulateur SYSTÈME bloquant, qui gèle le thread JS (et la synchronisation
   // PowerSync en cours) tant que l'utilisateur n'a pas répondu.
@@ -166,9 +172,10 @@ export default function Health() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Repli : le presse-papiers peut être refusé (permission/ contexte non
-      // sécurisé). On expose le texte dans une alerte pour copie manuelle.
-      window.prompt("Copiez le diagnostic ci-dessous :", text);
+      // Repli : le presse-papiers peut être refusé (permission / contexte non
+      // sécurisé). On expose le texte dans une feuille sélectionnable —
+      // `window.prompt` est un no-op dans la WebView Android (copie muette).
+      setManualCopy(text);
     }
   };
 
@@ -346,6 +353,56 @@ export default function Health() {
         )}
         {copied ? "Diagnostic copié" : "Copier le diagnostic"}
       </button>
+
+      {manualCopy !== null && (
+        <div
+          className="fixed inset-0 z-overlay flex items-end justify-center"
+          onClick={() => setManualCopy(null)}
+        >
+          <div className="absolute inset-0 bg-scrim" aria-hidden="true" />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Copier le diagnostic"
+            data-testid="health.copy-diagnostic-fallback"
+            className="relative w-full max-w-lg rounded-t-2xl p-5 pb-safe space-y-3"
+            style={{ backgroundColor: "var(--card)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-text-primary font-bold text-lg">
+                Copier le diagnostic
+              </h2>
+              <button
+                type="button"
+                onClick={() => setManualCopy(null)}
+                aria-label="Fermer"
+                className="w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "var(--surface-hover)" }}
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+            <p className="text-text-secondary text-sm">
+              La copie automatique a échoué. Sélectionnez le texte ci-dessous
+              pour le copier manuellement.
+            </p>
+            <textarea
+              readOnly
+              value={manualCopy}
+              onFocus={(e) => e.currentTarget.select()}
+              aria-label="Contenu du diagnostic"
+              data-testid="health.copy-diagnostic-text"
+              className="w-full h-48 rounded-lg p-3 text-xs font-mono outline-none resize-none"
+              style={{
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
+                color: "var(--text-primary)",
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mt-4 text-text-tertiary text-xs">
         <Activity className="w-4 h-4" aria-hidden="true" />
