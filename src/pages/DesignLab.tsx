@@ -26,8 +26,11 @@ import {
   LuChip,
   LuChipRow,
   LuDelta,
+  LuEmptyState,
   LuField,
   LuIconButton,
+  LuSectionHeader,
+  LuSelect,
   LuSegmented,
 } from "@/design-system/components";
 
@@ -284,6 +287,34 @@ export default function DesignLab() {
                   { value: "all", label: "Toutes" },
                 ]}
               />
+            </div>
+          </Section>
+
+          {/* Composants Lu* — P2 lot 3 : select, section header, empty state */}
+          <Section title="LuSelect / LuSectionHeader / LuEmptyState (P2)">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <LuSelect
+                label="Intervalle"
+                value="monthly"
+                onChange={() => {}}
+                options={[
+                  { value: "daily", label: "Daily" },
+                  { value: "weekly", label: "Weekly" },
+                  { value: "monthly", label: "Monthly" },
+                ]}
+              />
+              <LuSelect
+                label="Catégorie"
+                value="groceries"
+                onChange={() => {}}
+                options={Array.from({ length: 8 }, (_, i) => ({ value: `c${i}`, label: `Catégorie ${i + 1}` })).map((o, i) => (i === 0 ? { ...o, value: "groceries", label: "Groceries" } : o))}
+              />
+            </div>
+            <div className="mt-4">
+              <LuSectionHeader title="Derniers mouvements" meta="3 Total" actionLabel="Voir tout" onAction={() => {}} />
+            </div>
+            <div className="mt-4 rounded-[var(--lu-radius-xl)] border" style={{ borderColor: "var(--lu-border)" }}>
+              <LuEmptyState title="You have nothing to do now." text="You have nothing to do in a while." ctaLabel="Add New" onCta={() => {}} />
             </div>
           </Section>
 
