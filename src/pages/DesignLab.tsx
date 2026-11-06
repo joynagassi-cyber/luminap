@@ -15,8 +15,10 @@
  */
 import { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
+import { Bell, ShoppingCart } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
 import { useTheme } from "@/design-system/theme/theme-context";
+import { LuBadge, LuButton, LuChip, LuChipRow, LuDelta, LuIconButton } from "@/design-system/components";
 
 // ─── Lecture résolue des jetons ──────────────────────────────────────────────
 

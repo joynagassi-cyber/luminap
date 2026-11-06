@@ -56,10 +56,12 @@ describe("Design Lab (route dev /dev/design-lab)", () => {
     expect(screen.getByText("Hero & cartes (aperçu P3/P4)")).toBeTruthy();
   });
 
-  it("propose les 10 accents historiques (boutons, aucun <select> natif)", () => {
+  it("propose tout le catalogue d'accents (boutons, aucun <select> natif)", () => {
     renderLab();
     const buttons = LUMINA_THEMES.map((t) => screen.getByTestId(`lab-theme-${t.id}`));
-    expect(buttons).toHaveLength(10);
+    // 10 accents historiques + violet (raccordé par #424).
+    expect(buttons).toHaveLength(LUMINA_THEMES.length);
+    expect(LUMINA_THEMES.length).toBeGreaterThanOrEqual(10);
     expect(document.querySelector("select")).toBeNull();
   });
 
