@@ -285,3 +285,8 @@ tranchée : pile unique, BottomNav maison).
   LuSectionHeader + **LuTransactionRow** (+ LuEmptyState). Ancres
   Cypress conservées (« Derniers mouvements », aria-label héro,
   BottomNav natif inchangé).
+- P4 lot 2 (reste du Dashboard, zéro logique métier) : « À traiter »,
+  « Rapports reçus » et « Événements à venir » passent en
+  LuSectionHeader + **LuTransactionRow** (montant signé, chevron,
+  sous-titres combinés) ; en-tête « Caisses des groupes » en
+  LuSectionHeader (cartes CaisseCard laissées pour le lot 3).
