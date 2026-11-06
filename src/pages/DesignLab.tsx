@@ -15,7 +15,7 @@
  */
 import { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
-import { Bell, CalendarDays, Flame, Home, List, PieChart, Plus, Settings, ShoppingCart } from "lucide-react";
+import { Bell, CalendarDays, Flame, Home, List, PieChart, Plus, Settings, ShoppingCart, X } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
 import { useTheme } from "@/design-system/theme/theme-context";
 import {
@@ -35,6 +35,10 @@ import {
   LuSelect,
   LuSegmented,
   LuTabBar,
+  LuBanner,
+  LuFab,
+  LuProgress,
+  LuSwipeToConfirm,
   LuTransactionRow,
 } from "@/design-system/components";
 
@@ -352,6 +356,24 @@ export default function DesignLab() {
                 activeStyle="pill-active"
               />
             </div>
+          </Section>
+
+          {/* Composites Lu* — P3 lot 2 : banner, progress, fab, swipe */}
+          <Section title="LuBanner / LuProgress / LuFab / LuSwipeToConfirm (P3)">
+            <div className="grid gap-3">
+              <LuBanner title="Complétez votre profil pour débloquer les rapports" dismissible onDismiss={() => {}} />
+              <LuBanner action title="Voir le rapport mensuel" subtitle="Octobre 2026" icon={<Flame size={20} />} onClick={() => {}} />
+              <div className="rounded-[var(--lu-radius-md)] p-4" style={{ background: "var(--lu-surface)" }}>
+                <LuProgress value={33} startLabel="1 nov" endLabel="30 nov" legend="10 / 30 jours" />
+                <div className="mt-4">
+                  <LuProgress value={67} title="Budget courses" amount={80000} />
+                </div>
+              </div>
+              <div className="max-w-sm">
+                <LuSwipeToConfirm label="Glisser pour clôturer la période" onConfirm={() => {}} />
+              </div>
+            </div>
+            <LuFab onClick={() => {}} />
           </Section>
 
           {/* Couleurs */}

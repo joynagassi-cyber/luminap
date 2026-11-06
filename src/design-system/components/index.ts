@@ -16,3 +16,7 @@ export { LuHero, type LuHeroProps, type LuHeroVariant } from "./LuHero";
 export { LuAppBar, type LuAppBarProps, type LuAppBarVariant } from "./LuAppBar";
 export { LuTransactionRow, type LuTransactionRowProps } from "./LuTransactionRow";
 export { LuTabBar, type LuTabBarProps, type LuTab, type LuTabBarActiveStyle } from "./LuTabBar";
+export { LuBanner, type LuBannerProps } from "./LuBanner";
+export { LuProgress, type LuProgressProps } from "./LuProgress";
+export { LuFab, type LuFabProps } from "./LuFab";
+export { LuSwipeToConfirm, type LuSwipeToConfirmProps } from "./LuSwipeToConfirm";

@@ -262,3 +262,12 @@ tranchée : pile unique, BottomNav maison).
   natif (marges 12 + safe-area, h64 r32, ombre lg, styles actif
   pill/soft/text). 3 nouveaux jetons (--lu-orb-bg/on-orb/overlay-ink/
   orb-glow). Entrées Design Lab + 9 tests.
+- P3 lot 2 : **LuBanner** (accent-soft 13/500 fermable ✕ + variante
+  action pleine largeur cercle icône/titre/sous-titre/chevron),
+  **LuProgress** (piste surface-2 h8 pill, remplissage jeton
+  --lu-progress-fill vivid→accent, dates aux extrémités, légende,
+  variante budget « (x %) restant »), **LuFab** (56 fixe au-dessus de la
+  tab bar, cercle ou carré r16, ombre lg), **LuSwipeToConfirm** (piste
+  pill h56 surface-inverse, pouce 48 accent, validation à 85 % de course,
+  retour élastique, alternative clavier Entrée/Espace). Entrées Design
+  Lab + 10 tests.

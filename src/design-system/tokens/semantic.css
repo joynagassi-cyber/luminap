@@ -14,6 +14,8 @@
   --lu-on-orb: #ffffff;
   --lu-overlay-ink: rgb(0 0 0 / 10%);
   --lu-orb-glow: radial-gradient(circle, var(--lu-accent-vivid) 0%, var(--lu-orb-bg) 70%);
+  /* P3 : remplissage des barres de progression (dégradé vivid → accent). */
+  --lu-progress-fill: linear-gradient(90deg, var(--lu-accent-vivid), var(--lu-accent));
   --lu-fg: var(--text-primary);
   --lu-fg-muted: var(--text-secondary);
   --lu-fg-subtle: var(--text-tertiary);
