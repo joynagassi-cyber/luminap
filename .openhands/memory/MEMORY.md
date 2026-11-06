@@ -2025,11 +2025,17 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   `role="dialog"` sans `useHardwareBack(`/`registerHardwareBack(` ⇒ rouge
   (non-vacuité prouvée). Méthode d'audit :
   `grep -rln 'role="dialog"' src --include=*.tsx` + comptage par fichier.
-- **`window.prompt` (#452, main `9d32020a`)** : **no-op en WebView Android**
-  (Capacitor n'implémente pas `onJsPrompt`) → repli de copie du diagnostic
-  `Health.tsx` MUET. Remplacé par une feuille maison `role="dialog"` +
-  `<textarea readOnly>` + `useHardwareBack`. `platform-abstraction-guard`
-  bannit désormais `window.(prompt|confirm|alert)(` hors couche plateforme.
+- **`window.prompt` (#452, main `9d32020a`)** : **CORRECTIF FACTUEL 2026-11-04** —
+  Capacitor 8.6.0 **implémente** `onJsPrompt`/`onJsConfirm`/`onJsAlert`
+  (`BridgeWebChromeClient`, `AlertDialog` natif) : `window.prompt` **marche**,
+  ce n'était donc PAS un no-op. La prémisse initiale (« no-op ») était FAUSSE.
+  Les modulateurs système sont bannis pour un autre motif : **non thémables**
+  (hors charte Lumina), hors i18n, non couverts par la garde d'overlays.
+  `Health.tsx` garde la feuille maison `role="dialog"` + `<textarea readOnly>`
+  + `useHardwareBack` (choix de design, pas un bug). `platform-abstraction-guard`
+  bannit `window.(prompt|confirm|alert)(` hors couche plateforme.
+  **Leçon** : vérifier le code source Capacitor (`node_modules/@capacitor/android`)
+  AVANT d'affirmer un no-op — ne pas se fier à des notes non vérifiées.
 - **PIÈGE PR** : `default_create_pr` crée en **DRAFT** → merge refusé. Le REST
   `POST /pulls/N/ready_for_review` = **404** (token) ; passer par **GraphQL**
   `mutation markPullRequestReadyForReview(pullRequestId: <node_id>)`.

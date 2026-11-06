@@ -73,13 +73,15 @@ rend un `role="dialog"` sans `useHardwareBack(...)` ni `registerHardwareBack(...
 
 ### Modulateurs système (`window.prompt` / `confirm` / `alert`)
 
-Aucun modulateur **système** bloquant ou no-op dans la WebView Android :
-`window.prompt` est un **no-op** (Capacitor n'implémente pas `onJsPrompt` →
-copie/demande muette), `window.confirm`/`window.alert` **gèlent le thread JS**
-(donc la synchronisation PowerSync). Toute confirmation passe par `IonAlert`
-(ou `ConfirmModal`, adossé à `IonAlert`) ; toute demande de saisie/copie
-manuelle passe par une feuille maison (ex. `Health` : repli de copie du
-diagnostic = `<textarea readOnly>` sélectionnable dans une feuille `role="dialog"`).
+Aucun modulateur **système** dans la WebView Android. **Correctif factuel
+(2026-11-04)** : contrairement à ce qui avait été écrit, Capacitor **implémente**
+`onJsPrompt`/`onJsConfirm`/`onJsAlert` (`BridgeWebChromeClient`, `AlertDialog`
+natif) — `window.prompt`/`confirm`/`alert` **fonctionnent** donc. Ils sont
+néanmoins **bannis** : non thémables (ils ignorent la charte Lumina), hors
+i18n, et non couverts par la garde d'overlays. Toute confirmation passe par
+`IonAlert` (ou `ConfirmModal`) ; toute saisie/copie manuelle passe par une
+feuille maison (ex. `Health` : repli de copie du diagnostic = `<textarea
+readOnly>` sélectionnable dans une feuille `role="dialog"`).
 La garde de la couche plateforme échoue sur `window.prompt(`/`confirm(`/`alert(`.
 
 ### Permissions et erreurs (rappel, phases A2/A4)

@@ -2,10 +2,12 @@
 /**
  * Santé — repli de copie du diagnostic.
  *
- * Verrouille le correctif de bug natif : quand `navigator.clipboard` échoue,
- * l'ancien repli `window.prompt` était un **no-op dans la WebView Android**
- * (copie muette, aucun feedback). On exige désormais une **feuille maison**
- * exposant le texte sélectionnable, et l'absence totale de `window.prompt`.
+ * Verrouille le correctif : quand `navigator.clipboard` échoue, l'ancien repli
+ * `window.prompt` ouvrait un dialogue système **non thémable** (hors charte
+ * Lumina, hors i18n, non testable) — cf. correctif factuel 2026-11-04 : Capacitor
+ * implémente `onJsPrompt`, donc ce n'était PAS un no-op, mais un modulateur
+ * système inadapté. On exige désormais une **feuille maison** exposant le texte
+ * sélectionnable, et l'absence totale de `window.prompt`.
  *
  * ── NON-VACUITÉ ──────────────────────────────────────────────────────────────
  *   - Revenir à `window.prompt(...)` dans `copyDiagnostic` → le test
@@ -105,7 +107,7 @@ describe("Santé — repli de copie du diagnostic (Android)", () => {
     expect(sheet).toBeInTheDocument();
     const text = screen.getByTestId("health.copy-diagnostic-text") as HTMLTextAreaElement;
     expect(text.value.length).toBeGreaterThan(0);
-    // Jamais de modulateur système (no-op WebView Android).
+    // Jamais de modulateur système (non thémable, hors charte Lumina).
     expect(window.prompt).not.toHaveBeenCalled();
   });
 
