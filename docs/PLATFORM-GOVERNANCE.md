@@ -239,6 +239,12 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   production). Elle couvre l'**angle mort** de `overlay-hardware-back-guard` :
   les overlays **Radix** (`dialog`/`sheet`/`drawer`/`alert-dialog`) posent
   `role="dialog"` au **runtime**, donc invisibles au scan littéral de la source.
+- **Capacités natives toujours gardées** : tout appel de plugin Capacitor
+  (`StatusBar`, `Haptics`, `Keyboard`, `Camera`, `LocalNotifications`,
+  `Preferences`, `SplashScreen`, `App`…) doit être protégé par
+  `Capacitor.isNativePlatform()`/`getPlatform()`, ou figurer avec justification
+  dans `ANDROID_ONLY_ALLOWED`. Garde opposable :
+  `native-capability-guard.test.ts` (classe de bug R447/R448/R175).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
