@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { FEATURES } from "@/lib/features";
+import { registerHardwareBack } from "@/platform/hardwareBack";
 import { tint } from "@/lib/utils";
 
 type Shortcut = {
@@ -57,6 +58,12 @@ export default function HomeIndicator() {
     const t = setTimeout(() => setSettled(true), 4000);
     return () => clearTimeout(t);
   }, []);
+
+  // Bouton retour matériel Android : ferme la capsule de raccourcis.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    return registerHardwareBack(() => setSheetOpen(false));
+  }, [sheetOpen]);
 
   // ── Drag-to-dismiss du sheet ─────────────────────────────────────────────
   const dragRef = useRef<{ startY: number; dy: number } | null>(null);

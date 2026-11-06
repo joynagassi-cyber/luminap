@@ -222,7 +222,12 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   - partage : `navigator.share` (absent de la WebView) →
     façade `src/platform/shareLink.ts` (`@capacitor/share` sur natif) ;
   - téléchargement : `<a download>` (muet en WebView, bug P0-2) →
-    façade `src/lib/download.ts` (`downloadBlob`, natif = Filesystem + Share).
+    façade `src/lib/download.ts` (`downloadBlob`, natif = Filesystem + Share) ;
+  - retour matériel : écoute directe de `ionBackButton` / `backbutton` →
+    façade `src/platform/hardwareBack.ts` (`registerHardwareBack`, priorité 110
+    au-dessus des overlays Ionic et du routeur). Les overlays MAISON
+    (`role="dialog"` : menus, feuilles, modales) s'y inscrivent via le hook
+    `src/hooks/useHardwareBack.ts` — sans quoi le retour **ferme l'app**.
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
@@ -255,7 +260,7 @@ Une tâche n'est « terminée » que si, **en plus** des tests unitaires :
 | # | Chantier | Pourquoi | Effort | Preuve de réussite |
 |---|---|---|---|---|
 | 1 | ✅ **Geler la doc** : `docs/archive/` créé, 11 snapshots « terminés » archivés, `AGENTS.md` vérifié exact | Stoppe la dérive, réduit le bruit | fait | `docs/*.md` 48→37 ; archive documentée |
-| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau), `openExternal` (liens), `shareLink` (partage) **et** `downloadBlob` (sortie fichier) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank`/`navigator.share`/`<a download>` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
+| 2 | ✅ **Couche plateforme** : façades `src/platform/networkState` (réseau), `openExternal` (liens), `shareLink` (partage), `downloadBlob` (sortie fichier) **et** `hardwareBack` (retour matériel, prio 110) ; `NetworkAdapter` réparé (détection natif) ; sites migrés ; `navigator.onLine`/`window.open`/`target=_blank`/`navigator.share`/`<a download>`/`ionBackButton` bannis hors couche (guard, dette = 0) | Corrige des causes plausibles de bug offline/natif | fait | 0 site hors `src/platform`/`adapters` ; guard vert |
 | 3 | ~~**Maestro en CI** sur APK debug~~ **Écarté** (décision utilisateur 2026-11-06) | — | — | — |
 | 4 | **Adoption Ionic « d'abord »** écran par écran (feuilles, pull-to-refresh, haptique, transitions) | Ressenti natif | continu | Ratio `<IonButton>/<button>` en hausse ; 0 régression |
 | 5 | **DoD Android** appliquée à toute PR (checklist + test avion) | Empêche la récidive | immédiat | Toute PR UI/offline référence un test/vérif appareil |

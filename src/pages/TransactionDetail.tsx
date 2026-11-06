@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ListSkeleton } from "@/components/Skeleton";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import { useNavigate, useParams } from "react-router-dom";
 import { useCurrentUser, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import {
@@ -83,6 +84,8 @@ export default function TransactionDetail() {
   const reverseModalRef = useRef<HTMLDivElement>(null);
   useFocusTrap(rejectModalRef, showRejectModal);
   useFocusTrap(reverseModalRef, showReverseModal);
+  useHardwareBack(showRejectModal, () => setShowRejectModal(false));
+  useHardwareBack(showReverseModal, () => setShowReverseModal(false));
 
   // Anti double-soumission (PM17) : un double-tap sur une action financière ne
   // doit pas écrire deux fois. Le guard est synchrone (ref) → couvre la fenêtre

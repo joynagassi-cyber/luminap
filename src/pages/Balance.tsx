@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import { useTransactions, useCategories, useAccounts, useAppConfig, isPowerSyncReadyNow } from "@/lib/dataLayer";
 import { formatCurrencyCompact, getPeriodRange } from "@/lib/utils";
 import {
@@ -46,6 +47,7 @@ export default function Balance() {
   const [period, setPeriod] = useState<"mois" | "annee">("mois");
   const [selectedCaisse, setSelectedCaisse] = useState<string>("main");
   const [showExport, setShowExport] = useState(false);
+  useHardwareBack(showExport, () => setShowExport(false));
 
   if (psLoading || (transactions.length === 0 && replicaPending)) {
     return (

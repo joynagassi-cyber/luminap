@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useHardwareBack } from "@/hooks/useHardwareBack";
 import {
   useAccounts,
   useTransactions,
@@ -75,6 +76,7 @@ export default function GroupDetail() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showAddMember, setShowAddMember] = useState(false);
+  useHardwareBack(showAddMember, () => setShowAddMember(false));
   const [selectedMemberId, setSelectedMemberId] = useState("");
 
   const orgUnit = orgUnits.find((o: any) => o.id === id);

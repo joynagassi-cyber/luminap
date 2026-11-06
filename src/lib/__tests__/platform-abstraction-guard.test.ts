@@ -51,7 +51,8 @@ const PLATFORM_LAYERS = [
  * - réseau : `navigator.onLine` peu fiable en WebView Android ;
  * - ouverture de lien : `window.open` / `target="_blank"` = no-op en WebView ;
  * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`) ;
- * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob`.
+ * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob` ;
+ * - retour matériel : écoute directe `ionBackButton`/`backbutton` → `hardwareBack`.
  */
 const PATTERNS: RegExp[] = [
   /navigator\.onLine/,
@@ -61,6 +62,8 @@ const PATTERNS: RegExp[] = [
   /target=\{?["']_blank["']\}?/,
   /navigator\.share\b/,
   /\.download\s*=/,
+  /ionBackButton/,
+  /addEventListener\(\s*["']backbutton["']/,
 ];
 
 /**
@@ -99,7 +102,8 @@ describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dériv
       nouveaux,
       `Nouveau(x) site(s) hors couche plateforme. Passer par la façade : ` +
         `src/platform/networkState (réseau), openExternal (liens), shareLink ` +
-        `(partage) ou downloadBlob (sortie fichier) ` +
+        `(partage), downloadBlob (sortie fichier) ou registerHardwareBack ` +
+        `(retour matériel) ` +
         `(cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement ` +
         `de dette, mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
     ).toEqual([]);
