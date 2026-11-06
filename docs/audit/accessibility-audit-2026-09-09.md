@@ -374,7 +374,7 @@ Status badges use `<span>` without `role="status"` or `aria-label`. These are vi
 | `src/pages/GroupDetail.tsx` | C-3, C-5, H-6 |
 | `src/components/TopHeader.tsx` | H-5 |
 | `src/components/ConfirmModal.tsx` | C-5 |
-| `src/components/ui/sidebar.tsx` | M-5 |
+| `src/components/ui/sidebar.tsx` | M-5 — supprimé (composant mort, 0 import) |
 
 ---
 

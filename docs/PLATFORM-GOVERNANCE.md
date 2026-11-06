@@ -232,6 +232,13 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
     par Capacitor (`AlertDialog` natif) mais **non thémables** (hors charte),
     hors i18n → `IonAlert`/`ConfirmModal` pour confirmer, feuille maison
     sélectionnable pour la copie/saisie manuelle.
+- **Aucun composant UI mort** (`src/components/ui/`) : un overlay importé mais
+  jamais utilisé (ou utilisé seulement par un test) est du code mort qui peut
+  masquer un bug natif. Garde opposable :
+  `ui-component-reachability-guard.test.ts` (réachabilité depuis le code de
+  production). Elle couvre l'**angle mort** de `overlay-hardware-back-guard` :
+  les overlays **Radix** (`dialog`/`sheet`/`drawer`/`alert-dialog`) posent
+  `role="dialog"` au **runtime**, donc invisibles au scan littéral de la source.
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
