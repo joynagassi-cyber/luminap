@@ -231,12 +231,12 @@ export function persistProfileLocally(profile: Profile): void {
       lastName: profile.last_name || previous?.lastName || "",
       role: profile.role || previous?.role || "",
       org: {
+        // Étale l'org précédente (déjà écrite par `persistCurrentUser`, qui
+        // fournit type/accentColor) puis met à jour id/nom — sans réintroduire
+        // de littéral de couleur (ratchet design).
+        ...(previous?.org ?? {}),
         id: profile.org_id || previous?.org?.id || "",
         name: orgName,
-        // Préserve les champs non dérivables du profil (type/accent) au lieu
-        // de les perdre : `useCurrentUser()` les lit pour l'affichage.
-        type: previous?.org?.type ?? "Eglise",
-        accentColor: previous?.org?.accentColor ?? "#FF6B00",
       },
     };
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(merged));
