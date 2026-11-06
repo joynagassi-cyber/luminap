@@ -387,12 +387,16 @@ startBackgroundSync();
 
 ### Composants UI
 
-Tous les composants UI viennent de **shadcn/ui** (Radix UI primitives).
+**Ionic d'abord** (`@ionic/react`) pour les contrôles interactifs et les overlays.
+Il reste quelques primitives shadcn/ui **utilisées** dans
+`src/components/ui/` : `chart`, `progress`, `skeleton`, `switch`, `tooltip`.
+Tout composant UI non importé est du code mort (garde
+`ui-component-reachability-guard.test.ts`).
 
 ```typescript
 // Exemple d'import
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
+import { IonButton } from "@ionic/react";
+import { Progress } from "@/components/ui/progress";
 ```
 
 ---
@@ -558,7 +562,7 @@ import { db } from '@/lib/db';
 import { useLocalStore } from '@/store/useLocalStore';
 
 // Priorité 4: UI Components
-import { Button } from '@/components/ui/button';
+import { IonButton } from '@ionic/react';
 import BottomNav from '@/components/BottomNav';
 
 // Priorité 5: External libs

@@ -53,25 +53,21 @@
 - **xlsx** -- 1 file (`src/lib/export.ts`). 200 KB always loaded.
 - **jspdf + jspdf-autotable** -- 1 file (`src/lib/export.ts`). ~200 KB always loaded.
 - **html2canvas** -- NOT directly imported by source. Pulled in transitively as an optional dependency of jspdf. 195 KB wasted.
-- **cmdk** -- component built (`src/components/ui/command.tsx`) but never used in any page.
-- **vaul** -- component built (`src/components/ui/drawer.tsx`) and used in `BottomDrawer.tsx`. Valid.
-- **embla-carousel-react** -- component built (`src/components/ui/carousel.tsx`) but no pages use it.
 
-### Radix UI over-imports
-26 `@radix-ui/*` packages installed. Only these are actually used:
-- `@radix-ui/react-slot` (button, input, separator, command)
-- `@radix-ui/react-dialog` (modal, drawer, command)
-- `@radix-ui/react-label` (form)
-- `@radix-ui/react-toast` (sonner is separate)
-- `@radix-ui/react-select` (dropdowns)
-- `@radix-ui/react-checkbox` (checkboxes)
-- `@radix-ui/react-switch` (toggles)
-- `@radix-ui/react-tabs` (tabs)
-- `@radix-ui/react-tooltip` (tooltips)
-- `@radix-ui/react-popover` (popovers)
-- `@radix-ui/react-accordion` (accordion)
-- `@radix-ui/react-avatar` (avatars)
-- Unused: alert-dialog, aspect-ratio, collapsible, context-menu, dropdown-menu, hover-card, menubar, navigation-menu, progress, radio-group, scroll-area, separator, slider, toggle, toggle-group
+### Dead shadcn components & deps — RÉSOLU (2026-11-04)
+40 des 45 composants `src/components/ui/` étaient **inatteignables** (0 import en
+production) — dont `command.tsx` (cmdk), `carousel.tsx` (embla), `drawer.tsx`
+(vaul, contrairement à ce qu'affirmait la version précédente : `BottomDrawer.tsx`
+ne l'importe pas). Ils ont été **supprimés**, ainsi que les **29 dépendances**
+devenues inutiles (`@radix-ui/*` hors progress/switch/tooltip, `class-variance-authority`,
+`cmdk`, `embla-carousel-react`, `input-otp`, `react-day-picker`, `vaul`).
+Seuls **5** composants UI subsistent et sont utilisés : `chart`, `progress`,
+`skeleton`, `switch`, `tooltip`. Garde opposable :
+`src/lib/__tests__/ui-component-reachability-guard.test.ts`.
+
+### Radix UI — état après nettoyage
+3 `@radix-ui/*` restants, tous utilisés : `react-progress`, `react-switch`,
+`react-tooltip`.
 
 ---
 
