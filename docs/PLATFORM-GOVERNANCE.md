@@ -248,6 +248,12 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   `Capacitor.isNativePlatform()`/`getPlatform()`, ou figurer avec justification
   dans `ANDROID_ONLY_ALLOWED`. Garde opposable :
   `native-capability-guard.test.ts` (classe de bug R447/R448/R175).
+- **Câblage Gradle des plugins Capacitor** : `android/capacitor.settings.gradle`
+  et `android/app/capacitor.build.gradle` sont **versionnés** mais **générés**
+  par `npx cap sync android`. Ajouter un plugin à `package.json` SANS relancer
+  `cap sync` laisse le module natif non compilé → capacité native non gérée.
+  Garde opposable : `capacitor-gradle-wiring-guard.test.ts` (toute dépendance
+  `*capacitor*` de `package.json` doit être incluse + `implementation`).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
