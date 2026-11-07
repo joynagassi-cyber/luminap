@@ -264,6 +264,11 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   — recréé à chaque render, jamais révoqué → fuite mémoire. Créer une fois
   (`useMemo`) et révoquer au démontage. Garde opposable :
   `object-url-leak-guard.test.ts`.
+- **UUID** : `crypto.randomUUID()` n'existe qu'à partir de WebView **92** ;
+  `minSdk` 24 autorise des WebView plus anciennes → un appel direct lève un
+  `TypeError` sur le chemin critique de création d'enregistrement. Passer par
+  `randomUUID()` de `@/lib/uuid` (repli `getRandomValues`, puis `Math.random`).
+  Garde opposable : `uuid-compat-guard.test.ts`.
 - Réseau : `NetworkAdapter` est la source native, exposée de façon **synchrone**
   par la façade `src/platform/networkState.ts` (`isOnline`/`subscribeOnline`),
   amorcée au démarrage par `initNetworkState()` (`main.tsx`). Plus aucun

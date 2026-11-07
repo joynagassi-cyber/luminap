@@ -29,6 +29,7 @@ import type {
   PSInvitationClaim,
 } from "@/lib/dataLayer";
 import { auditLogRepo } from "@/lib/audit";
+import { randomUUID } from "@/lib/uuid";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -264,7 +265,7 @@ export class InvitationService {
   async createInvitation(
     input: CreateInvitationInput,
   ): Promise<{ id: string; code: string }> {
-    const id = crypto.randomUUID();
+    const id = randomUUID();
     const code = generateCode();
     const expiresAt = input.expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const maxUses = input.maxUses ?? 1;
@@ -350,7 +351,7 @@ export class InvitationService {
    * R111 — pourquoi l'inscription est OBLIGATOIRE avant le claim :
    * `profiles.id` et `org_memberships.user_id` portent une FK NON deferrable
    * vers `auth.users(id)` ; la RLS `profiles_insert_self` exige de plus
-   * `initplan_uid() = id`. L'ancien code générait un `crypto.randomUUID()`
+   * `initplan_uid() = id`. L'ancien code générait un `randomUUID()`
    * (profil PENDING orphelin) → `23503` à l'upload ET au règlement, et 42501
    * à l'insertion locale : le parcours était inopérant de bout en bout.
    *

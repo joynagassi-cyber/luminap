@@ -112,6 +112,7 @@ import type {
 // compatibility (e2e-auth.test.ts mocks @/store/useLocalStore and expects it).
 // Seed data is read via churchSeedData() (lazy org context).
 import { DEFAULT_USER, churchSeedData } from "@/packs/church";
+import { randomUUID } from "@/lib/uuid";
 export { DEFAULT_USER };
 
 // --- Sub-types ---
@@ -425,7 +426,7 @@ export const useLocalStore = create<LocalStoreState>()(
           sessionId =
             sessionId ??
             localStorage.getItem("lumina-session") ??
-            crypto.randomUUID();
+            randomUUID();
           localStorage.setItem("lumina-session", sessionId);
           localStorage.setItem("lumina-role", role);
         } catch {

@@ -49,6 +49,7 @@ import {
   type ClaimPayload,
 } from "@/capabilities/invitation";
 import { notification } from "@/capabilities/notification";
+import { randomUUID } from "@/lib/uuid";
 
 /**
  * Parse une colonne JSON persistée (`grants_payload` / `tags_payload`) en
@@ -185,7 +186,7 @@ export default function InvitationClaim() {
     try {
       const { userId, claimId } = await invitation.claimInvitation(
         parsedPayload,
-        crypto.randomUUID(),
+        randomUUID(),
         user.id,
       );
 

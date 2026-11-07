@@ -27,6 +27,7 @@ import { captureClientError } from "./clientErrors";
 import { isPowerSyncReadyNow, subscribePowerSyncReady } from "@/lib/dataLayer";
 import { useQuery } from "@powersync/react";
 import { useEffect, useState } from "react";
+import { randomUUID } from "@/lib/uuid";
 
 /** Bucket Storage des justificatifs (privé, scopé par organisation). */
 export const RECEIPT_BUCKET = "expense_proofs" as const;
@@ -146,7 +147,7 @@ export async function addReceipt(
 
   const orgId = opts?.orgId ?? getOrganizationId();
   const path = await uploadLuminaFile(RECEIPT_BUCKET, file, `tx/${transactionId}`);
-  const id = opts?.id ?? crypto.randomUUID();
+  const id = opts?.id ?? randomUUID();
   const now = new Date().toISOString();
   const db = getPowerSyncDatabase();
   await db.execute(
