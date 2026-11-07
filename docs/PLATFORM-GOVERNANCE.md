@@ -242,12 +242,14 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   production). Elle couvre l'**angle mort** de `overlay-hardware-back-guard` :
   les overlays **Radix** (`dialog`/`sheet`/`drawer`/`alert-dialog`) posent
   `role="dialog"` au **runtime**, donc invisibles au scan littéral de la source.
-- **Capacités natives toujours gardées** : tout appel de plugin Capacitor
-  (`StatusBar`, `Haptics`, `Keyboard`, `Camera`, `LocalNotifications`,
-  `Preferences`, `SplashScreen`, `App`…) doit être protégé par
-  `Capacitor.isNativePlatform()`/`getPlatform()`, ou figurer avec justification
-  dans `ANDROID_ONLY_ALLOWED`. Garde opposable :
-  `native-capability-guard.test.ts` (classe de bug R447/R448/R175).
+- **Capacités natives toujours gardées** : toute **référence à un plugin
+  Capacitor** (`StatusBar`, `Haptics`, `Keyboard`, `Camera`,
+  `LocalNotifications`, `Preferences`, `SplashScreen`, `App`…) — import
+  **statique**, à **effet de bord** ou **dynamique** (`await import(…)`) — doit
+  être protégée par `Capacitor.isNativePlatform()`/`getPlatform()`, ou figurer
+  avec justification dans `ANDROID_ONLY_ALLOWED`. Garde opposable :
+  `native-capability-guard.test.ts` (classe de bug R447/R448/R175). L'import
+  dynamique est couvert (l'ancienne version ne scannait que le statique).
 - **Câblage Gradle des plugins Capacitor** : `android/capacitor.settings.gradle`
   et `android/app/capacitor.build.gradle` sont **versionnés** mais **générés**
   par `npx cap sync android`. Ajouter un plugin à `package.json` SANS relancer

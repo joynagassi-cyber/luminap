@@ -13,12 +13,17 @@
  *
  * CE QUE CETTE GARDE FAIT
  * -----------------------
- * Elle repère, fichier par fichier, les **appels de méthode sur un plugin
- * Capacitor importé** (ex. `StatusBar.setStyle(...)`, `Camera.getPhoto(...)`),
- * puis exige que le fichier contienne un jeton de garde
- * (`isNativePlatform`/`getPlatform`) — OU qu'il soit explicitement listé dans
- * `ANDROID_ONLY_ALLOWED` avec justification (flux qui ne s'exécute que sur
- * Android). Un nouvel appel natif non gardé fait échouer la garde.
+ * Elle repère, fichier par fichier, toute **référence à un module plugin
+ * Capacitor** — import statique (`import { X } from "…"`), import à effet de
+ * bord (`import "…"`) **ou import dynamique** (`await import("…")`) — puis exige
+ * que le fichier contienne un jeton de garde (`isNativePlatform`/`getPlatform`)
+ * — OU qu'il soit explicitement listé dans `ANDROID_ONLY_ALLOWED` avec
+ * justification (flux qui ne s'exécute que sur Android). Un nouvel accès natif
+ * non gardé fait échouer la garde.
+ *
+ * L'import dynamique est couvert : la version précédente ne scannait que les
+ * imports statiques, donc un `await import("@capacitor/…")` non gardé passait
+ * inaperçu (angle mort mesuré).
  *
  * `@capacitor/core` est EXCLU : `Capacitor.isNativePlatform()` / `getPlatform()`
  * sont eux-mêmes les sondes de garde, pas des capacités.
@@ -62,19 +67,24 @@ const ANDROID_ONLY_ALLOWED = new Set<string>([
   "src/pages/SettingsNotifications.tsx",
 ]);
 
-/** Noms locaux importés depuis un plugin Capacitor (gère les alias `X as Y`). */
-function nativeBindings(code: string): string[] {
-  const names: string[] = [];
-  const importRe = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["']([^"']+)["']/g;
-  for (const m of code.matchAll(importRe)) {
-    if (!CAPACITOR_PLUGIN_RE.test(m[2])) continue;
-    for (const part of m[1].split(",")) {
-      const alias = part.includes(" as ") ? part.split(" as ")[1] : part;
-      const name = alias.trim();
-      if (name) names.push(name);
-    }
+/** Modules plugin Capacitor référencés (hors `@capacitor/core`) → capacités natives. */
+function capacitorPluginRefs(code: string): string[] {
+  const refs = new Set<string>();
+  // import statique nommé / par défaut / namespace (pas `import type`).
+  for (const m of code.matchAll(
+    /import\s+(?!type\b)[^;]*?from\s+["'](@capacitor\/[\w-]+)["']/g,
+  )) {
+    refs.add(m[1]);
   }
-  return names;
+  // import à effet de bord : `import "@capacitor/x"`.
+  for (const m of code.matchAll(/import\s+["'](@capacitor\/[\w-]+)["']/g)) {
+    refs.add(m[1]);
+  }
+  // import dynamique : `await import("@capacitor/x")`.
+  for (const m of code.matchAll(/import\(\s*["'](@capacitor\/[\w-]+)["']\s*\)/g)) {
+    refs.add(m[1]);
+  }
+  return [...refs].filter((m) => CAPACITOR_PLUGIN_RE.test(m));
 }
 
 function stripComments(src: string): string {
@@ -83,7 +93,7 @@ function stripComments(src: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
-/** Fichiers appelant une méthode de plugin natif sans garde locale. */
+/** Fichiers référençant un plugin natif sans garde locale. */
 function unguardedNativeCalls(): string[] {
   const offenders: string[] = [];
   for (const file of walk(join(root, "src"))) {
@@ -93,12 +103,8 @@ function unguardedNativeCalls(): string[] {
     if (PLATFORM_LAYERS.some((layer) => rel.startsWith(layer))) continue;
     if (ANDROID_ONLY_ALLOWED.has(rel)) continue;
     const code = stripComments(readFileSync(file, "utf8"));
-    const bindings = nativeBindings(code);
-    if (bindings.length === 0) continue;
-    const callsNative = bindings.some((name) =>
-      new RegExp(`\\b${name.replace(/[$]/g, "\\$")}\\s*\\.\\s*\\w+\\s*\\(`).test(code),
-    );
-    if (callsNative && !GUARD.test(code)) offenders.push(rel);
+    if (capacitorPluginRefs(code).length === 0) continue;
+    if (!GUARD.test(code)) offenders.push(rel);
   }
   return offenders;
 }
@@ -115,11 +121,11 @@ describe("Capacités natives — garde (classe R447/R448/R175)", () => {
     ).toEqual([]);
   });
 
-  it("la garde est non-vide : au moins un fichier appelle un plugin natif", () => {
+  it("la garde est non-vide : au moins un fichier référence un plugin natif", () => {
     const count = walk(join(root, "src"))
       .map(toRel)
       .filter((rel) => /\.(ts|tsx)$/.test(rel) && !rel.includes("__tests__"))
-      .filter((rel) => nativeBindings(readFileSync(join(root, rel), "utf8")).length > 0)
+      .filter((rel) => capacitorPluginRefs(readFileSync(join(root, rel), "utf8")).length > 0)
       .length;
     expect(count).toBeGreaterThanOrEqual(5);
   });
