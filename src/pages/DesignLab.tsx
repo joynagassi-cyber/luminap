@@ -18,6 +18,7 @@ import { IonPage, IonContent } from "@ionic/react";
 import { Bell, CalendarDays, Flame, Home, List, PieChart, Plus, Settings, ShoppingCart, X } from "lucide-react";
 import { LUMINA_THEMES, type ThemeId } from "@/ionic/themes";
 import { DEMO_ENABLED, seedDemoData } from "@/lib/demo/seedDemo";
+import { demoLogin, DEMO_ORG_ID } from "@/lib/auth";
 import { useTheme } from "@/design-system/theme/theme-context";
 import {
   LuAmount,
@@ -434,12 +435,15 @@ export default function DesignLab() {
                 variant="tonal"
                 size="md"
                 onClick={async () => {
-                  const n = await seedDemoData(60);
+                  // 1. Connexion fictive (pas de réseau, pas de backend)
+                  const ok = demoLogin();
+                  // 2. Seed des transactions (chemin normal addTransactionPS)
+                  const n = ok ? await seedDemoData(60) : 0;
                   window.location.hash = "#/dashboard";
                   void n;
                 }}
               >
-                🌱 Charger 60 transactions de démo (faker) → Dashboard
+                🌱 Connexion démo + 60 transactions (faker) → Dashboard
               </LuButton>
             </Section>
           )}
