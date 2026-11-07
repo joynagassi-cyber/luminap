@@ -87,6 +87,7 @@ import { downloadBlob } from "@/lib/download";
 import { showError } from "@/utils/toast";
 import { openExternal } from "@/platform/openExternal";
 import { shareLink } from "@/platform/shareLink";
+import { copyText } from "@/platform/clipboard";
 
 /** Vue locale d'un rapport `org_reports` (PowerSync — snake_case). */
 interface OrgReportRow {
@@ -349,8 +350,7 @@ export default function OrgReportDetail() {
       }
       // Aucun canal de partage (web sans Web Share) : copier l'URL ou le contenu.
       const payload = shareUrl ?? report.content;
-      if (typeof navigator !== "undefined" && navigator.clipboard) {
-        await navigator.clipboard.writeText(payload);
+      if (await copyText(payload)) {
         setShareState("copied");
         return;
       }

@@ -31,6 +31,7 @@ import { useOrganizationContext } from "@/lib/organization-context";
 import { formatDateTime } from "@/lib/utils";
 import { showSuccess, showError } from "@/utils/toast";
 import { isOnline as platformIsOnline } from "@/platform/networkState";
+import { copyText } from "@/platform/clipboard";
 import { useHardwareBack } from "@/hooks/useHardwareBack";
 
 const LEVEL_ICON: Record<HealthLevel, LucideIcon> = {
@@ -168,13 +169,18 @@ export default function Health() {
       new Date().toISOString(),
     );
     try {
-      await navigator.clipboard.writeText(text);
+      const ok = await copyText(text);
+      if (!ok) {
+        // Aucun canal presse-papiers (WebView restrictive) : feuille
+        // sélectionnable — un `window.prompt` système ne serait pas thémable
+        // (hors charte Lumina).
+        setManualCopy(text);
+        return;
+      }
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Repli : le presse-papiers peut être refusé (permission / contexte non
-      // sécurisé). On expose le texte dans une feuille sélectionnable —
-      // un `window.prompt` système ne serait pas thémable (hors charte Lumina).
+      // Presse-papiers refusé (permission / contexte non sécurisé) : même repli.
       setManualCopy(text);
     }
   };
