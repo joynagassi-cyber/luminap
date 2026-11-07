@@ -26,6 +26,9 @@ importers:
       '@capacitor/camera':
         specifier: ^8.2.6
         version: 8.2.6(@capacitor/core@8.6.0)
+      '@capacitor/clipboard':
+        specifier: ^8.0.1
+        version: 8.0.1(@capacitor/core@8.6.0)
       '@capacitor/filesystem':
         specifier: ^8.1.5
         version: 8.1.5(@capacitor/core@8.6.0)
@@ -450,6 +453,11 @@ packages:
     resolution: {integrity: sha512-TyLo1v6AqK39inlB5Edm7eFc+dyk4r+Du5bbyD+cRm/u/3b+LkNIeyp5wwYp3ToO3rWiLs4T/PabXGADO0Rlxg==}
     engines: {node: '>=22.0.0'}
     hasBin: true
+
+  '@capacitor/clipboard@8.0.1':
+    resolution: {integrity: sha512-iOlbTi8MojKyLnYE+M27priXid7vHd0PlDwyHohPzkuQ8Rkp6q7ykwZmPEUD+OnU/Ink7Qw/pUOfKgraKmA6Eg==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor/core@7.6.10':
     resolution: {integrity: sha512-foYHd//t6E3RTELVG8wdkp5jVnmLcHKUurAa9BA8EUSNd2eY0SijCHpfO0bFwYBP5DrCeXwgSFYi3NJw413gtQ==}
@@ -5617,6 +5625,10 @@ snapshots:
       xml2js: 0.6.2
     transitivePeerDependencies:
       - supports-color
+
+  '@capacitor/clipboard@8.0.1(@capacitor/core@8.6.0)':
+    dependencies:
+      '@capacitor/core': 8.6.0
 
   '@capacitor/core@7.6.10':
     dependencies:

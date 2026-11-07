@@ -223,6 +223,9 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
     façade `src/platform/shareLink.ts` (`@capacitor/share` sur natif) ;
   - téléchargement : `<a download>` (muet en WebView, bug P0-2) →
     façade `src/lib/download.ts` (`downloadBlob`, natif = Filesystem + Share) ;
+  - presse-papiers : `navigator.clipboard` peu fiable en WebView Android
+    (exige un contexte focalisé, absent sur WebView ancienne) →
+    façade `src/platform/clipboard.ts` (`copyText`, natif = `@capacitor/clipboard`) ;
   - retour matériel : écoute directe de `ionBackButton` / `backbutton` →
     façade `src/platform/hardwareBack.ts` (`registerHardwareBack`, priorité 110
     au-dessus des overlays Ionic et du routeur). Les overlays MAISON

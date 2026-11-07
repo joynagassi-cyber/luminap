@@ -53,6 +53,9 @@ const PLATFORM_LAYERS = [
  * - partage : `navigator.share` absent de la WebView (utiliser `shareLink`) ;
  * - téléchargement : `<a download>` = muet en WebView (bug P0-2) → `downloadBlob` ;
  * - retour matériel : écoute directe `ionBackButton`/`backbutton` → `hardwareBack` ;
+ * - presse-papiers : `navigator.clipboard` peu fiable en WebView Android
+ *   (contexte focalisé requis, absent sur WebView ancienne) → façade
+ *   `src/platform/clipboard.ts` (`@capacitor/clipboard` sur natif) ;
  * - modulateurs système : `window.prompt`/`confirm`/`alert` = implémentés par
  *   Capacitor mais non thémables (hors charte) et hors i18n → composants Ionic
  *   (IonAlert) ou overlay maison.
@@ -67,6 +70,7 @@ const PATTERNS: RegExp[] = [
   /\.download\s*=/,
   /ionBackButton/,
   /addEventListener\(\s*["']backbutton["']/,
+  /navigator\.clipboard\b/,
   /window\.(?:prompt|confirm|alert)\s*\(/,
 ];
 
@@ -106,8 +110,8 @@ describe("Abstraction plateforme — API réseau navigateur (ratchet anti-dériv
       nouveaux,
       `Nouveau(x) site(s) hors couche plateforme. Passer par la façade : ` +
         `src/platform/networkState (réseau), openExternal (liens), shareLink ` +
-        `(partage), downloadBlob (sortie fichier) ou registerHardwareBack ` +
-        `(retour matériel) ` +
+        `(partage), clipboard (presse-papiers), downloadBlob (sortie fichier) ` +
+        `ou registerHardwareBack (retour matériel) ` +
         `(cf. docs/PLATFORM-GOVERNANCE.md §4.3). Si c'est un remplacement ` +
         `de dette, mettre à jour KNOWN_DIRECT_SITES dans ce test.`,
     ).toEqual([]);

@@ -48,6 +48,7 @@ import {
 import { CAPABILITIES, capabilityGrantPayload } from "@/lib/capabilities";
 import { getOrganizationId } from "@/lib/orgContext";
 import { downloadBlob } from "@/lib/download";
+import { copyText } from "@/platform/clipboard";
 import { notification } from "@/capabilities/notification";
 import type { Grant } from "@/types/federation";
 import type { Member } from "@/types";
@@ -187,10 +188,15 @@ export default function InvitationEmit() {
   };
 
   const handleCopyCode = () => {
-    navigator.clipboard.writeText(generatedCode).then(() => {
-      setShowCopy(true);
-      setTimeout(() => setShowCopy(false), 2000);
-    });
+    void copyText(generatedCode)
+      .then((ok) => {
+        if (!ok) return;
+        setShowCopy(true);
+        setTimeout(() => setShowCopy(false), 2000);
+      })
+      .catch(() => {
+        /* presse-papiers indisponible : aucun retour visuel trompeur */
+      });
   };
 
   /** 4ᵉ transport : exporter l'invitation en fichier JSON (transfert local). */
