@@ -17,8 +17,15 @@ export class NetworkAdapter {
   private _capacitorOnline: boolean | null = null;
   /** Set by tests to force capacitor env detection. */
   static __mockNetwork: typeof Network | null = null;
-  /** Tracks listener handles for cleanup. */
-  private _listenerHandles: Array<{ remove: () => void } | null> = [];
+  /**
+   * Handles d'écoute, APPAIRÉS à leur callback : le désabonnement retire le
+   * handle du bon callback (l'ancienne version retirait toujours le PREMIER
+   * handle non nul → mauvais écouteur retiré et fuite des précédents).
+   */
+  private _handles: Array<{
+    callback: (status: ConnectionStatus) => void;
+    remove: () => void;
+  }> = [];
   /** Tracks whether test mode is enabled */
   _testMode: boolean = false;
 
@@ -57,11 +64,16 @@ export class NetworkAdapter {
       }
     }
     if (navigator.onLine) {
-      const ua = navigator.userAgent.toLowerCase();
-      const conn = (navigator as any).connection;
-      return /wifi|cellular|ethernet/i.test(conn?.type ?? "")
-        ? "cellular"
-        : "wifi";
+      const conn = (navigator as { connection?: { type?: string } }).connection;
+      const type = conn?.type;
+      // `Network.getStatus()` renvoie un `ConnectionType` ; `navigator.connection.type`
+      // suit la même nomenclature (`wifi`/`cellular`/`ethernet`/`none`…). On le
+      // renvoie TEL QUEL : l'ancienne version le reversait (`wifi` → « cellular »).
+      if (type === "wifi" || type === "cellular") {
+        return type;
+      }
+      // Pas de Network Information API : impossible de distinguer wifi/cellular.
+      return "unknown";
     }
     return "none";
   }
@@ -81,14 +93,18 @@ export class NetworkAdapter {
     this.listeners.add(callback);
 
     if (this.isCapacitorEnv()) {
-      const handle = await Network.addListener("networkStatusChange", callback);
-      this._listenerHandles.push(handle as unknown as { remove: () => void });
+      const handle = (await Network.addListener(
+        "networkStatusChange",
+        callback,
+      )) as unknown as { remove: () => void };
+      this._handles.push({ callback, remove: () => handle.remove() });
     } else {
       const onOnline = () => this.broadcastStatus();
       const onOffline = () => this.broadcastStatus();
       window.addEventListener("online", onOnline);
       window.addEventListener("offline", onOffline);
-      this._listenerHandles.push({
+      this._handles.push({
+        callback,
         remove: () => {
           window.removeEventListener("online", onOnline);
           window.removeEventListener("offline", onOffline);
@@ -101,15 +117,15 @@ export class NetworkAdapter {
 
   removeStatusListener(callback: (status: ConnectionStatus) => void): void {
     this.listeners.delete(callback);
-    // Find and remove the matching handle
-    const handleIndex = this._listenerHandles.findIndex((h) => h !== null);
-    if (handleIndex !== -1) {
-      const handle = this._listenerHandles[handleIndex];
-      if (handle) handle.remove();
-      this._listenerHandles[handleIndex] = null;
-      this._listenerHandles = this._listenerHandles.filter((h) => h !== null);
+    // Retire le handle APPAIRÉ à ce callback (et lui seul).
+    const idx = this._handles.findIndex((h) => h.callback === callback);
+    if (idx !== -1) {
+      this._handles[idx].remove();
+      this._handles.splice(idx, 1);
     } else if (this.isCapacitorEnv()) {
+      // Filet de sécurité : callback inconnu → on ne peut pas cibler le handle.
       Network.removeAllListeners();
+      this._handles = [];
     }
   }
 

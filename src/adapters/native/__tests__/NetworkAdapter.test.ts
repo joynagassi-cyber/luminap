@@ -108,6 +108,27 @@ describe("NetworkAdapter", () => {
     });
   });
 
+  describe("getConnectionType (web)", () => {
+    it("ne reverse PAS le type (wifi reste wifi)", async () => {
+      NetworkAdapter.resetMockPlugin();
+      vi.stubGlobal("navigator", {
+        onLine: true,
+        connection: { type: "wifi" },
+      });
+      const adapter = NetworkAdapter.getInstance();
+      expect(await adapter.getConnectionType()).toBe("wifi");
+      NetworkAdapter.injectMockPlugin(mockNetworkPlugin);
+    });
+
+    it("renvoie unknown quand la Network Information API est absente", async () => {
+      NetworkAdapter.resetMockPlugin();
+      vi.stubGlobal("navigator", { onLine: true });
+      const adapter = NetworkAdapter.getInstance();
+      expect(await adapter.getConnectionType()).toBe("unknown");
+      NetworkAdapter.injectMockPlugin(mockNetworkPlugin);
+    });
+  });
+
   describe("addStatusListener", () => {
     it("registers listener via plugin in capacitor env", async () => {
       const callback = vi.fn();
@@ -132,6 +153,24 @@ describe("NetworkAdapter", () => {
       const unsubscribe = await adapter.addStatusListener(callback);
       (unsubscribe as () => void)();
       expect(removeMock).toHaveBeenCalled();
+    });
+
+    it("retire le handle du BON callback (pas le premier enregistré)", async () => {
+      const removeA = vi.fn();
+      const removeB = vi.fn();
+      mockNetworkPlugin.addListener
+        .mockReturnValueOnce({ remove: removeA })
+        .mockReturnValueOnce({ remove: removeB });
+
+      const adapter = NetworkAdapter.getInstance();
+      const cbA = vi.fn();
+      const cbB = vi.fn();
+      await adapter.addStatusListener(cbA);
+      const unsubB = await adapter.addStatusListener(cbB);
+
+      unsubB();
+      expect(removeB).toHaveBeenCalledTimes(1);
+      expect(removeA).not.toHaveBeenCalled();
     });
 
     it("falls back to window events when no mock plugin", () => {
