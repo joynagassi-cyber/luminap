@@ -48,8 +48,37 @@ const toRel = (abs: string) => relative(root, abs).split(sep).join("/");
 /** Couche plateforme : encapsule les appels natifs, exclue du scan. */
 const PLATFORM_LAYERS = ["src/adapters/native/", "src/platform/", "src/lib/download.ts"];
 
-/** Modules plugin Capacitor (hors `@capacitor/core`) → capacités natives. */
-const CAPACITOR_PLUGIN_RE = /^@capacitor\/(?!core$)[\w-]+$/;
+/**
+ * Plugins natifs Capacitor, **dérivés de `package.json`** (toute dépendance dont
+ * le nom contient « capacitor »), pour couvrir aussi ceux hors du scope
+ * `@capacitor/*` (`capacitor-native-settings`, `@aparajita/capacitor-secure-storage`…).
+ * Exclus : le cœur (`@capacitor/core`), l'outillage (`@capacitor/cli`), la
+ * plateforme (`@capacitor/android`) et `@powersync/capacitor` (SDK de données,
+ * pas une capacité native).
+ */
+const NON_CAPABILITY_PKGS = new Set([
+  "@capacitor/core",
+  "@capacitor/cli",
+  "@capacitor/android",
+  "@powersync/capacitor",
+]);
+
+function nativePluginModules(): Set<string> {
+  const pkg = JSON.parse(
+    readFileSync(join(root, "package.json"), "utf8"),
+  ) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+  const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+  return new Set(
+    Object.keys(deps).filter(
+      (name) => /capacitor/i.test(name) && !NON_CAPABILITY_PKGS.has(name),
+    ),
+  );
+}
+
+const NATIVE_PLUGINS = nativePluginModules();
 
 const GUARD = /isNativePlatform|getPlatform/;
 
@@ -67,24 +96,24 @@ const ANDROID_ONLY_ALLOWED = new Set<string>([
   "src/pages/SettingsNotifications.tsx",
 ]);
 
-/** Modules plugin Capacitor référencés (hors `@capacitor/core`) → capacités natives. */
+/** Modules plugin natif Capacitor référencés (import statique, à effet de bord ou dynamique). */
 function capacitorPluginRefs(code: string): string[] {
   const refs = new Set<string>();
   // import statique nommé / par défaut / namespace (pas `import type`).
   for (const m of code.matchAll(
-    /import\s+(?!type\b)[^;]*?from\s+["'](@capacitor\/[\w-]+)["']/g,
+    /import\s+(?!type\b)[^;]*?from\s+["']([^"']+)["']/g,
   )) {
     refs.add(m[1]);
   }
-  // import à effet de bord : `import "@capacitor/x"`.
-  for (const m of code.matchAll(/import\s+["'](@capacitor\/[\w-]+)["']/g)) {
+  // import à effet de bord : `import "x"`.
+  for (const m of code.matchAll(/import\s+["']([^"']+)["']/g)) {
     refs.add(m[1]);
   }
-  // import dynamique : `await import("@capacitor/x")`.
-  for (const m of code.matchAll(/import\(\s*["'](@capacitor\/[\w-]+)["']\s*\)/g)) {
+  // import dynamique : `await import("x")`.
+  for (const m of code.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g)) {
     refs.add(m[1]);
   }
-  return [...refs].filter((m) => CAPACITOR_PLUGIN_RE.test(m));
+  return [...refs].filter((m) => NATIVE_PLUGINS.has(m));
 }
 
 function stripComments(src: string): string {
@@ -128,5 +157,13 @@ describe("Capacités natives — garde (classe R447/R448/R175)", () => {
       .filter((rel) => capacitorPluginRefs(readFileSync(join(root, rel), "utf8")).length > 0)
       .length;
     expect(count).toBeGreaterThanOrEqual(5);
+  });
+
+  it("couvre les plugins hors scope @capacitor/* (dérivés de package.json)", () => {
+    expect(NATIVE_PLUGINS.has("capacitor-native-settings")).toBe(true);
+    expect(NATIVE_PLUGINS.has("@aparajita/capacitor-secure-storage")).toBe(true);
+    // Le cœur et l'outillage ne sont pas des capacités.
+    expect(NATIVE_PLUGINS.has("@capacitor/core")).toBe(false);
+    expect(NATIVE_PLUGINS.has("@capacitor/cli")).toBe(false);
   });
 });
