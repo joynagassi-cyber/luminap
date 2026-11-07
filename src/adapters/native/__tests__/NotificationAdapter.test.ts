@@ -169,6 +169,34 @@ describe("NotificationAdapter", () => {
       expect(result.token).toBe("");
       expect(result.error).toContain("registration failed");
     });
+
+    it("retire les 2 écouteurs d'enregistrement (pas de fuite)", async () => {
+      // `addListener` résout de façon ASYNCHRONE, APRÈS le callback d'événement
+      // (synchrone). L'ancien code faisait `cleanup()` de façon synchrone à la
+      // résolution, alors que les handles étaient encore `undefined` → les
+      // écouteurs n'étaient JAMAIS retirés (fuite à chaque `register()`).
+      const removeRegistration = vi.fn();
+      const removeError = vi.fn();
+      mockPushPlugin.register.mockResolvedValue(undefined);
+      mockPushPlugin.addListener.mockImplementation((event: string) =>
+        Promise.resolve({
+          remove: event === "registration" ? removeRegistration : removeError,
+        }),
+      );
+      const adapter = NotificationAdapter.getInstance();
+      const resultPromise = adapter.register();
+      const registrationCall = mockPushPlugin.addListener.mock.calls.find(
+        (c: any[]) => c[0] === "registration",
+      );
+      (registrationCall?.[1] as (token: any) => void)({ value: "tok" });
+      const result = await resultPromise;
+      expect(result.token).toBe("tok");
+      // Laisse tourner les microtâches des `.then(track)`.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(removeRegistration).toHaveBeenCalled();
+      expect(removeError).toHaveBeenCalled();
+    });
   });
 
   describe("unregister", () => {
