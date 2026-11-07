@@ -259,6 +259,12 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   alors sur le web. (Bug corrigé dans `NotificationAdapter`,
   `LocalNotificationAdapter` et `StorageAdapter`, qui tombaient chacun dans ce
   piège.)
+- **Deep links : jamais de ré-injection JS depuis le natif.** Le deep link
+  `lumina://` est traité par le plugin App de Capacitor (`appUrlOpen` /
+  `getLaunchUrl`), relayé par `useAppUrlOpen`. NE PAS parser l'intent ni appeler
+  `WebView.evaluateJavascript` dans `MainActivity` : interpolar une valeur d'URL
+  (contrôlable via un intent-filter `exported="true"`) dans du JS = injection.
+  Garde : `native-deeplink-guard.test.ts`.
 - **Câblage Gradle des plugins Capacitor** : `android/capacitor.settings.gradle`
   et `android/app/capacitor.build.gradle` sont **versionnés** mais **générés**
   par `npx cap sync android`. Ajouter un plugin à `package.json` SANS relancer

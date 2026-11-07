@@ -1,7 +1,6 @@
 package com.lumina.mfejc;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.core.graphics.Insets;
@@ -29,9 +28,6 @@ public class MainActivity extends BridgeActivity {
         // login, pour ne rien démarrer avant la première session.
 
         applySystemBarInsetsToWebView();
-
-        // Handle deep link / OAuth callback
-        handleIntent(getIntent());
     }
 
     /**
@@ -59,32 +55,13 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
+        // Le deep link `lumina://` est traité par le plugin App de Capacitor
+        // (appUrlOpen, relayé par `useAppUrlOpen` / `getLaunchUrl`). NE PAS
+        // réinjecter l'URL dans la WebView depuis ici : l'ancien code appelait
+        // une fonction JS inexistante en interpolant `code`/`state` NON
+        // échappés (intent-filter `exported="true"`) → injection JS. Garde :
+        // native-deeplink-guard.test.ts.
         super.onNewIntent(intent);
-        handleIntent(intent);
-    }
-
-    private void handleIntent(Intent intent) {
-        if (intent == null) return;
-
-        Uri data = intent.getData();
-        if (data == null) return;
-
-        String scheme = data.getScheme();
-        String host = data.getHost();
-
-        // Handle Lumina OAuth callback
-        if ("lumina".equals(scheme) && "auth".equals(host)) {
-            String code = data.getQueryParameter("code");
-            String state = data.getQueryParameter("state");
-
-            if (code != null) {
-                // Notify the web view about the OAuth callback
-                getBridge().getWebView().evaluateJavascript(
-                    "window.handleOAuthCallback('" + code + "', '" + (state != null ? state : "") + "')",
-                    null
-                );
-            }
-        }
     }
 
     @Override
