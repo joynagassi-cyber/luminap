@@ -27,15 +27,7 @@ export default function History() {
   const [error, setError] = useState("");
   const keyboardHeight = useKeyboardAvoidance();
 
-  const { data: psTransactions } = useTransactions({
-    type: typeFilter === "ALL" ? undefined : typeFilter,
-    dateFrom: dateFrom || undefined,
-    dateTo: dateTo || undefined,
-    amountMin: amountMin ? parseInt(amountMin.replace(/ /g, ""), 10) * 100 : undefined,
-    amountMax: amountMax ? parseInt(amountMax.replace(/ /g, ""), 10) * 100 : undefined,
-    categoryId: categoryId || undefined,
-    caisseId: caisseId || undefined,
-  });
+  const { data: psTransactions } = useTransactions();
   const { data: psCategories } = useCategories();
   const { data: psCaisses } = useCaisses();
 
@@ -200,7 +192,7 @@ export default function History() {
           <IonSpinner name="lines" />
         </div>
       ) : transactions.length === 0 ? (
-        <LuCard variant="empty" className="text-center py-10">
+        <LuCard variant="surface" className="text-center py-10">
           <div className="text-text-secondary mb-2">Aucune transaction</div>
           <button
             onClick={() => navigate("/transaction/new")}
