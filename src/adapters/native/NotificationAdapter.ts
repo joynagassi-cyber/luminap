@@ -6,6 +6,7 @@ import type {
   Token,
 } from "@capacitor/push-notifications";
 import { PushNotifications } from "@capacitor/push-notifications";
+import { Capacitor } from "@capacitor/core";
 
 export type {
   PermissionStatus,
@@ -44,12 +45,16 @@ export class NotificationAdapter {
   static __mockPlugin: typeof PushNotifications | null = null;
 
   private constructor() {
-    // Check mock first, then real Capacitor runtime
+    // Détection RÉELLE de la plateforme : `Capacitor.isNativePlatform()`.
+    // L'ancienne sonde `typeof window.Capacitor !== "undefined"` était TOUJOURS
+    // vraie dès que `@capacitor/core` est importé (`win.Capacitor` y est posé
+    // inconditionnellement) — même sur le web, où l'adaptateur se croyait donc
+    // natif et échouait sur chaque appel plugin.
     this._isNative =
       !!NotificationAdapter.__mockPlugin ||
       (() => {
         try {
-          return typeof (window as any).Capacitor !== "undefined";
+          return Capacitor.isNativePlatform();
         } catch {
           return false;
         }

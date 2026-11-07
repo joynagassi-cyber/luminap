@@ -54,6 +54,19 @@ describe("NotificationAdapter", () => {
       const adapter = NotificationAdapter.getInstance();
       expect(adapter.isNative()).toBe(false);
     });
+
+    it("reste NON natif sur le web même quand window.Capacitor est défini", async () => {
+      // `@capacitor/core` pose `globalThis.Capacitor` dès l'import, y compris
+      // sur le web : la sonde `typeof window.Capacitor !== "undefined"` y était
+      // donc toujours vraie (bug). La détection doit s'appuyer sur la plateforme.
+      const { Capacitor } = await import("@capacitor/core");
+      expect(typeof (globalThis as { Capacitor?: unknown }).Capacitor).not.toBe(
+        "undefined",
+      );
+      expect(Capacitor.isNativePlatform()).toBe(false);
+      NotificationAdapter.resetMockPlugin();
+      expect(NotificationAdapter.getInstance().isNative()).toBe(false);
+    });
   });
 
   describe("requestPermission", () => {

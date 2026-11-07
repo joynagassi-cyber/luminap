@@ -166,4 +166,22 @@ describe("Capacités natives — garde (classe R447/R448/R175)", () => {
     expect(NATIVE_PLUGINS.has("@capacitor/core")).toBe(false);
     expect(NATIVE_PLUGINS.has("@capacitor/cli")).toBe(false);
   });
+
+  it("aucune détection de plateforme par la sonde window.Capacitor (toujours vraie)", () => {
+    // `@capacitor/core` pose `globalThis.Capacitor` dès l'import, y compris sur
+    // le web → `typeof window.Capacitor !== "undefined"` est TOUJOURS vrai.
+    // La seule détection correcte est `Capacitor.isNativePlatform()`.
+    const BAD_PROBES = [
+      /typeof\s+[\w.()\s]*\.Capacitor\s*(?:!==|===)\s*["']undefined["']/,
+      /["']Capacitor["']\s+in\s+window/,
+    ];
+    const offenders: string[] = [];
+    for (const file of walk(join(root, "src"))) {
+      const rel = toRel(file);
+      if (rel.includes("__tests__") || !/\.(ts|tsx)$/.test(rel)) continue;
+      const code = stripComments(readFileSync(file, "utf8"));
+      if (BAD_PROBES.some((re) => re.test(code))) offenders.push(rel);
+    }
+    expect(offenders).toEqual([]);
+  });
 });
