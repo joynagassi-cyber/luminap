@@ -106,26 +106,34 @@ export class NotificationAdapter {
       return { token: "", error: "Not running in native environment" };
     }
     return new Promise((resolve) => {
-      let errorHandle: any;
-      let registrationHandle: any;
-      const cleanup = () => {
-        errorHandle?.remove?.();
-        registrationHandle?.remove?.();
+      const handles: Array<{ remove: () => Promise<void> | void }> = [];
+      let settled = false;
+
+      // `addListener` résout de façon ASYNCHRONE. L'ancien code faisait
+      // `cleanup()` de façon SYNCHRONE dès que l'événement arrivait : les
+      // handles (`errorHandle`/`registrationHandle`) étaient encore `undefined`
+      // → `.remove()` jamais appelé → les 2 écouteurs fuyaient à CHAQUE
+      // `register()`. On trace donc les handles et, s'ils arrivent APRÈS la
+      // résolution, on les retire immédiatement.
+      const track = (handle: { remove: () => Promise<void> | void }) => {
+        if (settled) void handle.remove();
+        else handles.push(handle);
       };
-      const handleError = (error: any) => {
-        cleanup();
-        resolve({ token: "", error: error.message || String(error) });
+
+      const settle = (result: PushRegistrationResult) => {
+        settled = true;
+        for (const h of handles) void h.remove();
+        handles.length = 0;
+        resolve(result);
       };
-      const handleSuccess = (token: Token) => {
-        cleanup();
-        resolve({ token: token.value, error: null });
-      };
-      PushNotifications.addListener("registrationError", handleError).then((h) => {
-        errorHandle = h;
-      });
-      PushNotifications.addListener("registration", handleSuccess).then((h) => {
-        registrationHandle = h;
-      });
+
+      const handleError = (error: any) =>
+        settle({ token: "", error: error.message || String(error) });
+      const handleSuccess = (token: Token) =>
+        settle({ token: token.value, error: null });
+
+      PushNotifications.addListener("registrationError", handleError).then(track);
+      PushNotifications.addListener("registration", handleSuccess).then(track);
       PushNotifications.register().catch(handleError);
     });
   }
