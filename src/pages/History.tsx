@@ -1,420 +1,222 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useTransactions,
-  isPowerSyncReadyNow,
-} from "@/lib/dataLayer";
-import {
-  ArrowLeft,
-  TrendingUp,
-  BarChart3,
-  PieChart,
-  Calendar,
-  Users,
-  Building2,
-  Activity,
-  ChevronRight,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { useTransactions, useCategories, useCaisses } from "@/lib/dataLayer";
+import { showError } from "@/utils/toast";
+import { ArrowLeft, Calendar, Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import LuField from "@/design-system/components/LuField";
+import LuSegmented from "@/design-system/components/LuSegmented";
+import LuAmount from "@/design-system/components/LuAmount";
+import LuCard from "@/design-system/components/LuCard";
 import TopHeader from "@/components/TopHeader";
-import { ShimmerList } from "@/components/Shimmer";
-import { formatCentsToFCFA, formatDate } from "@/lib/utils";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ComposedChart,
-  Line,
-} from "recharts";
-import { ChartContainer } from "@/components/ui/chart";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-} from "@ionic/react";
+import { useKeyboardAvoidance } from "@/hooks/useKeyboardAvoidance";
+import { haptics } from "@/lib/haptics";
+import { IonSpinner } from "@ionic/react";
 
-type TabKey =
-  | "overview"
-  | "monthly"
-  | "caisse"
-  | "group"
-  | "event"
-  | "category";
-
-const TABS: { key: TabKey; label: string; icon: typeof BarChart3 }[] = [
-  { key: "overview", label: "Vue d'ensemble", icon: BarChart3 },
-  { key: "monthly", label: "Mensuel", icon: Calendar },
-  { key: "caisse", label: "Par caisse", icon: Building2 },
-  { key: "group", label: "Par groupe", icon: Users },
-  { key: "event", label: "Par événement", icon: Activity },
-  { key: "category", label: "Par catégorie", icon: PieChart },
-];
-
-const MONTHS_FR = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Août",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Déc",
-];
-const COLORS = {
-  income: "var(--in)",
-  expense: "var(--out)",
-  pending: "var(--warn)",
-  accent: "var(--accent-primary)",
-  purple: "var(--data-advance)",
-  blue: "var(--data-planified)",
-  teal: "var(--shortcut-forms)",
-  pink: "var(--data-pink)",
-  grid: "var(--surface-hover)",
-  text: "var(--text-tertiary)",
-};
-
-function formatTooltipValue(value: number) {
-  return formatCentsToFCFA(value);
-}
-
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      className="rounded-xl p-3 shadow-pop"
-      style={{ backgroundColor: "var(--surface)", border: "1px solid var(--border)" }}
-    >
-      <p className="text-text-tertiary text-xs mb-2 font-medium">{label}</p>
-      {payload.map((entry: any) => (
-        <div
-          key={entry.name}
-          className="flex items-center justify-between gap-6 min-w-[140px]"
-        >
-          <div className="flex items-center gap-2">
-            <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-text-secondary text-xs">{entry.name}</span>
-          </div>
-          <span className="text-text-primary text-xs font-bold tabular-nums">
-            {formatTooltipValue(entry.value)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export default function HistoryPage() {
+export default function History() {
   const navigate = useNavigate();
-  const {
-    data: transactions,
-    isLoading: txLoading,
-  } = useTransactions();
-  const [activeTab, setActiveTab] = useState<TabKey>("overview");
-  const [period, setPeriod] = useState<"all" | "month" | "year">("all");
+  const [typeFilter, setTypeFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [caisseId, setCaisseId] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const keyboardHeight = useKeyboardAvoidance();
 
-  // R52.q — `txLoading` provient de `useTransactions()` (renvoie `false` en
-  // dur, D-R41) : le squelette ne s'affichait jamais et l'historique montrait
-  // des graphiques et des totaux VIDES avant la 1re lecture.
-  const replicaPending = !isPowerSyncReadyNow();
+  const { data: psTransactions } = useTransactions({
+    type: typeFilter === "ALL" ? undefined : typeFilter,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    amountMin: amountMin ? parseInt(amountMin.replace(/ /g, ""), 10) * 100 : undefined,
+    amountMax: amountMax ? parseInt(amountMax.replace(/ /g, ""), 10) * 100 : undefined,
+    categoryId: categoryId || undefined,
+    caisseId: caisseId || undefined,
+  });
+  const { data: psCategories } = useCategories();
+  const { data: psCaisses } = useCaisses();
 
-  if (txLoading || ((transactions?.length ?? 0) === 0 && replicaPending)) {
-    // M25/H4 — le skeleton reste dans IonPage/IonContent (transitions de vue
-    // ioniques + conteneur de scroll unique) ; shimmer en lieu et place de
-    // animate-pulse (DESIGN.md §4).
+  const categories = psCategories ?? [];
+  const caisses = psCaisses ?? [];
+
+  useEffect(() => {
+    if (psTransactions) {
+      setTransactions(psTransactions);
+      setError("");
+    }
+  }, [psTransactions]);
+
+  const handleTypeChange = (val: string) => {
+    setTypeFilter(val as "ALL" | "INCOME" | "EXPENSE");
+  };
+
+  const handleAmountMinChange = (val: string) => setAmountMin(val);
+  const handleAmountMaxChange = (val: string) => setAmountMax(val);
+
+  const clearFilters = () => {
+    setTypeFilter("ALL");
+    setDateFrom("");
+    setDateTo("");
+    setAmountMin("");
+    setAmountMax("");
+    setCategoryId("");
+    setCaisseId("");
+  };
+
+  const renderTransaction = (tx: any) => {
+    const isExpense = tx.type === "EXPENSE";
+    const amountCents = tx.amount || 0;
+    const signed = isExpense;
+    const categoryLabel = (categories.find((c: any) => c.id === tx.category_id) as any)?.label_fr || (categories.find((c: any) => c.id === tx.category_id) as any)?.label || tx.category_id || "Inconnu";
+    const caisseLabel = caisses.find((c: any) => c.id === tx.source_caisse_id)?.name || tx.source_caisse_id || "Inconnu";
+
     return (
-      <IonPage>
-        <IonContent className="bg-canvas">
-        <h1 className="sr-only">Historique</h1>
-          <TopHeader title="Historique" />
-          <div data-screen-state="loading" aria-busy="true" className="min-h-dvh flex flex-col">
-            <div className="flex-1 max-w-lg w-full mx-auto px-5 pb-safe-calc pt-safe-calc">
-              <div className="space-y-4">
-                <ShimmerList count={5} gap={16} minHeight={88} />
-              </div>
+      <LuCard
+        key={tx.id}
+        variant="surface"
+        className="mb-3 cursor-pointer"
+        onClick={() => navigate(`/transaction/${tx.id}`)}
+        aria-label={`Transaction ${tx.id} : ${categoryLabel}`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
+              {isExpense ? (
+                <TrendingDown className="w-5 h-5 text-text-danger" />
+              ) : (
+                <TrendingUp className="w-5 h-5 text-text-success" />
+              )}
             </div>
-            <BottomNav />
+            <div>
+              <div className="font-medium text-text-primary">{categoryLabel}</div>
+              <div className="text-sm text-text-secondary">{caisseLabel} • {tx.date?.split("T")[0]}</div>
+            </div>
           </div>
-        </IonContent>
-      </IonPage>
+          <div className="flex-shrink-0">
+            <LuAmount
+              amount={Math.abs(amountCents) / 100}
+              currency="XOF"
+              size="body"
+              signed={signed}
+              style={{ color: isExpense ? "var(--lu-expense)" : "var(--lu-income)" }}
+            />
+          </div>
+        </div>
+      </LuCard>
     );
-  }
-
-  // Filter by period
-  const now = new Date();
-  const filteredTransactions = transactions.filter((t: any) => {
-    const txDate = new Date(t.date);
-    if (period === "month") {
-      return (
-        txDate.getMonth() === now.getMonth() &&
-        txDate.getFullYear() === now.getFullYear()
-      );
-    }
-    if (period === "year") {
-      return txDate.getFullYear() === now.getFullYear();
-    }
-    return true;
-  });
-
-  const totalIncome = filteredTransactions
-    .filter((t: any) => t.type === "INCOME" && t.status === "APPROVED")
-    .reduce((s: number, t: any) => s + t.amount, 0);
-  const totalExpense = filteredTransactions
-    .filter((t: any) => t.type === "EXPENSE" && t.status === "APPROVED")
-    .reduce((s: number, t: any) => s + t.amount, 0);
-  const pendingAmount = filteredTransactions
-    .filter((t: any) => t.status === "PENDING")
-    .reduce((s: number, t: any) => s + t.amount, 0);
-
-  // Monthly data
-  const monthlyData = MONTHS_FR.map((month, idx) => {
-    const monthTxs = filteredTransactions.filter((t: any) => {
-      const d = new Date(t.date);
-      return d.getMonth() === idx;
-    });
-    const income = monthTxs
-      .filter((t: any) => t.type === "INCOME" && t.status === "APPROVED")
-      .reduce((s: number, t: any) => s + t.amount, 0);
-    const expense = monthTxs
-      .filter((t: any) => t.type === "EXPENSE" && t.status === "APPROVED")
-      .reduce((s: number, t: any) => s + t.amount, 0);
-    return { name: month, income, expense, result: income - expense };
-  });
+  };
 
   return (
-    <IonPage>
-      <IonContent className="bg-canvas">
+    <div className="max-w-lg mx-auto w-full px-5 pt-safe-calc pb-safe-calc" style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}>
       <h1 className="sr-only">Historique</h1>
-        <div data-screen-state="ready" className="min-h-dvh">
-          <TopHeader title="Historique" />
-          <div className="max-w-lg mx-auto px-5 pb-safe-calc pt-safe-calc">
-            {/* Period selector */}
-            <div className="flex gap-2 mb-5">
-              {[
-                { key: "all", label: "Tout" },
-                { key: "month", label: "Ce mois" },
-                { key: "year", label: "Cette année" },
-              ].map((p) => (
-                <button
-                  key={p.key}
-                  onClick={() => setPeriod(p.key as any)}
-                  className="flex-1 py-2 rounded-full text-xs font-medium transition-all"
-                  style={{
-                    backgroundColor: period === p.key ? "var(--accent-primary)" : "var(--surface)",
-                    color: period === p.key ? "var(--text-primary)" : "var(--text-secondary)",
-                  }}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+      <TopHeader title="Historique" />
+      
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-text-secondary text-sm mb-5"
+      >
+        <ArrowLeft className="w-4 h-4" /> Retour
+      </button>
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
-              <div
-                className="rounded-xl p-4 text-left"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <p className="text-text-tertiary text-xs mb-1">Entrées</p>
-                <p className="text-income font-bold text-base">
-                  +{formatCentsToFCFA(totalIncome)}
-                </p>
-              </div>
-              <div
-                className="rounded-xl p-4 text-left"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <p className="text-text-tertiary text-xs mb-1">Sorties</p>
-                <p className="text-expense font-bold text-base">
-                  -{formatCentsToFCFA(totalExpense)}
-                </p>
-              </div>
-              <div
-                className="rounded-xl p-4 text-left"
-                style={{ backgroundColor: "var(--surface)" }}
-              >
-                <p className="text-text-tertiary text-xs mb-1">Résultat</p>
-                <p
-                  className="font-bold text-base"
-                  style={{
-                    color:
-                      totalIncome - totalExpense >= 0 ? "var(--in)" : "var(--out)",
-                  }}
-                >
-                  {totalIncome - totalExpense >= 0 ? "+" : "−"}
-                  {formatCentsToFCFA(Math.abs(totalIncome - totalExpense))}
-                </p>
-              </div>
-            </div>
+      {/* Filtres (LuSegmented + LuField) */}
+      <div className="mb-5">
+        <LuSegmented
+          options={[
+            { value: "ALL", label: "Tout" },
+            { value: "INCOME", label: "Entrées", icon: <TrendingUp className="w-4 h-4" /> },
+            { value: "EXPENSE", label: "Sorties", icon: <TrendingDown className="w-4 h-4" /> },
+          ]}
+          value={typeFilter}
+          onChange={handleTypeChange}
+          aria-label="Filtre par type"
+        />
+      </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 mb-4 overflow-x-auto pb-2">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all"
-                  style={{
-                    backgroundColor:
-                      activeTab === tab.key ? "var(--accent-primary)" : "var(--surface)",
-                    color: activeTab === tab.key ? "var(--text-primary)" : "var(--text-secondary)",
-                  }}
-                >
-                  <tab.icon className="w-3 h-3" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <LuField
+          label="Date du"
+          value={dateFrom}
+          onChange={(val) => setDateFrom(val)}
+          type="date"
+          placeholder="AAAA-MM-JJ"
+          trailing={<Calendar className="w-4 h-4 text-text-muted" />}
+        />
+        <LuField
+          label="Date au"
+          value={dateTo}
+          onChange={(val) => setDateTo(val)}
+          type="date"
+          placeholder="AAAA-MM-JJ"
+          trailing={<Calendar className="w-4 h-4 text-text-muted" />}
+        />
+      </div>
 
-            {/* Chart area */}
-            <div
-              className="rounded-xl p-4 mb-5"
-              style={{ backgroundColor: "var(--surface)" }}
-            >
-              <ChartContainer config={{}} className="h-48">
-                <AreaChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={COLORS.grid} />
-                  <XAxis
-                    dataKey="name"
-                    stroke={COLORS.text}
-                    tick={{ fontSize: 10 }}
-                  />
-                  <YAxis stroke={COLORS.text} tick={{ fontSize: 10 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="income"
-                    stackId="1"
-                    stroke={COLORS.income}
-                    fill={COLORS.income}
-                    fillOpacity={0.3}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="expense"
-                    stackId="1"
-                    stroke={COLORS.expense}
-                    fill={COLORS.expense}
-                    fillOpacity={0.3}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </div>
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <LuField
+          label="Montant min (XOF)"
+          value={amountMin}
+          onChange={handleAmountMinChange}
+          inputMode="numeric"
+          placeholder="0"
+          trailing={<span className="text-text-muted">XOF</span>}
+        />
+        <LuField
+          label="Montant max (XOF)"
+          value={amountMax}
+          onChange={handleAmountMaxChange}
+          inputMode="numeric"
+          placeholder="0"
+          trailing={<span className="text-text-muted">XOF</span>}
+        />
+      </div>
 
-            {/* Recent activity */}
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-text-primary font-semibold text-sm">
-                Activité récente
-              </p>
-              <button
-                onClick={() => navigate("/trace")}
-                className="text-xs"
-                style={{ color: "var(--accent-primary)" }}
-              >
-                Voir tout →
-              </button>
-            </div>
-            <div className="space-y-2 mb-6">
-              {filteredTransactions.length === 0 && (
-                <div
-                  className="rounded-xl p-6 flex flex-col items-center gap-3 text-center"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <Wallet
-                    className="w-8 h-8"
-                    style={{ color: "var(--text-tertiary)" }}
-                    aria-hidden="true"
-                  />
-                  <p className="text-text-secondary text-sm">
-                    Aucune transaction sur cette période
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/transaction/new?type=INCOME")}
-                    className="px-4 py-2 rounded-full text-xs font-semibold text-on-accent active:scale-95 transition-transform"
-                    style={{ backgroundColor: "var(--accent-primary)" }}
-                  >
-                    Ajouter une entrée
-                  </button>
-                </div>
-              )}
-              {filteredTransactions.slice(0, 5).map((tx: any) => (
-                <button
-                  key={tx.id}
-                  onClick={() => navigate(`/transaction/${tx.id}`)}
-                  className="w-full text-left rounded-xl p-4 flex items-center gap-3"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{
-                      backgroundColor:
-                        tx.type === "INCOME"
-                          ? "color-mix(in srgb, var(--in) 12%, transparent)"
-                          : "color-mix(in srgb, var(--out) 12%, transparent)",
-                    }}
-                  >
-                    {tx.type === "INCOME" ? (
-                      <ArrowUpRight
-                        className="w-5 h-5"
-                        style={{ color: "var(--in)" }}
-                      />
-                    ) : (
-                      <ArrowDownRight
-                        className="w-5 h-5"
-                        style={{ color: "var(--out)" }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-text-primary text-sm font-medium truncate">
-                      {tx.description}
-                    </p>
-                    <p className="text-text-tertiary text-xs">
-                      {formatDate(tx.date)}
-                    </p>
-                  </div>
-                  <span
-                    className="font-bold text-sm"
-                    style={{
-                      color: tx.type === "INCOME" ? "var(--in)" : "var(--out)",
-                    }}
-                  >
-                    {tx.type === "INCOME" ? "+" : "−"}
-                    {formatCentsToFCFA(tx.amount)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <BottomNav />
+      <div className="flex gap-3 mb-5">
+        <button
+          onClick={() => navigate("/transaction/new")}
+          className="flex-1 py-2 rounded-full font-semibold text-on-accent text-sm flex items-center justify-center gap-2"
+          style={{ backgroundColor: "var(--lu-accent)" }}
+        >
+          <Wallet className="w-4 h-4" /> Nouvelle
+        </button>
+        <button
+          onClick={clearFilters}
+          className="flex-1 py-2 rounded-full font-semibold text-text-secondary text-sm border border-border"
+        >
+          Réinitialiser
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl text-sm text-center" style={{ backgroundColor: "color-mix(in srgb, var(--lu-expense) 12%, transparent)", color: "var(--lu-expense)" }}>
+          {error}
         </div>
-      </IonContent>
-    </IonPage>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <IonSpinner name="lines" />
+        </div>
+      ) : transactions.length === 0 ? (
+        <LuCard variant="empty" className="text-center py-10">
+          <div className="text-text-secondary mb-2">Aucune transaction</div>
+          <button
+            onClick={() => navigate("/transaction/new")}
+            className="py-2 px-4 rounded-full font-semibold text-on-accent text-sm"
+            style={{ backgroundColor: "var(--lu-accent)" }}
+          >
+            Ajouter
+          </button>
+        </LuCard>
+      ) : (
+        <div className="space-y-2">
+          {transactions.map(renderTransaction)}
+        </div>
+      )}
+
+      <BottomNav />
+    </div>
   );
 }
