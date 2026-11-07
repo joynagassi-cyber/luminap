@@ -1,4 +1,5 @@
 import { Preferences } from "@capacitor/preferences";
+import { Capacitor } from "@capacitor/core";
 import { reportError } from "@/lib/observability/errorReporter";
 
 /**
@@ -144,8 +145,13 @@ export class StorageAdapter {
 
   private isCapacitorEnv(): boolean {
     if (StorageAdapter.__mockStorage) return true;
+    // Détection RÉELLE : `Capacitor.isNativePlatform()`. L'ancienne sonde
+    // `typeof window.Capacitor !== "undefined"` était TOUJOURS vraie dès que
+    // `@capacitor/core` est importé (`win.Capacitor` y est posé
+    // inconditionnellement) — même sur le web, où l'adaptateur se croyait donc
+    // natif et n'utilisait jamais le repli localStorage.
     try {
-      return typeof (window as any).Capacitor !== "undefined";
+      return Capacitor.isNativePlatform();
     } catch {
       return false;
     }

@@ -106,6 +106,23 @@ describe("StorageAdapter", () => {
       expect(mockReportError).toHaveBeenCalledTimes(1);
     });
 
+    it("web : lit localStorage SANS signaler de repli, même si window.Capacitor est défini", async () => {
+      // Sur le web, `@capacitor/core` définit `window.Capacitor` : l'ancienne
+      // sonde s'y trompait et appelait le plugin natif. On doit lire
+      // localStorage directement, sans journaliser de « repli » (pas une panne).
+      StorageAdapter.resetMockPlugin();
+      mockLocalStorageImpl.setItem("webkey", JSON.stringify({ web: true }));
+      const { Capacitor } = await import("@capacitor/core");
+      expect(Capacitor.isNativePlatform()).toBe(false);
+      const adapter = StorageAdapter.getInstance();
+      await expect(adapter.get<{ web: boolean }>("webkey")).resolves.toEqual({
+        web: true,
+      });
+      expect(mockStoragePlugin.get).not.toHaveBeenCalled();
+      expect(mockReportError).not.toHaveBeenCalled();
+      StorageAdapter.injectMockPlugin(mockStoragePlugin);
+    });
+
     it("returns null for missing key in localStorage", async () => {
       StorageAdapter.resetMockPlugin();
       const adapter = StorageAdapter.getInstance();

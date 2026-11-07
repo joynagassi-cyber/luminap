@@ -5,6 +5,7 @@ import type {
   ScheduleOptions,
 } from "@capacitor/local-notifications";
 import { LocalNotifications } from "@capacitor/local-notifications";
+import { Capacitor } from "@capacitor/core";
 
 export type { LocalNotificationSchema, PermissionStatus, ScheduleOptions };
 
@@ -33,11 +34,16 @@ export class LocalNotificationAdapter {
   static __mockPlugin: LocalNotificationsPlugin | null = null;
 
   private constructor() {
+    // Détection RÉELLE de la plateforme : `Capacitor.isNativePlatform()`.
+    // L'ancienne sonde `typeof window.Capacitor !== "undefined"` était TOUJOURS
+    // vraie dès que `@capacitor/core` est importé (`win.Capacitor` y est posé
+    // inconditionnellement) — même sur le web, où l'adaptateur se croyait donc
+    // natif et échouait sur chaque appel plugin.
     this._isNative =
       !!LocalNotificationAdapter.__mockPlugin ||
       (() => {
         try {
-          return typeof (window as any).Capacitor !== "undefined";
+          return Capacitor.isNativePlatform();
         } catch {
           return false;
         }

@@ -251,6 +251,14 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   aussi les plugins **hors scope `@capacitor/*`** (`capacitor-native-settings`,
   `@aparajita/capacitor-secure-storage`…). Garde opposable :
   `native-capability-guard.test.ts` (classe de bug R447/R448/R175).
+- **Détection de plateforme : `Capacitor.isNativePlatform()` UNIQUEMENT.** Ne
+  JAMAIS sonder `typeof window.Capacitor !== "undefined"` (ni
+  `"Capacitor" in window`) : `@capacitor/core` pose `globalThis.Capacitor` **dès
+  l'import**, y compris dans un navigateur. Cette sonde est donc **toujours
+  vraie** et fait croire à tort qu'on est natif — les appels plugin échouent
+  alors sur le web. (Bug corrigé dans `NotificationAdapter`,
+  `LocalNotificationAdapter` et `StorageAdapter`, qui tombaient chacun dans ce
+  piège.)
 - **Câblage Gradle des plugins Capacitor** : `android/capacitor.settings.gradle`
   et `android/app/capacitor.build.gradle` sont **versionnés** mais **générés**
   par `npx cap sync android`. Ajouter un plugin à `package.json` SANS relancer
