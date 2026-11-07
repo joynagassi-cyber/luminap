@@ -217,6 +217,15 @@ describe("A3 — plugins essentiels, insets et clavier (C-01/C-02/C-03/C-09/C-10
     const bridge = read("src/components/StatusBarBridge.tsx");
     expect(bridge).toContain("setOverlaysWebView({ overlay: false })");
     expect(bridge).toContain("dataset.mode");
+    // Convention Capacitor : `Style.Dark` = texte CLAIR (fond SOMBRE). Le
+    // mapping doit donc être « mode sombre → Style.Dark ». L'inverse rendait
+    // les icônes de la barre d'état INVISIBLES en mode sombre (régression
+    // mesurée : StatusBarBridge contredisait `statusBar.ts`).
+    expect(bridge).toContain("dark ? Style.Dark : Style.Light");
+    expect(bridge).not.toContain("dark ? Style.Light : Style.Dark");
+    const statusBar = read("src/lib/statusBar.ts");
+    expect(statusBar).toContain('mode === "dark" ? Style.Dark : Style.Light');
+    expect(statusBar).not.toContain('mode === "dark" ? Style.Light : Style.Dark');
     expect(read("src/pages/Splash.tsx")).toContain("SplashScreen.hide()");
     expect(read("src/lib/haptics.ts")).toContain("@capacitor/haptics");
     const txNew = read("src/pages/TransactionNew.tsx");
