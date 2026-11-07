@@ -2073,3 +2073,29 @@ piège coûteux : on ré-investigue un défaut déjà réglé.
   passent ; pas de branch protection → merger. Ne PAS imputer ces rouges à sa PR.
 - **ENV** : `pnpm` absent → `corepack pnpm install --frozen-lockfile`
   (installe `@faker-js/faker` manquant).
+
+## 🚨 P0 récurrent : merges « 3-way destructeurs » sur `main` (2026-11-04)
+- **Symptôme** : `main` rouge en CI (TypeScript Check / Unit Tests) alors que
+  local vert. Cause : une PR **arena/*** mergée a **écrasé** du code métier de
+  `main` (`AuthPage.tsx`, `src/lib/auth.ts`) — régression 3-way destructeur.
+  Incident #451 → **PR #461** (`git revert -m 1 <merge_sha>`, restaure
+  `b3926f5e` à l'identique). Avant : #451 avait déjà été flaggée « ne pas
+  merger » (PR #455).
+- **PIÈGE diagnostic** : `tsc -b` **incrémental** (`.tsbuildinfo` présent) MASQUE
+  les erreurs réelles. Toujours tester la commande CI exacte `npx tsc -b --noEmit`
+  après `rm -f *.tsbuildinfo cypress/tsconfig.tsbuildinfo`. `tsc -p tsconfig.app.json`
+  NE suffit PAS (rate `src/ionic/routes/auth.tsx`).
+- **Procédure** : base `main` cassée ⇒ réparer d'abord (`revert`), puis
+  **merger `main` dans la branche** en cours et relancer la CI (une PR ouverte
+  sur base cassée échoue pour de mauvaises raisons).
+
+## Façade presse-papiers (PR #460, `25386d7d`)
+- `src/platform/clipboard.ts` (`copyText`) : natif `@capacitor/clipboard`, web
+  `navigator.clipboard`, `false` si aucun canal. Sites : `Health.tsx`,
+  `OrgReportDetail.tsx`, `InvitationEmit.tsx` (ce dernier appelait sans try/catch
+  → `TypeError` possible en WebView). Garde : motif `navigator.clipboard` dans
+  `platform-abstraction-guard.test.ts`.
+- **Android** : `android/capacitor.settings.gradle` + `android/app/capacitor.build.gradle`
+  sont **VERSIONNÉS** ; tout ajout de plugin Capacitor DOIT passer par
+  `npx cap sync android` pour les régénérer (révèle aussi les dérives : ici
+  `@aparajita/capacitor-secure-storage` non câblé).
