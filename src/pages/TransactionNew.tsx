@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
   useTransactions,
@@ -91,6 +91,22 @@ export default function TransactionNew() {
   const [proofPhotos, setProofPhotos] = useState<File[]>([]);
   const [proofUploading, setProofUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Aperçus des preuves : une URL d'objet par fichier, créée UNE fois par
+  // fichier (sinon `URL.createObjectURL` s'exécute à chaque render — donc à
+  // chaque frappe — et fuit un blob en WebView). Révocation à l'ajout/retrait.
+  const proofPhotoUrls = useMemo(
+    () =>
+      proofPhotos.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+      })),
+    [proofPhotos],
+  );
+  useEffect(
+    () => () => proofPhotoUrls.forEach(({ url }) => URL.revokeObjectURL(url)),
+    [proofPhotoUrls],
+  );
   const amountRef = useRef<any>(null);
   // Garde SYNCHRONE anti double-soumission : `submitting` (état React) n'est
   // appliqué qu'APRÈS le re-rendu, donc deux clics rapprochés sur un appareil
@@ -516,16 +532,16 @@ export default function TransactionNew() {
                 </p>
 
                 {/* Aperçus */}
-                {proofPhotos.length > 0 && (
+                {proofPhotoUrls.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {proofPhotos.map((p, i) => (
+                    {proofPhotoUrls.map(({ url }, i) => (
                       <div
                         key={i}
                         className="relative w-20 h-20 rounded-lg overflow-hidden"
                         style={{ border: "1px solid var(--border)" }}
                       >
                         <img
-                          src={URL.createObjectURL(p)}
+                          src={url}
                           alt={`Preuve ${i + 1}`}
                           className="w-full h-full object-cover"
                         />

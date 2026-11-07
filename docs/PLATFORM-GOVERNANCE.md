@@ -259,8 +259,16 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   (repli `100vh` juste avant, pour les WebView anciennes ; inline = `100dvh`).
   Garde opposable : `viewport-unit-guard.test.ts` (CSS `src` + `index.html` +
   styles inline).
-- Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
-  source d'état réseau ; les sites `navigator.onLine` migrent.
+- **URL d'objet** : `URL.createObjectURL` retient le blob jusqu'à
+  `URL.revokeObjectURL`. Ne JAMAIS l'appeler dans un attribut JSX (`src=`/`href=`)
+  — recréé à chaque render, jamais révoqué → fuite mémoire. Créer une fois
+  (`useMemo`) et révoquer au démontage. Garde opposable :
+  `object-url-leak-guard.test.ts`.
+- Réseau : `NetworkAdapter` est la source native, exposée de façon **synchrone**
+  par la façade `src/platform/networkState.ts` (`isOnline`/`subscribeOnline`),
+  amorcée au démarrage par `initNetworkState()` (`main.tsx`). Plus aucun
+  `navigator.onLine` hors `src/platform/` et `src/adapters/native/` (garde
+  `platform-abstraction-guard.test.ts`).
 
 ### 4.4 « Definition of Done » — plateforme Android
 
