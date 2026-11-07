@@ -11,9 +11,12 @@ import { StatusBar, Style } from "@capacitor/status-bar";
  *
  * Ce pont suit le thème APPLIQUÉ (`data-mode` sur <html>, posé par
  * `applyThemeMode` — y compris quand le mode « system » bascule) :
- * - icônes : `Style.Dark` = icônes SOMBRES pour fond CLAIR,
- *   `Style.Light` = icônes CLAIRES pour fond sombre (noms inversés par
- *   rapport à l'intuition — ne pas échanger) ;
+ * - icônes : convention Capacitor `Style.Dark` = texte CLAIR (fond
+ *   SOMBRE), `Style.Light` = texte SOMBRE (fond CLAIR). On veut donc des
+ *   icônes CLAIRES en mode sombre → `Style.Dark`, et des icônes SOMBRES en
+ *   mode clair → `Style.Light`. (Noms contre-intuitifs : le style décrit la
+ *   COULEUR DU TEXTE, pas celle du fond. Ne pas inverser — l'ancien code le
+ *   faisait et rendait les icônes invisibles en mode sombre.)
  * - fond : valeur calculée du jeton `--surface` (celui d'IonToolbar),
  *   relue à chaque bascule — aucune valeur dupliquée dans le code ;
  * - jamais de surimpression (`overlay: false`) : la WebView reste sous
@@ -33,7 +36,9 @@ export function StatusBarBridge() {
         .trim();
       void StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
       void StatusBar.setStyle({
-        style: dark ? Style.Light : Style.Dark,
+        // `Style.Dark` = texte clair (fond sombre) → mode sombre : icônes
+        // claires. Mode clair → `Style.Light` (texte sombre).
+        style: dark ? Style.Dark : Style.Light,
       }).catch(() => {});
       if (surface) {
         void StatusBar.setBackgroundColor({ color: surface }).catch(() => {});

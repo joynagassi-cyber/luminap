@@ -29,11 +29,14 @@ describe("StatusBarBridge", () => {
     root.dataset.theme = "trust";
     root.style.setProperty("--surface", "#212121");
     render(<StatusBarBridge />);
-    expect(mocks.setStyle).toHaveBeenLastCalledWith({ style: "LIGHT" });
+    // Convention Capacitor : Style.Dark = TEXTE CLAIR (fond sombre).
+    // Mode sombre -> icones claires -> Style.Dark.
+    expect(mocks.setStyle).toHaveBeenLastCalledWith({ style: "DARK" });
     expect(mocks.setBackgroundColor).toHaveBeenLastCalledWith({ color: "#212121" });
     await act(async () => { root.dataset.mode = "light"; });
-    expect(mocks.setStyle).toHaveBeenLastCalledWith({ style: "DARK" });
-    await act(async () => { root.dataset.mode = "dark"; });
+    // Mode clair -> icones sombres -> Style.Light.
     expect(mocks.setStyle).toHaveBeenLastCalledWith({ style: "LIGHT" });
+    await act(async () => { root.dataset.mode = "dark"; });
+    expect(mocks.setStyle).toHaveBeenLastCalledWith({ style: "DARK" });
   });
 });
