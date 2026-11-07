@@ -254,6 +254,11 @@ Un **seul** point d'accès par capacité native, jamais l'API navigateur en dire
   `cap sync` laisse le module natif non compilé → capacité native non gérée.
   Garde opposable : `capacitor-gradle-wiring-guard.test.ts` (toute dépendance
   `*capacitor*` de `package.json` doit être incluse + `implementation`).
+- **Unités viewport** : `100vh` correspond au viewport le **plus grand** (barres
+  incluses) et dépasse le viewport visible en WebView → préférer `100dvh`
+  (repli `100vh` juste avant, pour les WebView anciennes ; inline = `100dvh`).
+  Garde opposable : `viewport-unit-guard.test.ts` (CSS `src` + `index.html` +
+  styles inline).
 - Brancher l'existant : `NetworkAdapter` (aujourd'hui mort, 1.4) devient **la**
   source d'état réseau ; les sites `navigator.onLine` migrent.
 
