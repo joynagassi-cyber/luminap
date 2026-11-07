@@ -23,6 +23,7 @@
 import { getPowerSyncDatabase } from "@/lib/powersync";
 import { getOrganizationId } from "./orgContext";
 import { captureClientError } from "./clientErrors";
+import { randomUUID } from "@/lib/uuid";
 
 /** Clés de réglages connues (évite les fautes de frappe entre modules). */
 export const ORG_SETTING_KEYS = {
@@ -106,7 +107,7 @@ export async function setOrgSetting(
     } else {
       await db.execute(
         "INSERT INTO org_settings (id, org_id, key, value, updated_at) VALUES (?, ?, ?, ?, ?)",
-        [crypto.randomUUID(), orgId, key, serialized, now],
+        [randomUUID(), orgId, key, serialized, now],
       );
     }
     return true;

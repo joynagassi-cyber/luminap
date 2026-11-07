@@ -61,6 +61,7 @@ import { exportOrgReport, type OrgReportFormat } from "@/lib/export";
 import { uploadReportFile } from "@/lib/storageService";
 import { formatDate } from "@/lib/utils";
 import type { IonChangeCustomEvent } from "@/lib/ionic-types";
+import { randomUUID } from "@/lib/uuid";
 
 type PeriodKind = "monthly" | "semiannual" | "annual";
 
@@ -268,7 +269,7 @@ export default function OrgReportSend() {
       // 4. INSERT local PowerSync (outbox — poussé au serveur à la
       //    reconnexion ; RLS `org_reports_emitter` côté serveur).
       const now = new Date().toISOString();
-      const reportId = crypto.randomUUID();
+      const reportId = randomUUID();
       await executeWrite(
         `INSERT INTO org_reports
           (id, from_org_id, to_org_id, period_start, period_end, format,

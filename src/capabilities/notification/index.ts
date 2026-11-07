@@ -15,6 +15,7 @@ import { getOneSignalService, initOneSignal } from "@/lib/onesignal";
 import { LocalNotificationAdapter } from "@/adapters/native";
 import { LOCAL_NOTIFICATION_CHANNEL_ID } from "./channels";
 import type { Role } from "@/types";
+import { randomUUID } from "@/lib/uuid";
 
 export interface NotificationSendData {
   title: string;
@@ -144,7 +145,7 @@ export class NotificationCapability {
       // PowerSync exige un `id` explicite à l'INSERT (il ne le génère pas) :
       // sans lui, « id is required » et la notification n'est jamais persistée.
       // `notifications.id` est un uuid côté PostgreSQL → on génère un UUID.
-      const id = crypto.randomUUID();
+      const id = randomUUID();
       await db.execute(
         `INSERT INTO notifications
            (id, org_id, action_type, title, message, is_read, source_transaction_id, created_at)

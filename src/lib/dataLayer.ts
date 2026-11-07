@@ -38,6 +38,7 @@ import { assertApprovable } from "./makerChecker";
 import { isMakerCheckerEnabled } from "./makerCheckerSettings";
 import type { ExistingOrgCandidate } from "./orgCreationGuard";
 import { downloadBlob } from "./download";
+import { randomUUID } from "@/lib/uuid";
 
 
 // ============================================================
@@ -266,7 +267,7 @@ export function useEventTasks(eventId?: string, orgId?: string) {
 export async function addEventTaskPS(
   task: Omit<PSEventTask, "id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
 
   await executeWrite(
@@ -978,7 +979,7 @@ export async function addGroupMembershipPS(
   memberId: string,
   role: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   // org_id posé explicitement (défense en profondeur) : le trigger serveur
   // `denorm_child_org_id` le repose depuis le groupe parent, mais la ligne
@@ -1188,7 +1189,7 @@ export async function createGrantPS(
     "id" | "granted_at" | "revoked_at"
   > & { id?: string },
 ): Promise<string> {
-  const id = grant.id ?? crypto.randomUUID();
+  const id = grant.id ?? randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO grants (
@@ -1286,7 +1287,7 @@ export async function createTagPS(
   name: string,
   description?: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO tags (id, org_id, name, description, created_at, updated_at)
@@ -1305,7 +1306,7 @@ export async function assignTagPS(
   orgId: string,
   assignedBy?: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   await executeWrite(
     `INSERT INTO tag_assignments (id, tag_id, user_id, org_id, assigned_by)
      VALUES (?, ?, ?, ?, ?)`,
@@ -1361,7 +1362,7 @@ export async function addTransactionPS(
   tx: Omit<PSTransaction, "id" | "created_at" | "updated_at" | "version">,
 ): Promise<string> {
   await assertTransactionWritable(tx.date);
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
 
   await executeWrite(
@@ -1515,7 +1516,7 @@ export async function deleteTransactionPS(id: string): Promise<void> {
 export async function addMemberPS(
   member: Omit<PSMember, "id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
 
   await executeWrite(
@@ -1550,7 +1551,7 @@ export async function addMemberPS(
 export async function addEventPS(
   event: Omit<PSEvent, "id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
 
   await executeWrite(
@@ -1627,7 +1628,7 @@ export async function addCotisationPS(
   cot: Omit<PSCotisation, "id" | "org_id" | "createdat" | "updatedat">,
   orgId?: string,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   const effOrgId = orgId ?? getOrganizationId();
 
@@ -1707,7 +1708,7 @@ export async function addDocumentPS(doc: {
   uploaded_by?: string | null;
 }): Promise<void> {
   const now = new Date().toISOString();
-  const id = doc.id ?? crypto.randomUUID();
+  const id = doc.id ?? randomUUID();
   await executeWrite(
     `INSERT INTO documents
       (id, org_id, title, purpose, bucket, file_path, file_size, mime_type, entity_type, entity_id, status, uploaded_by, created_at, updated_at)
@@ -1814,7 +1815,7 @@ export async function updateMemberPS(
 export async function createCustomFieldDefinitionPS(
   def: Omit<CustomFieldDefinition, "id" | "createdAt" | "updatedAt">,
 ): Promise<CustomFieldDefinition> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO custom_field_definitions (id, org_id, entity_type, field_name, field_label, field_type, options, \`order\`, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -1939,7 +1940,7 @@ export async function deleteCustomFieldDefinitionPS(id: string): Promise<void> {
 export async function upsertCustomFieldValuePS(
   value: Omit<CustomFieldValue, "id" | "createdAt" | "updatedAt">,
 ): Promise<CustomFieldValue> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   const rowValue =
     typeof value.value === "object" && value.value !== null
@@ -1992,7 +1993,7 @@ export async function deleteCustomFieldValuePS(id: string): Promise<void> {
 export async function createFormDefinitionPS(
   def: Omit<FormDefinition, "id" | "createdAt" | "updatedAt">,
 ): Promise<FormDefinition> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO form_definitions (id, org_id, key, name, description, version, target_entity_type, fields, status, created_at, updated_at)
@@ -2214,7 +2215,7 @@ export async function createInvitationPS(
 ): Promise<string> {
   // L'appelant peut imposer l'id (l'id affiché doit être l'id persisté, sinon
   // l'export fichier et le claim visent une ligne inexistante).
-  const id = inv.id ?? crypto.randomUUID();
+  const id = inv.id ?? randomUUID();
   const now = new Date().toISOString();
   // Payloads déjà sérialisés (string) côté UI : on ne double-encode JAMAIS.
   const grantsPayload =
@@ -2281,7 +2282,7 @@ export async function claimInvitationPS(
   status: string,
   rejectReason: string | null,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
 
   await executeWrite(
@@ -2648,7 +2649,7 @@ export async function mirrorNewOrganizationLocally(input: {
       await db.execute(
         `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
          VALUES (?, ?, ?, ?, 1, 'ACTIVE', ?)`,
-        [crypto.randomUUID(), input.userId, input.orgId, input.role, now],
+        [randomUUID(), input.userId, input.orgId, input.role, now],
       );
     }
   } catch (e) {
@@ -2785,7 +2786,7 @@ export async function grantOrgAdminPS(input: {
   orgId: string;
   grantedBy: string;
 }): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO org_admins (id, admin_profile_id, org_id, status, granted_by, created_at, updated_at)
@@ -2812,7 +2813,7 @@ export async function revokeOrgAdminPS(grantId: string): Promise<void> {
 export async function createFormSubmissionPS(
   sub: Omit<FormSubmission, "id" | "submittedAt" | "createdAt">,
 ): Promise<FormSubmission> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO form_submissions (id, org_id, form_definition_id, form_version, linked_entity_type, linked_entity_id, data, submitted_by, submitted_at, status, created_at)
@@ -2912,7 +2913,7 @@ export async function createGroupPS(
 ): Promise<string> {
   const now = new Date().toISOString();
   const orgId = getOrganizationId();
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const desc = params.description ?? "";
 
   // Les 4 INSERTs (org_units + groups + accounts + caisses) restent 4
@@ -3178,7 +3179,7 @@ export async function reverseTransactionPS(
   reason: string,
 ): Promise<void> {
   const now = new Date().toISOString();
-  const reversalId = crypto.randomUUID();
+  const reversalId = randomUUID();
   
   // Get original transaction
   const db = getPowerSyncDatabase();
@@ -3666,7 +3667,7 @@ export function useLoadInitialData(): LoadInitialDataResult {
  * Returns a fresh session ID.
  */
 export async function selectRole(role: string): Promise<string> {
-  let sessionId: string = crypto.randomUUID();
+  let sessionId: string = randomUUID();
   try {
     sessionId = localStorage.getItem("lumina-session") ?? sessionId;
     localStorage.setItem("lumina-session", sessionId);
@@ -3740,7 +3741,7 @@ export function useOrgBudgetLines(budgetId?: string | null) {
 export async function addOrgBudgetPS(
   budget: Omit<PSOrgBudget, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO org_budgets
@@ -3803,7 +3804,7 @@ export async function deleteOrgBudgetPS(id: string): Promise<void> {
 export async function addOrgBudgetLinePS(
   line: Omit<PSOrgBudgetLine, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO org_budget_lines
@@ -3985,7 +3986,7 @@ export function useTransactionGiving() {
 export async function addGivingDonorPS(
   donor: Omit<PSGivingDonor, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO giving_donors
@@ -4011,7 +4012,7 @@ export async function addGivingDonorPS(
 export async function addGivingCampaignPS(
   campaign: Omit<PSGivingCampaign, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO giving_campaigns
@@ -4065,7 +4066,7 @@ export async function updateGivingCampaignPS(
 export async function addPledgePS(
   pledge: Omit<PSPledge, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO pledges
@@ -4093,7 +4094,7 @@ export async function addPledgePS(
 export async function addTaxReceiptPS(
   receipt: Omit<PSTaxReceipt, "id" | "org_id" | "created_at" | "updated_at">,
 ): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO tax_receipts
@@ -4123,7 +4124,7 @@ export async function linkTransactionGivingPS(input: {
   donor_id: string;
   campaign_id?: string | null;
 }): Promise<string> {
-  const id = crypto.randomUUID();
+  const id = randomUUID();
   const now = new Date().toISOString();
   await executeWrite(
     `INSERT INTO transaction_giving

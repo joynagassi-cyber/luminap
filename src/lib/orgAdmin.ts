@@ -24,6 +24,7 @@ import {
   revokeGrantPS,
 } from "@/lib/dataLayer";
 import type { Role } from "@/types";
+import { randomUUID } from "@/lib/uuid";
 
 /** Ligne `org_memberships` telle que lue côté client (snake_case). */
 export interface MembershipRow {
@@ -174,7 +175,7 @@ export async function assignMemberRole(
       `INSERT INTO org_memberships (id, user_id, org_id, role, is_primary, status, joined_at)
        VALUES (?, ?, ?, ?, ?, 'ACTIVE', ?)`,
       [
-        crypto.randomUUID(),
+        randomUUID(),
         userId,
         orgId,
         role,
