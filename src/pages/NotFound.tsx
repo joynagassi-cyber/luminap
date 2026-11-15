@@ -16,7 +16,7 @@ export default function NotFound() {
         >
           <div className="text-center">
             <p
-              className="text-6xl font-black mb-4"
+              className="text-6xl font-bold mb-4"
               style={{ color: "var(--accent-primary)" }}
             >
               404

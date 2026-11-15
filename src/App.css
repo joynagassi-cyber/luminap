@@ -33,9 +33,17 @@
   --band-central: #1a130f;
   --band-org: #1a1f2b;
   --band-org-ink: #7aa2ff;
-  /* Texte « inversé » affiché sur --accent-primary. Tous les thèmes Lumina
-     ont un accent foncé (YIQ > 128), donc texte blanc. Si un accent clair
-     est un jour ajouté, repasser ce token en noir. */
+  /* Texte « inversé » affiché sur --accent-primary.
+     VALEUR DE REPLI seulement : elle est recalculée au runtime par
+     `applyTheme()` (src/ionic/themes.ts) via `inkOn()` (src/lib/colorContrast),
+     qui retient la meilleure des deux encres selon le rapport de contraste
+     WCAG 2.1 de l'accent réellement choisi.
+
+     Historique : ce token était figé à #ffffff, justifié par « tous les
+     accents ont un YIQ > 128, donc texte blanc ». Deux erreurs — un YIQ élevé
+     désigne un fond CLAIR (donc encre noire), et YIQ n'est pas un critère
+     WCAG. Quatre accents sur dix, dont le défaut #FF6B00, étaient sous 4,5:1
+     avec du blanc. Ne pas refiger cette valeur. */
   --on-accent: #ffffff;
 
   /* Skeleton radius (invariant) */
@@ -105,6 +113,9 @@
   --divider: #232326;
   --text-primary: #f4f4f5;
   --text-secondary: #a1a1aa;
+  /* Main avait déjà relevé ce jeton (#898991, 5,52:1 / 5,01:1 — conforme AA).
+     On garde donc SA valeur : ma proposition (#8b8b93) n'apportait que 0,15 de
+     contraste et aurait écrasé un choix postérieur au mien. */
   --text-tertiary: #898991;
   --text-placeholder: #535353;
   --nav-bg: rgba(20, 20, 22, 0.97);
@@ -155,7 +166,11 @@
   --divider: #efeff1;
   --text-primary: #18181b;
   --text-secondary: #52525b;
-  --text-tertiary: #70757d;
+  /* Main a relevé ce jeton (#70757d) mais il mesure 4,33:1 sur --canvas,
+     sous le seuil AA de 4,5:1 pour du texte courant — le mode CLAIR reste
+     donc fautif. #6b7280 donne 4,52:1 / 4,83:1 et conserve un écart net avec
+     --text-secondary (7,22:1), donc la hiérarchie ne s'aplatit pas. */
+  --text-tertiary: #6b7280;
   --text-placeholder: #9aa0a8;
   --nav-bg: rgba(255, 255, 255, 0.97);
   --skeleton-base: #eef0f2;

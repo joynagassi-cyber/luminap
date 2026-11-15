@@ -67,7 +67,7 @@ export default function MembresEnAvance() {
                   Total en avance
                 </span>
               </div>
-              <p className="text-2xl font-black" style={{ color: "var(--accent-primary)" }}>
+              <p className="text-2xl font-bold" style={{ color: "var(--accent-primary)" }}>
                 {formatCurrencyCompact(totalEnAvance)}
                 <span className="text-text-tertiary text-base font-medium ml-1">
                   FCFA

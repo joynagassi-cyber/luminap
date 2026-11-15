@@ -184,7 +184,7 @@ export default function Balance() {
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Entrées</p>
-                <p className="text-income font-black text-base tabular-nums mt-2">
+                <p className="text-income font-bold text-base tabular-nums mt-2">
                   +{formatCurrencyCompact(totalIncome)}
                 </p>
               </div>
@@ -203,7 +203,7 @@ export default function Balance() {
                   />
                 </div>
                 <p className="text-text-tertiary text-xs">Sorties</p>
-                <p className="text-expense font-black text-base tabular-nums mt-2">
+                <p className="text-expense font-bold text-base tabular-nums mt-2">
                   -{formatCurrencyCompact(totalExpense)}
                 </p>
               </div>
@@ -220,7 +220,7 @@ export default function Balance() {
                 </div>
                 <p className="text-text-tertiary text-xs">Résultat</p>
                 <p
-                  className="font-black text-base tabular-nums mt-2"
+                  className="font-bold text-base tabular-nums mt-2"
                   style={{ color: netResult >= 0 ? "var(--in)" : "var(--out)" }}
                 >
                   {netResult >= 0 ? "+" : "−"}

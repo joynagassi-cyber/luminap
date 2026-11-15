@@ -342,7 +342,7 @@ export default function TransactionDetail() {
                 )}
               </div>
               <p
-                className={`text-2xl font-black tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
+                className={`text-2xl font-bold tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
               >
                 {isIncome ? "+" : "−"}
                 {formatCurrencyCompact(tx.amount)}

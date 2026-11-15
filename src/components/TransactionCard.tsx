@@ -114,7 +114,7 @@ export const TransactionCard = memo(function TransactionCard({
         </div>
         <div className="text-right flex-shrink-0">
           <p
-            className={`font-bold text-sm whitespace-nowrap ${isIncome ? "text-income" : "text-expense"}`}
+            className={`font-bold text-sm whitespace-nowrap tabular-nums ${isIncome ? "text-income" : "text-expense"}`}
           >
             {isIncome ? "+" : "−"}
             {formatCurrencyCompact(transaction.amount)}

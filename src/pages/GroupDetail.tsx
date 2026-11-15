@@ -327,7 +327,7 @@ export default function GroupDetail() {
             <div className="text-center mb-4">
               <p className="text-text-tertiary text-xs mb-1">Solde actuel</p>
               <p
-                className="text-2xl font-black"
+                className="text-2xl font-bold"
                 style={{ color: balance >= 0 ? "var(--in)" : "var(--out)" }}
               >
                 {balance >= 0 ? "" : "−"}
