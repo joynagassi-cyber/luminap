@@ -12,6 +12,7 @@
  */
 
 import { applyIonicThemeMode } from "./theme";
+import { inkOn, hasAccessibleInk, AA_TEXT } from "@/lib/colorContrast";
 
 export type ThemeId =
   | "spirit"
@@ -192,6 +193,39 @@ export function applyTheme(theme?: LuminaTheme): void {
   // la variante claire garde l'accent accessible, pas la teinte vivid graphique.
   set("--accent-light", t.id === "violet" ? primary : t.light);
   set("--accent-dark", t.id === "violet" ? "var(--lu-accent-pressed)" : t.dark);
+
+  // ── Texte posé SUR l'accent (« on-accent ») ─────────────────────────────
+  // Calculé, jamais figé. L'ancienne valeur `#ffffff` constante, justifiée par
+  // un YIQ > 128, laissait quatre accents — dont celui par défaut — sous le
+  // seuil AA (2,86:1 pour « Orange Fire »). On choisit ici la meilleure des
+  // deux encres, mesurée, à chaque application du thème.
+  //
+  // ATTENTION (thème « violet ») : son accent est lui-même une variable CSS
+  // (`var(--lu-accent)`), donc sa valeur littérale n'existe pas côté JS. On ne
+  // peut pas la mesurer ici — l'appliquer aveuglément produirait une couleur
+  // invalide. On s'appuie donc sur `--lu-on-accent`, que le thème violet
+  // publie à côté de son accent. Les autres thèmes gardent leur calcul.
+  const ink = t.id === "violet" ? "var(--lu-on-accent, #ffffff)" : inkOn(t.primary).ink;
+  set("--on-accent", ink);
+  set("--brand-on-fill", ink);
+  // Surface Ionic : `--ion-color-primary-contrast` est ce qu'Ionic utilise pour
+  // le texte de ses propres composants colorés (boutons, badges). Sans cette
+  // ligne, Ionic resterait en blanc fixe et le correctif ne s'appliquerait
+  // qu'aux composants maison.
+  set("--ion-color-primary-contrast", ink);
+
+  // Garde de développement : un accent qui n'atteint pas AA même avec la
+  // meilleure encre est un défaut du CATALOGUE, pas du rendu. On le signale
+  // sans casser l'application (le thème reste appliqué), et les tests
+  // échouent dessus.
+  if (t.id !== "violet" && !hasAccessibleInk(t.primary, AA_TEXT) && import.meta.env.DEV) {
+    const ratio = inkOn(t.primary).ratio;
+    console.warn(
+      `[theme] Accent « ${t.name} » (${t.primary}) : contraste maximal ${ratio.toFixed(2)}:1, ` +
+        `sous le seuil AA (${AA_TEXT}:1). Choisir un accent plus sombre ou plus clair.`,
+    );
+  }
+
   set("--primary", primary);
   set("--accent", primary);
   set("--ring", primary);

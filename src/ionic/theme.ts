@@ -48,7 +48,7 @@ const LUMINA_LIGHT_TOKENS: ModeTokens = {
   border: "#E4E4E7",
   textPrimary: "#18181B",
   textSecondary: "#52525B",
-  textTertiary: "#70757D",
+  textTertiary: "#6B7280",
   textPlaceholder: "#9AA0A8",
   in: "#166534",
   out: "#B91C1C",

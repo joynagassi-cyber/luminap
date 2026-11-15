@@ -178,7 +178,7 @@ export default function Versement() {
                     <p className="text-text-tertiary text-sm mb-1">
                       Montant à verser
                     </p>
-                    <p className="text-2xl font-black text-accent">
+                    <p className="text-2xl font-bold text-accent">
                       {formatCurrencyCompact(amountNum)}
                     </p>
                   </div>
