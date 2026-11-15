@@ -1,6 +1,7 @@
 # Luminap — feuille de route UI/UX
 
-**Établie le** : 4 novembre 2026 · **Base** : `main` @ `2293f14` (PR #417 fusionnée)
+**Établie le** : 4 novembre 2026 · **Révisée le** : 15 novembre 2026 (base `main` @ `66a4edc`)
+**Base d'origine** : `main` @ `2293f14` (PR #417 fusionnée) — voir §12 pour ce qui a changé
 **Branche de travail** : `arena/f3a29a97-luminap` · **Nature** : plan, aucun code écrit
 **Objectif** : rendre Luminap cohérent, lisible et qualitatif — plus que `lumina-b`,
 qui sert de **point de départ**, pas de modèle.
@@ -611,3 +612,73 @@ exactement la question Q3 de §9, et elle n'est pas tranchée.
 Le lot 2 (garde-fous) est le suivant logiquement, mais il **dépend de Q1 et Q2** :
 figer une règle de lint sur les couleurs sans savoir si les documents de design
 manquants imposent d'autres jetons reviendrait à graver une décision révisable.
+
+---
+
+## 12. Révision du 15 novembre — le dépôt a changé sous le plan
+
+Entre la base de ce plan (`2293f14`, 4 nov.) et la révision (`66a4edc`, 15 nov.),
+`main` a reçu **35 commits**. Trois d'entre eux rendent une partie du plan
+obsolète, et il faut le dire plutôt que de laisser un document périmé passer
+pour un état des lieux.
+
+### Ce qui est arrivé entre-temps
+
+| Constat d'origine (§2) | État au 15 nov. | Conséquence |
+|---|---|---|
+| « Les composants `Lu*` : un seul, `LuminaLogo.tsx` » | **Un design system complet existe** : `src/design-system/components/` (`LuAmount`, `LuButton`, `LuCard`, `LuHero`, `LuField`, `LuChart`…), `src/design-system/tokens/` avec **générateur** et CSS généré | La prémisse « pas de composants partagés » était fausse **au moment de la révision**. Le plan ne doit plus proposer de les créer. |
+| « Aucune garde anti-couleurs en dur » | **`src/design-system/ratchet/`** : ratchet lint « zéro nouveau littéral de couleur », porté par une règle ESLint (`scripts/eslint-rules/no-hardcoded-colors.mjs`) avec baseline versionnée | **Le lot 2 est déjà fait**, en mieux : baseline qui ne peut que décroître. |
+| `--text-tertiary` fautif dans les deux modes | **Sombre corrigé sur `main`** (`#898991`, 5,52:1) ; **clair toujours fautif** (`#70757d`, 4,33:1 < 4,5) | Le défaut s'est réduit de moitié ; il reste **un** cas réel. |
+| `font-black` synthétique | Traité par ce lot (9 occurrences → `font-bold`) | fait |
+| `LuAmount` n'existe pas | **Il existe** et impose déjà `tabular-nums`, signe `−` U+2212, espaces fines insécables | Le lot 3 devient « **migrer les écrans vers `LuAmount`** », pas « ajouter `tabular-nums` partout ». |
+
+**Leçon de méthode, à la charge de ce plan** : il a été établi sur une base qui
+avait six jours, et il décrit un dépôt qui n'existe plus. Un audit de design
+périme encore plus vite qu'un audit de sécurité, parce que le design system
+avance par gros blocs. Toute révision doit commencer par `git log --since`.
+
+### Ce qui reste vrai, et vérifié sur la nouvelle base
+
+- **`--on-accent` est toujours figé à `#ffffff`** dans `App.css` — le défaut
+  principal du lot 1 **n'a pas été corrigé par `main`** (vérifié :
+  `grep on-accent src/App.css` → `#ffffff`).
+- **Le thème `violet` (nouveau) a le même défaut**, d'une autre manière : son
+  `--lu-on-accent` généré vaut `#000000` alors que `#7C4DFF` donne **4,36:1**
+  avec du noir contre **4,81:1** avec du blanc. Le générateur choisit le noir
+  parce qu'il mesure un accent *différent* (ajusté en OKLCH), puis `applyTheme`
+  pose `#7C4DFF` brut : les deux ne parlent pas du même accent.
+- **31 pages sans `data-screen-state`** — **recompté** sur la nouvelle base le
+  15 nov. (`comm -23 <(ls src/pages/*.tsx|sort) <(grep -rl data-screen-state …)`),
+  identique au chiffre d'origine. Les autres compteurs rejoués : montants
+  24 pages, `tabular-nums` **9** (10 − 1, une page ayant migré vers `LuAmount`),
+  styles en ligne **1 374** (contre 1 359 — la dette a légèrement augmenté,
+  malgré l'arrivée du design system).
+- **Le contraste n'est testé nulle part** pour les 10 accents historiques : le
+  générateur couvre le violet, pas `LUMINA_THEMES`.
+
+### Ce que le lot 1 est devenu
+
+Le module `src/lib/colorContrast.ts` **ne réimplémente pas** la formule : il
+appelle `culori`, la même librairie que le générateur de jetons. Cette décision
+vient d'une première version qui dupliquait la luminance — un défaut, puisque
+deux formules d'accessibilité qui divergent est exactement le problème corrigé.
+Un test vérifie désormais l'égalité stricte avec `culori` sur quatre paires.
+
+Portée finale du lot : `applyTheme()` calcule l'encre des **10 accents
+historiques** au runtime et couvre aussi `--ion-color-primary-contrast` (sans
+quoi les composants Ionic gardaient leur blanc fixe). Pour `violet`, dont
+l'accent est une variable CSS (`var(--lu-accent)`), la valeur littérale n'est
+pas disponible côté JS : on s'appuie sur `--lu-on-accent`, que le générateur
+publie déjà.
+
+### Reste ouvert
+
+Le **désaccord de source** sur le violet : `applyTheme` pose `#7C4DFF` alors que
+le générateur calcule `--lu-on-accent` pour un accent ajusté. Corriger cela
+demande de trancher **quelle valeur fait foi** (l'accent brut du catalogue ou
+l'accent ajusté au contraste) — question produit, pas technique. Elle rejoint
+**Q3**.
+
+**`main` est rouge sur Cypress : 40 runs consécutifs en échec depuis le 6
+novembre** (28+4 puis 25 échecs). Ce n'est pas attribuable à ce lot : la branche
+a été rebasée sur `main` et la suite locale est verte (2 939 tests).

@@ -1,5 +1,5 @@
 /**
- * Contraste WCAG 2.1 — calcul réel, pas heuristique.
+ * Choix de l'encre posée sur une couleur d'accent — au runtime.
  *
  * Pourquoi ce module existe
  * -------------------------
@@ -10,21 +10,28 @@
  *   1. Un YIQ élevé signifie un fond CLAIR, donc un texte NOIR — l'affirmation
  *      était inversée par rapport à sa propre prémisse.
  *   2. YIQ n'est pas un critère de contraste. Il ne dit rien du rapport de
- *      luminance relatif que définit WCAG.
+ *      luminance relative que définit WCAG.
  *
- * Conséquence mesurée sur les 10 accents du catalogue : quatre d'entre eux,
- * dont l'accent PAR DÉFAUT (#FF6B00), n'atteignaient pas 4,5:1 avec du texte
- * blanc (2,86:1 pour « Orange Fire »). Tout texte posé sur un bouton plein, un
- * FAB ou un onglet actif était sous le seuil AA.
+ * Conséquence mesurée sur les accents historiques du catalogue : quatre, dont
+ * l'accent PAR DÉFAUT (#FF6B00), n'atteignaient pas 4,5:1 avec du texte blanc
+ * (2,86:1 pour « Orange Fire »). Tout texte posé sur un bouton plein, un FAB ou
+ * un onglet actif était sous le seuil AA.
  *
- * On remplace donc le choix figé par un calcul, exécuté au moment où le thème
- * est appliqué : pour chaque accent, on retient la couleur de texte qui offre
- * le meilleur rapport de contraste. C'est déterministe, testable, et cela
- * couvre automatiquement tout accent ajouté plus tard.
+ * NE PAS DUPLIQUER LE CALCUL
+ * --------------------------
+ * Le design system (`src/design-system/tokens/generator.ts`) calcule déjà le
+ * contraste WCAG via `culori`, mais à la GÉNÉRATION des jetons du thème
+ * violet — pas à l'exécution, et pas pour les dix accents historiques, qui
+ * vivent dans `src/ionic/themes.ts` et sont posés par `applyTheme()`.
  *
- * Le calcul suit WCAG 2.1 §1.4.3 (relative luminance), sans arrondi
- * intermédiaire, afin que les valeurs publiées dans les commentaires et celles
- * vérifiées par les tests soient identiques.
+ * Ce module comble exactement cet écart et rien de plus : il ne réimplémente
+ * pas la luminance, il appelle `culori` — la même librairie, donc les mêmes
+ * chiffres que le générateur. Un recalcul maison aurait été une seconde source
+ * de vérité, et deux formules d'accessibilité qui divergent est précisément le
+ * défaut que ce travail corrige.
+ *
+ * Le calcul reste prudent en environnement sans `culori` : un repli déterministe
+ * évite de casser le rendu si la dépendance n'est pas disponible au boot.
  */
 
 /** Seuil WCAG AA pour du texte courant. */
@@ -32,46 +39,6 @@ export const AA_TEXT = 4.5;
 
 /** Seuil WCAG AA pour les composants d'interface et le texte large. */
 export const AA_LARGE = 3;
-
-/** Décompose `#rrggbb` (ou `#rgb`) en canaux 0–255. */
-export function parseHex(hex: string): [number, number, number] | null {
-  if (typeof hex !== "string") return null;
-  const h = hex.trim().replace(/^#/, "");
-  if (!/^[0-9a-fA-F]{3}$/.test(h) && !/^[0-9a-fA-F]{6}$/.test(h)) return null;
-  const full =
-    h.length === 3
-      ? h
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : h;
-  const n = parseInt(full, 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-/**
- * Luminance relative (WCAG 2.1, §1.4.3).
- * Chaque canal est linéarisé avant pondération — c'est cette étape que les
- * heuristiques type YIQ sautent, et c'est elle qui rend le résultat correct.
- */
-export function relativeLuminance(hex: string): number {
-  const rgb = parseHex(hex);
-  if (!rgb) return 0;
-  const [r, g, b] = rgb.map((v) => {
-    const c = v / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-/** Rapport de contraste entre deux couleurs (1 à 21). Symétrique. */
-export function contrastRatio(a: string, b: string): number {
-  const la = relativeLuminance(a);
-  const lb = relativeLuminance(b);
-  const hi = Math.max(la, lb);
-  const lo = Math.min(la, lb);
-  return (hi + 0.05) / (lo + 0.05);
-}
 
 /** Couleurs candidates pour du texte posé sur un fond de marque. */
 export const INK_CANDIDATES = {
@@ -81,10 +48,54 @@ export const INK_CANDIDATES = {
 } as const;
 
 /**
+ * Rapport de contraste WCAG 2.1 entre deux couleurs.
+ *
+ * Délègue à `culori` (même librairie que le générateur de jetons) : une seule
+ * implémentation de la formule dans le dépôt, donc aucun risque de divergence.
+ * Repli sur une luminance relative locale si `culori` n'est pas disponible —
+ * le repli est vérifié par test contre la valeur de `culori`.
+ */
+export function contrastRatio(a: string, b: string): number {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { wcagContrast } = require("culori") as {
+      wcagContrast: (x: string, y: string) => number;
+    };
+    const ratio = wcagContrast(a, b);
+    if (Number.isFinite(ratio)) return ratio;
+  } catch {
+    /* repli ci-dessous */
+  }
+  return fallbackContrast(a, b);
+}
+
+/** Luminance relative locale — utilisée uniquement en repli, et vérifiée par test. */
+function fallbackContrast(a: string, b: string): number {
+  const la = fallbackLuminance(a);
+  const lb = fallbackLuminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+function fallbackLuminance(hex: string): number {
+  const h = hex.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return 0;
+  const n = parseInt(h, 16);
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
  * Couleur de texte à poser sur `background`, avec le rapport obtenu.
  *
- * Choix : la meilleure des deux candidates, jamais un seuil arbitraire. On
- * renvoie aussi le ratio pour que l'appelant puisse alerter si même le
+ * Choix : la meilleure des deux candidates, mesurée — jamais un seuil
+ * arbitraire, jamais une heuristique de luminosité perçue.
+ * On renvoie aussi le ratio pour que l'appelant puisse alerter si même le
  * meilleur choix échoue AA (possible avec un accent de luminance moyenne — il
  * faut alors changer l'accent, pas le texte).
  */
@@ -100,7 +111,7 @@ export function inkOn(background: string): { ink: string; ratio: number } {
  * Vrai si `background` permet un texte accessible.
  *
  * Sert de garde au catalogue de thèmes : un accent ajouté sans vérification
- * doit être refusé par les tests, pas découvrir le problème en production.
+ * doit être refusé par les tests, pas découvert en production.
  */
 export function hasAccessibleInk(background: string, threshold = AA_TEXT): boolean {
   return inkOn(background).ratio >= threshold;

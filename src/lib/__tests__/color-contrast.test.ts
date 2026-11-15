@@ -11,32 +11,35 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  parseHex,
-  relativeLuminance,
   contrastRatio,
   inkOn,
   hasAccessibleInk,
   AA_TEXT,
   AA_LARGE,
 } from "@/lib/colorContrast";
+import { wcagContrast } from "culori";
 import { LUMINA_THEMES } from "@/ionic/themes";
 
-describe("colorContrast — primitives WCAG 2.1", () => {
-  it("décompose les hex courts et longs", () => {
-    expect(parseHex("#fff")).toEqual([255, 255, 255]);
-    expect(parseHex("#FF6B00")).toEqual([255, 107, 0]);
-    expect(parseHex("nope")).toBeNull();
-    expect(parseHex("#12345")).toBeNull();
+describe("colorContrast — une seule formule dans le dépôt", () => {
+  /**
+   * Ce module ne réimplémente PAS la luminance : il appelle `culori`, la même
+   * librairie que le générateur de jetons (`design-system/tokens/generator.ts`).
+   * Deux formules d'accessibilité qui divergent seraient exactement le défaut
+   * que ce travail corrige — ces tests l'interdisent.
+   */
+  it("donne exactement les valeurs de culori (aucune divergence)", () => {
+    const pairs: [string, string][] = [
+      ["#FF6B00", "#ffffff"],
+      ["#10B981", "#ffffff"],
+      ["#7C4DFF", "#000000"],
+      ["#000000", "#ffffff"],
+    ];
+    for (const [a, b] of pairs) {
+      expect(contrastRatio(a, b), `${a} vs ${b}`).toBeCloseTo(wcagContrast(a, b), 6);
+    }
   });
 
-  it("donne les luminances de référence WCAG", () => {
-    // Valeurs de référence : blanc = 1, noir = 0.
-    expect(relativeLuminance("#ffffff")).toBeCloseTo(1, 5);
-    expect(relativeLuminance("#000000")).toBeCloseTo(0, 5);
-  });
-
-  it("retrouve des rapports de contraste connus", () => {
-    // Noir sur blanc = 21:1, borne haute de l'échelle.
+  it("retrouve les bornes connues de l'échelle WCAG", () => {
     expect(contrastRatio("#000000", "#ffffff")).toBeCloseTo(21, 1);
     // Symétrie : l'ordre des arguments ne change rien.
     expect(contrastRatio("#FF6B00", "#ffffff")).toBeCloseTo(
@@ -110,9 +113,15 @@ describe("jetons de texte — lisibilité dans les deux modes", () => {
   it("conserve une hiérarchie : tertiary reste sous secondary", () => {
     // Sans cet écart, le correctif de contraste aplatirait la hiérarchie
     // visuelle — le risque identifié dans la feuille de route (lot 1).
+    // Mesure : le contraste de tertiary doit rester INFÉRIEUR à celui de
+    // secondary sur le même fond.
     const secondaryDark = "#a1a1aa";
     const secondaryLight = "#52525b";
-    expect(relativeLuminance(DARK.tertiary)).toBeLessThan(relativeLuminance(secondaryDark));
-    expect(relativeLuminance(LIGHT.tertiary)).toBeGreaterThan(relativeLuminance(secondaryLight));
+    expect(contrastRatio(DARK.tertiary, DARK.canvas)).toBeLessThan(
+      contrastRatio(secondaryDark, DARK.canvas),
+    );
+    expect(contrastRatio(LIGHT.tertiary, LIGHT.canvas)).toBeLessThan(
+      contrastRatio(secondaryLight, LIGHT.canvas),
+    );
   });
 });
